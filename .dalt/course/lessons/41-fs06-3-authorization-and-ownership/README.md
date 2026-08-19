@@ -10,26 +10,26 @@ Difficulty: Integration
 Prerequisites: FS06.2 — Users, passwords, sessions and CSRF
 Project milestone: B06 — Multi-user protected system
 Primary source dossier: FSO_PART_04.md
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
-After login, the server knows who sent a request. That is necessary, and it says nothing about
+After login, the server knows who sent a request. That's necessary, and it says nothing about
 whether they may read another workspace, update someone else's issue, or delete a project.
 Authentication answers "who?" Authorization answers "may this known identity perform this action
-on this resource?" They are different questions, and a system that answers only the first is a
+on this resource?" They're different questions, and a system that answers only the first is a
 system where every user can do everything.
 
-The failure mode here is specific and extremely common. It is called broken object-level
-authorization, and it looks like this: the UI hides the Delete button for issues you do not own,
-everyone is satisfied, and then someone sends the DELETE request directly. The button was never
+The failure mode here is specific and extremely common. It's called broken object-level
+authorization, and it looks like this: the UI hides the Delete button for issues you don't own,
+everyone's satisfied, and then someone sends the DELETE request directly. The button was never
 the check. Nothing in a browser is a check — the browser is running on a machine the attacker
 controls, and a hidden control is a suggestion.
 
 The issue tracker becomes genuinely multi-user only when database relationships and application
 checks express the boundary. Workspace membership limits visibility; ownership or a small role
 rule limits mutations. These rules need behavioural tests with **two** identities, because an
-authorization check that has only ever seen one user has not been shown to separate anything.
+authorization check that has only ever seen one user hasn't been shown to separate anything.
 
 ## Before you start
 
@@ -64,6 +64,8 @@ Going deeper in DALT Core — optional:
 
 ## By the end
 
+You should be able to:
+
 - distinguish authentication from authorization, and 401 from 403;
 - model users, workspace membership, issue creator, and a minimal role where needed;
 - derive actor identity on the server instead of trusting request JSON;
@@ -71,6 +73,8 @@ Going deeper in DALT Core — optional:
 - prove a direct HTTP bypass attempt fails with no database effect.
 
 ## Predict before reading
+
+Write answers down before reading on.
 
 1. A user owns an issue but is removed from its workspace. Can they still edit it?
 2. Why is `creatorId` in a POST body not evidence of ownership?
@@ -375,15 +379,41 @@ you are trusting rather than one you have verified.
 
 ## Common mistakes
 
-- Using a submitted `userId`, `creatorId`, or role as an authorization fact.
-- Returning 403 to every failure, including anonymous requests with no identity.
-- Checking only the React UI, or relying on a disabled control.
-- Looking an issue up globally, then forgetting workspace membership.
-- Using `WHERE creator_id = ?` alone when membership is also a rule.
-- Assuming a foreign key proves a user is currently allowed to act.
-- Testing a denied request without CSRF proof, so middleware stops it first.
-- Writing deny tests without the matching allow test, so a total outage looks secure.
-- Asserting the status of a denied mutation without asserting the row is unchanged.
+### Using a submitted `userId`, `creatorId`, or role as an authorization fact
+
+A request body is a proposal from an untrusted program. The client claiming an identity is the same category of mistake as trusting a hidden form field — the actor must come from the session, always.
+
+### Returning 403 to every failure, including anonymous requests with no identity
+
+403 tells a signed-out user that signing in won't help, when it would. Use 401 when there's no identity at all, and 403 only when a real, known actor is denied by policy.
+
+### Checking only the React UI, or relying on a disabled control
+
+Nothing in a browser is a check — it's running on a machine the attacker controls. A hidden Delete button is a suggestion, not a boundary.
+
+### Looking an issue up globally, then forgetting workspace membership
+
+This is the most common shape of broken object-level authorization: the resource exists, the query succeeds, and nothing ever asks whether the requester belongs to its workspace.
+
+### Using `WHERE creator_id = ?` alone when membership is also a rule
+
+A creator who has since left the workspace still matches that clause. Membership and ownership are separate facts, and dropping either one silently reopens the rule the other was supposed to close.
+
+### Assuming a foreign key proves a user is currently allowed to act
+
+A foreign key guarantees `creator_id` names a real user. It says nothing about whether that user is *currently* permitted to act — that's application authorization, not referential integrity.
+
+### Testing a denied request without CSRF proof
+
+A request that dies at CSRF returns 419 and never reaches the authorization code at all. It proves nothing about the rule under test, and it will pass whether that rule exists or not.
+
+### Writing deny tests without the matching allow test
+
+A handler that returns 403 to absolutely everyone passes every deny test perfectly. That's not authorization — it's an outage wearing the same status code.
+
+### Asserting the status of a denied mutation without asserting the row is unchanged
+
+A UI-only implementation is very convincing when a button disappears. Only the unchanged row proves the server actually made the decision.
 
 ## When this goes wrong
 
@@ -402,25 +432,59 @@ nobody made.
 
 ## Exercise
 
-**Goal:** Make workspace and issue rules true at the API boundary.
+### Goal
 
-**Starting state:** Login, logout, `/api/me`, and CSRF-protected mutations work.
+Make workspace and issue rules true at the API boundary.
 
-**Requirements:** Add memberships and issue creators through migrations. Derive the creator from
-the authenticated session on create. Define and document who may read a workspace, create an
-issue, update an issue, and delete an issue. Implement the checks in the application layer, and
-document your 401 / 403 (or deliberate 404) contract.
+### Starting state
 
-**Verification:** With two independently authenticated users, make a direct request for another
-workspace and an owner-only mutation. Assert the chosen denied status *and* that the database row
-is unchanged. Then demonstrate the permitted request for each rule, so that no rule is proven only
-by denial.
+Login, logout, `/api/me`, and CSRF-protected mutations work.
 
-**Mode: tool-run — Pest behavior tests and direct HTTP requests with separate sessions.** The
-platform does not grade this exercise; your server-side tests are its evidence.
+### Requirements
 
-**Hints:** Begin with membership-protected reads before owner-only writes. Keep the lookup and the
-decision near each other. Test a real permitted mutation last, with a valid CSRF token.
+- Add memberships and issue creators through migrations.
+- Derive the creator from the authenticated session on create — never from the request body.
+- Define and document who may read a workspace, create an issue, update an issue, and delete an issue.
+- Implement the checks in the application layer.
+- Document your 401 / 403 (or deliberate 404) contract.
+
+### Constraints
+
+- No authorization decision may live only in React. Every rule must hold against a direct HTTP request.
+- No deny test without its matching allow test.
+- No denied-mutation test without asserting the row is unchanged.
+
+### Verification
+
+**Mode: tool-run — Pest behavior tests and direct HTTP requests with separate sessions.** The platform does not grade this exercise; your server-side tests are its evidence.
+
+With two independently authenticated users, make a direct request for another workspace and an owner-only mutation. Assert the chosen denied status *and* that the database row is unchanged. Then demonstrate the permitted request for each rule, so that no rule is proven only by denial.
+
+### Hints
+
+<details>
+<summary>Hint 1 — build order</summary>
+
+Begin with membership-protected reads before owner-only writes. Reads are the simpler rule, and getting them right first gives you a working pattern to repeat for writes.
+</details>
+
+<details>
+<summary>Hint 2 — keep the lookup and the decision together</summary>
+
+Select the workspace alongside the resource in the same query the handler already needs. A separate lookup is exactly the extra step a tired developer skips.
+</details>
+
+<details>
+<summary>Hint 3 — the CSRF trap in these tests</summary>
+
+Test a real permitted mutation last, with a valid CSRF token attached. A test missing CSRF proof dies at 419 before it ever reaches the authorization code, and proves nothing about the rule you meant to test.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is §1's `workspace_memberships` table and session-derived `creator_id`, §2's ordered check (actor → resource → membership → action rule, stopping at the first failure), and §5's paired tests: a non-member denied, the same request granted after membership, a non-creator member denied a write that membership alone doesn't grant, and the creator's own write succeeding. Every deny case in that set has a matching allow case proving the rule isn't simply "reject everything."
+</details>
 
 ## In the project
 
@@ -429,11 +493,13 @@ may hide controls for clarity, but it must treat 401 and 403 as information from
 than as states it decides for itself.
 
 Part 07 adds routes, an authenticated shell, and frontend tests on top of this backend contract.
-Part 11 may add row-level security as a further boundary — and it is worth saying now that it must
+Part 11 may add row-level security as a further boundary — and it's worth saying now that it must
 never be used as an excuse to remove these checks. Defence in depth means several independent
-boundaries; replacing an application rule with a database rule is not depth, it is relocation.
+boundaries; replacing an application rule with a database rule isn't depth, it's relocation.
 
 ## Closed-book checkpoint
+
+Close the lesson first.
 
 1. What fact distinguishes 401 from 403?
 2. Why must an issue creator come from the session rather than from JSON?
@@ -441,6 +507,17 @@ boundaries; replacing an application rule with a database rule is not depth, it 
 4. Why does a deny test need a matching allow test?
 5. How does a direct HTTP test disprove UI-only authorization?
 6. What does later row-level security add, and what does it not replace?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. Whether an authenticated identity exists at all. 401 means no one has been identified yet; 403 means a real, known actor has been identified and denied by policy.
+2. A request body is a proposal from an untrusted client. Trusting a submitted `creator_id` lets any caller claim to be anyone — the server has to derive the actor from the session it controls, not from a value the client typed.
+3. Workspace membership (can this actor see anything in this workspace at all?) and creator or role (does this specific actor have the right to act on this specific resource?). Both can fail independently.
+4. A handler that returns 403 to absolutely everyone passes every deny test perfectly. Without an allow test proving the permitted case still works, a total outage is indistinguishable from working authorization.
+5. By sending the request directly with curl or a test client, bypassing React and any hidden button entirely — if the server still enforces the rule with no UI involved at all, the UI was never the boundary.
+6. It adds an independent database-level boundary that holds even if application code has a bug. It does not replace the application-layer checks — defence in depth means multiple independent layers, not moving the one check that existed to a different layer.
+</details>
 
 ## Resources
 
@@ -479,3 +556,4 @@ boundaries; replacing an application rule with a database rule is not depth, it 
 - DALT files inspected: `framework/Core/Authenticator.php`; `framework/Core/functions.php`; `framework/Core/Middleware/Auth.php`; `framework/Core/ExceptionHandler.php`; `tests/Unit/AuthenticatorTest.php`
 - Curriculum authority: `CURRICULUM.md` §17 FS06.3
 - Laravel bridge: Laravel policies and gates express comparable rules; authorization here stays an explicit DALT application-layer decision with a behavioural test, so the rule and its proof are both visible.
+- Follow-up pass: 2026-08-19 — verified the quoted `authorize()` helper and `Middleware/Auth.php`'s guest-redirect behaviour against the actual `framework/Core/functions.php` and `Middleware/Auth.php` source word for word, no discrepancies found; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal; light voice pass toward first-person-plural framing to match Parts 00–05

@@ -10,24 +10,24 @@ Difficulty: Integration
 Prerequisites: FS05.3 — CRUD, queries and transaction boundaries  
 Project milestone: B06 — Multi-user protected system  
 Primary source dossier: `FSO_PART_04.md`  
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
-Your issue API worked while you watched it in a browser. That is useful evidence, but it is a
+Our issue API worked while we watched it in a browser. That's useful evidence, but it's a
 narrow sample: one data set, one sequence, and probably one happy path. A backend test is a
 repeatable request through the same route, middleware, handler, validation, query, and response
 boundary a real client uses. It answers a concrete claim: given this request and this known
 database state, did the system produce this HTTP result and this stored effect?
 
-That distinction matters *before* authentication multiplies the paths. Every rule you add in
+That distinction matters *before* authentication multiplies the paths. Every rule we add in
 FS06.2 and FS06.3 — login, sessions, CSRF, membership, ownership — doubles the number of
 situations a handler can be in. Changing code in that state without tests is guesswork, and the
 guess is usually "the part I was looking at is the part that broke."
 
-A test is not proof that the application has no bugs. It is a durable witness for one behaviour.
+A test isn't proof that the application has no bugs. It's a durable witness for one behaviour.
 And a green test that only calls a helper, or checks an implementation detail, can stay green
-while the route is completely broken — which is worse than having no test, because it is
+while the route is completely broken — which is worse than having no test at all, because it's
 actively reassuring.
 
 ## Before you start
@@ -66,6 +66,8 @@ Going deeper in DALT Core — optional:
 
 ## By the end
 
+You should be able to:
+
 - write request-level tests for success, validation, absence, and stored effects;
 - make test data isolated and deterministic;
 - assert status, JSON contract, and database state as separate observations;
@@ -73,6 +75,8 @@ Going deeper in DALT Core — optional:
 - recognise what a behaviour test proves and what it does not.
 
 ## Predict before reading
+
+Write answers down before reading on.
 
 1. Why can a test that calls `createIssue()` pass while `POST /api/issues` is broken?
 2. Which assertion catches a handler returning 201 without writing a row?
@@ -351,15 +355,41 @@ have not yet written the observation that matters.
 
 ## Common mistakes
 
-- Calling a controller function directly and calling the result an API test.
-- Reusing development data, or assuming a fixed id.
-- Asserting a whole JSON string, including changing ids and timestamps.
-- Testing 422 but not proving that invalid input made no write.
-- Asserting only that a request failed, so a 500 counts as correct behaviour.
-- Asserting that a transaction threw, without asserting that nothing was committed.
-- Letting helpers silently create unrelated data that hides a missing relation.
-- Provoking failures by editing production code rather than through a real constraint.
-- Stopping after a focused test and never running the suite that exposes leakage.
+### Calling a controller function directly and calling the result an API test
+
+That skips the route, the middleware, and the JSON boundary — everything a real client actually depends on. A route can be completely broken while every one of these tests stays green.
+
+### Reusing development data, or assuming a fixed id
+
+A test that assumes issue id 1 exists is really asserting its own position in the run order. It passes today and fails the day someone adds a test above it.
+
+### Asserting a whole JSON string, including changing ids and timestamps
+
+Those change for reasons that have nothing to do with the behaviour under test, and a test that fails for irrelevant reasons gets weakened or deleted — the two outcomes a test should never produce.
+
+### Testing 422 but not proving that invalid input made no write
+
+A handler that returns a beautiful 422 *after* inserting the row passes every response assertion. The row-count check is the only line that would catch it.
+
+### Asserting only that a request failed, so a 500 counts as correct behaviour
+
+`not->toBe(200)` is satisfied by a misspelled column name. It documents nothing about what the API is actually supposed to do.
+
+### Asserting that a transaction threw, without asserting that nothing was committed
+
+Catching an exception is not the same as rolling back. A test that only checks the `throw` would pass against both a correct rollback and a silent partial commit.
+
+### Letting helpers silently create unrelated data that hides a missing relation
+
+A fixture helper that creates more than the test asked for can mask a real bug — a query that should have filtered by relation and happened not to, because there was only ever one row to find.
+
+### Provoking failures by editing production code rather than through a real constraint
+
+A test that requires sabotaging the code under test in order to run once is a test nobody will run twice. Provoke the failure through real data instead.
+
+### Stopping after a focused test and never running the suite that exposes leakage
+
+A test that passes alone can still be leaking state into the next one. Running only the test you're working on hides exactly the failure mode isolation is meant to catch.
 
 ## When this goes wrong
 
@@ -377,24 +407,60 @@ become 500, the correct move is to find out why, not to accept both.
 
 ## Exercise
 
-**Goal:** Turn the persistent issue API into a tested public contract.
+### Goal
 
-**Starting state:** B05 has project and issue routes backed by PostgreSQL.
+Turn the persistent issue API into a tested public contract.
 
-**Requirements:** Add request-level tests for create, invalid create, update, delete, project
-relation, and pagination. Each test owns its fixture data. At least one test asserts both the
-response and the database state; the invalid-create test proves no row was written; one test
-pins the response key set; one test proves the two-write transaction rolls back.
+### Starting state
 
-**Verification:** Deliberately break one route and one validation rule. Show that the relevant
-test fails with an assertion that identifies the lost behaviour, restore it, then run
-`php artisan test` successfully.
+B05 has project and issue routes backed by PostgreSQL.
 
-**Mode: tool-run — Pest output and PostgreSQL test-state inspection.** This exercise is not
-automatically graded; the project test suite is the evidence.
+### Requirements
 
-**Hints:** Start with a single POST behaviour. Extract fixture helpers after the second copy.
-Prefer querying by a returned id over matching a title another fixture may also use.
+- Add request-level tests for create, invalid create, update, delete, project relation, and pagination.
+- Each test owns its fixture data.
+- At least one test asserts both the response and the database state.
+- The invalid-create test proves no row was written.
+- One test pins the response key set.
+- One test proves the two-write transaction rolls back.
+
+### Constraints
+
+- No test may depend on a specific row id existing from a previous test.
+- No test database may be the same database development points at.
+- No assertion may match a whole JSON string including a timestamp or generated id.
+
+### Verification
+
+**Mode: tool-run — Pest output and PostgreSQL test-state inspection.** This exercise is not automatically graded; the project test suite is the evidence.
+
+Deliberately break one route and one validation rule. Show that the relevant test fails with an assertion that identifies the lost behaviour, restore it, then run `php artisan test` successfully.
+
+### Hints
+
+<details>
+<summary>Hint 1 — where to start</summary>
+
+Start with a single POST behaviour: valid create, asserting both the response and the row count. Get that one right before writing the rest.
+</details>
+
+<details>
+<summary>Hint 2 — when to extract a helper</summary>
+
+Extract fixture helpers after the second copy, not before. A helper written too early tends to hide the assertion that makes the test meaningful.
+</details>
+
+<details>
+<summary>Hint 3 — avoiding order dependence</summary>
+
+Prefer querying by a returned id over matching a title another fixture may also use. A title match can silently pass against the wrong row.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is §1's three-part create test (response, row count, both writes), §2's negative tests (exact status, field errors, and "nothing was written"), and §3's rollback test that checks row counts after a forced constraint failure rather than only the thrown exception. Each test creates its own fixture data in a `beforeEach` and never assumes a row from a previous test still exists.
+</details>
 
 ## In the project
 
@@ -403,12 +469,14 @@ lesson, update the affected ones deliberately: anonymous mutations should stop s
 identity is required, and a test that has to change is the contract recording a purposeful
 product decision rather than annoying fallout.
 
-That is worth saying plainly, because the temptation in FS06.2 will be to weaken tests until
+That's worth saying plainly, because the temptation in FS06.2 will be to weaken tests until
 they pass. The right move is to read each failure and ask whether the new behaviour is the one
-you intended. If it is, change the test and know why. If it is not, you have found a bug before
-it shipped, which is exactly what you wrote these for.
+we intended. If it is, change the test and know why. If it isn't, we've found a bug before
+it shipped, which is exactly what these tests were written for.
 
 ## Closed-book checkpoint
+
+Close the lesson first.
 
 1. What are the three observations in a request-level create test?
 2. Why is a unique test database or rollback strategy necessary?
@@ -416,6 +484,17 @@ it shipped, which is exactly what you wrote these for.
 4. Why is asserting that a transaction threw insufficient?
 5. When is a controller-unit test insufficient?
 6. What does a passing test not prove?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. The response a client can use (status and body), the durable effect a later request would see (row count and content), and — when relevant — every write a single business fact requires, not just the interesting one.
+2. Because a suite that runs against development data can corrupt it, and a suite that shares rows between tests makes each test's result depend on run order rather than on the behaviour being tested.
+3. Exact 422 plus no inserted row. "Not 200" is satisfied by an unrelated 500 from a misspelled column, which proves nothing about the documented behaviour.
+4. Catching an exception isn't the same as rolling back. A test that only checks the `throw` passes whether the first write was correctly rolled back or silently left committed.
+5. Whenever the thing worth proving lives at or beyond the boundary the unit test skips — the route, the middleware, the JSON decoding, the status code, the envelope. A controller-unit test can be green while all of those are broken.
+6. That the application has no bugs. It's a durable witness for one specific behaviour, and a test that only calls a helper or checks an implementation detail can stay green while the real route is broken.
+</details>
 
 ## Resources
 
@@ -453,3 +532,4 @@ it shipped, which is exactly what you wrote these for.
 - DALT files inspected: `tests/Feature/RequestLifecycleTest.php`; `.dalt/course/fullstack/api-behavior-tests-lab/`; `framework/Core/Database.php`
 - Curriculum authority: `CURRICULUM.md` §17 FS06.1
 - Laravel bridge: Laravel supplies `getJson()` and `assertDatabaseHas()` for these same two observations; writing them explicitly here keeps the response check and the state check visibly separate.
+- Follow-up pass: 2026-08-19 — ran the lab suite (`php vendor/bin/pest .dalt/course/fullstack/api-behavior-tests-lab/tests`, 10/10 passing) and verified its README's sabotage table matches the lesson exactly; confirmed `ApplicationTestClient::request()`'s signature and `tests/Support/run-application.php`'s `$_POST`/`$_GET` population against the actual `tests/Support/` source, no discrepancies; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal; light voice pass toward first-person-plural framing to match Parts 00–05
