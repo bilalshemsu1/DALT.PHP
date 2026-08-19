@@ -10,7 +10,7 @@ Difficulty: Foundation
 Prerequisites: FS02.2 — Modeling application data  
 Project milestone: B02 — Type the future application  
 Primary source dossier: TYPESCRIPT_HANDBOOK.md; FSO_TYPESCRIPT.md  
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
@@ -78,6 +78,33 @@ Two things follow.
 **The check is not overhead.** You would have written `if (value === null)` anyway. Narrowing means the compiler reads it too, so you never need a second, type-level assertion saying the same thing.
 
 **`unknown` is `any` with the honesty left in.** Both accept every value. `any` then lets you do anything with it and reports nothing; `unknown` lets you do nothing until you prove something. That difference is the whole reason `unknown` is the right type for data arriving from outside your program.
+
+## Narrowing is ordinary JavaScript plus a TypeScript consequence
+
+The runtime check is still normal JavaScript. TypeScript adds a useful consequence: it
+remembers what the check proved on each branch.
+
+```ts
+function describeId(id: string | number): string {
+  if (typeof id === 'number') {
+    return \`numeric issue id: \${id}\`;
+  }
+
+  return \`visible issue key: \${id.toUpperCase()}\`;
+}
+```
+
+Before the `if`, `id` may be a string or a number, so string-only operations are not
+safe. Inside the first branch, the check proves `number`. After that branch returns,
+the remaining path is `string`. You did not learn a special TypeScript version of
+`typeof`; you wrote JavaScript evidence and the checker followed it.
+
+Use this order when a union feels confusing:
+
+1. List every possibility in the union.
+2. Choose a runtime fact that separates one possibility.
+3. Put the code that needs that fact inside the matching branch.
+4. Let an early return or an `else` remove the possibility from the remaining path.
 
 ## Evidence changes what TypeScript knows
 
@@ -370,6 +397,27 @@ Answer before revealing the comparison answers.
 
 ## In the project
 
+### DALT connection — request state is a union
+
+When the browser eventually asks DALT for issues, the screen is not simply “data” or
+“not data”. It moves through meaningful states:
+
+```ts
+type RequestState<T> =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; data: T }
+  | { status: 'error'; message: string };
+```
+
+The `status` field is a discriminant. If it is `'success'`, `data` exists; if it is
+`'error'`, `message` exists. That is safer than four unrelated booleans such as
+`isLoading`, `hasData`, `hasError`, and `isIdle`, where contradictory combinations are
+easy to create.
+
+This lesson only models the state. Part 04 will connect it to actual HTTP and DALT
+responses; FS02.5 explains why the response must be parsed before it becomes `data`.
+
 Discriminated unions are how **B02** models anything with alternatives, and the pattern recurs constantly after that: request state in Part 04 (`idle | loading | success | error` — not three booleans), authentication state in Part 06, and every operation that can succeed or fail with a reason.
 
 `unknown` matters even more. It is the type every value crossing into your program should start as, and FS02.5 turns that from a principle into a routine. When Part 04 receives a JSON body from DALT, `unknown` is the honest starting point and narrowing is the road out of it.
@@ -408,7 +456,7 @@ FS02.4 and FS02.5 remain unavailable until this lesson is complete.
 - Source dossier: `docs/dalt-fullstack/sources/TYPESCRIPT_HANDBOOK.md`; `docs/dalt-fullstack/sources/FSO_TYPESCRIPT.md`
 - Official sources: TypeScript Handbook — Narrowing (typeof guards, truthiness, equality, type predicates, discriminated unions, exhaustiveness with `never`), `unknown`
 - Versions: TypeScript 5.9.3, Node 25 (CR-08 pinned toolchain)
-- Consulted: 2026-08-14
+- Consulted: 2026-08-19
 - DALT files inspected: `.dalt/course/fullstack/typescript-narrowing-lab/starter/**`
 - Curriculum authority: `CURRICULUM.md` §12 FS02.3 — the important exercise is making contradictory state unrepresentable
 - Laravel bridge: not applicable — control-flow narrowing has no DALT or Laravel counterpart

@@ -10,7 +10,7 @@ Difficulty: Foundation
 Prerequisites: FS02.3 — Unions, narrowing and unknown  
 Project milestone: B02 — Type the future application  
 Primary source dossier: TYPESCRIPT_HANDBOOK.md; FSO_TYPESCRIPT.md  
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
@@ -74,6 +74,41 @@ generic        <T>(items: T[]) => T
 The test for whether you need one: **is there a connection between two positions that would be lost if you wrote the concrete type?** If input and output types move together, that is a relationship — use a parameter. If the function only ever handles issues, the relationship is "it is an issue", and the honest way to say that is `Issue`.
 
 Constraints are the same idea narrowed. `<T extends { id: string }>` says "any type, provided it has an id" — it buys you access to `.id` inside the body while keeping the caller's exact type on the way out. Constrain to the capability you use; anything more is a restriction you never needed.
+
+## Begin with concrete code, then preserve a real relationship
+
+The JavaScript version does not promise anything about the item it returns:
+
+```js
+function first(items) {
+  return items[0];
+}
+```
+
+If the array contains issues, you know the result is probably an issue by convention.
+TypeScript can make that convention explicit:
+
+```ts
+function firstIssue(items: Issue[]): Issue | undefined {
+  return items[0];
+}
+```
+
+That concrete function is honest when it only handles issues. A generic becomes useful
+when the same relationship should work for many item types:
+
+```ts
+function first<T>(items: T[]): T | undefined {
+  return items[0];
+}
+
+const firstIssue = first(issues); // Issue | undefined
+const firstName = first(names);   // string | undefined
+```
+
+The `<T>` is not decoration. It remembers the caller's element type and carries it to
+the result. For a beginner, this rule is enough: **write the concrete version first;
+make it generic only when you can point to the relationship being preserved.**
 
 ## Preserve a relationship on purpose
 
@@ -444,6 +479,28 @@ Answer before revealing the comparison answers.
 
 ## In the project
 
+### DALT connection — reusable frontend contracts, separate backend code
+
+The browser will eventually work with several issue-shaped values: a full issue, a
+small list summary, and a form draft. Utility types can express a relationship without
+copying every field:
+
+```ts
+type Issue = {
+  id: number;
+  title: string;
+  status: 'backlog' | 'todo' | 'in_progress' | 'done';
+};
+
+type IssueDraft = Omit<Issue, 'id'>;
+type IssuePatch = Partial<IssueDraft>;
+```
+
+These types help TypeScript code in the browser stay consistent. They do not generate
+PHP classes, database columns, or HTTP validation. DALT still validates the request on
+the server, and FS05 will make the database rules explicit. The useful relationship is
+between frontend values—not a promise that two languages share one type definition.
+
 The reusable container you build here — a `RequestState<T>` or equivalent — is the shape **B02** declares and Part 04 fills in for real. It is also your first sight of a pattern that dominates the rest of the course: one type describing "an operation over some payload", narrowed at the point of use.
 
 Everything ahead is an instance of it. `useState<Issue[]>` in FS03.2 is a generic call. Part 04's fetch helper preserves the relationship between what you asked for and what you get back. Part 08's TanStack Query result types are the same idea with more surface. None of it is React magic — it is this lesson's `<T>`, which is worth knowing before a library hands it to you pre-assembled.
@@ -484,7 +541,7 @@ FS02.5 remains unavailable until this lesson is complete. It addresses separatel
 - Source dossier: `docs/dalt-fullstack/sources/TYPESCRIPT_HANDBOOK.md`; `docs/dalt-fullstack/sources/FSO_TYPESCRIPT.md`
 - Official sources: TypeScript Handbook — More on Functions, Generics (including Generic Constraints), Utility Types, Keyof Type Operator, Indexed Access Types
 - Versions: TypeScript 5.9.3, Node 25 (CR-08 pinned toolchain)
-- Consulted: 2026-08-14
+- Consulted: 2026-08-19
 - DALT files inspected: `.dalt/course/fullstack/typescript-functions-lab/starter/**`
 - Curriculum authority: `CURRICULUM.md` §12 FS02.4 — the boundary is reusable relationships, not advanced type-level programming (`VISION_AND_SCOPE.md` §19)
 - Laravel bridge: not applicable — generics have no DALT or Laravel counterpart

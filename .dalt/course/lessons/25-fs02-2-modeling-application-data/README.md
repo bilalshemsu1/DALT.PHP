@@ -10,7 +10,7 @@ Difficulty: Foundation
 Prerequisites: FS02.1 — The TypeScript mental model  
 Project milestone: B02 — Type the future application  
 Primary source dossier: TYPESCRIPT_HANDBOOK.md; FSO_TYPESCRIPT.md  
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
@@ -30,6 +30,8 @@ Required:
 Recommended first:
 
 - Have FS02.1's two-column model in mind. Everything here is still source-level; nothing you write today validates a runtime value.
+- If `type`, `interface`, or `readonly` is new vocabulary, do not memorize a rule
+  list. Start with the question: **which values should this application allow?**
 
 Going deeper in DALT Core — optional:
 
@@ -78,6 +80,44 @@ nullable     the property is there, value null   ← "we know: nobody"
 ```
 
 "Absent" and "explicitly nothing" are different facts. Conflating them produces APIs where you cannot tell "not loaded" from "empty", which becomes a real bug the first time a partial update is sent in Part 05.
+
+## Translate one JavaScript object into a contract
+
+You already know how to create an object in JavaScript:
+
+```js
+const draft = {
+  title: 'Fix search',
+  priority: 'high',
+};
+```
+
+The object has values now. A TypeScript type describes the shape other code may rely
+on:
+
+```ts
+type IssueDraft = {
+  title: string;
+  priority: 'low' | 'medium' | 'high';
+};
+
+const draft: IssueDraft = {
+  title: 'Fix search',
+  priority: 'high',
+};
+```
+
+The type does not create `draft`, fill in a missing property, or validate JSON. It is a
+contract for code the checker can see. If a later value comes from a form or DALT, it
+must still be treated as runtime data and checked at that boundary. That distinction
+is why this lesson models the application's decisions now, while FS02.5 teaches how
+to earn trust in values that arrive later.
+
+When choosing a type, ask these three beginner questions in order:
+
+1. What does this value mean in the domain?
+2. Which states are actually valid?
+3. Which of those states can the current code prove?
 
 ## Start with a model, not syntax
 
@@ -432,6 +472,35 @@ Close the lesson, then answer before revealing the comparison answers.
 
 ## In the project
 
+### DALT connection — the same decision appears in JSON
+
+The issue tracker will eventually have a DALT response shaped roughly like this:
+
+```json
+{
+  "id": 17,
+  "title": "Fix search",
+  "status": "in_progress",
+  "assignee": null
+}
+```
+
+The frontend model might say:
+
+```ts
+type Issue = {
+  id: number;
+  title: string;
+  status: 'backlog' | 'todo' | 'in_progress' | 'done';
+  assignee: { id: number; name: string } | null;
+};
+```
+
+This is a useful shared conversation about the domain, but it is not shared executable
+code. The PHP endpoint and the browser each have their own implementation and their
+own validation. The TypeScript model helps the browser describe what it expects; it
+does not prove that the JSON is honest. FS02.5 handles that proof question later.
+
 This model *is* **B02 — Type the future application**, and it does not stop there. The `Issue`, `Project` and `UserSummary` shapes you settle here become FS03.1's component props, Part 04's request and response bodies, and Part 05's table columns — where a finite union turns into a `CHECK` constraint or an enum, and a nullable column stops being a matter of opinion.
 
 That is why Part 02 sits before React. You should not be learning object modelling and React props at the same time, and you should not be discovering in Part 05 that your model was never decided.
@@ -471,7 +540,7 @@ FS02.3 remains unavailable until this lesson is complete. It deepens reasoning a
 - Source dossier: `docs/dalt-fullstack/sources/TYPESCRIPT_HANDBOOK.md`; `docs/dalt-fullstack/sources/FSO_TYPESCRIPT.md`
 - Official sources: TypeScript Handbook — Everyday Types, Object Types, Literal Types, type aliases versus interfaces; `tsconfig` reference for `exactOptionalPropertyTypes`
 - Versions: TypeScript 5.9.3, Node 25 (CR-08 pinned toolchain)
-- Consulted: 2026-08-14
+- Consulted: 2026-08-19
 - DALT files inspected: `.dalt/course/fullstack/typescript-modeling-lab/starter/**`
 - Curriculum authority: `CURRICULUM.md` §12 FS02.2 — project-shaped types, learning target is deciding valid application states
 - Laravel bridge: deferred to Part 05, where the same model appears as columns and constraints

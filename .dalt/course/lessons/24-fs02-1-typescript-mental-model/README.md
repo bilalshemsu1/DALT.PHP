@@ -10,7 +10,7 @@ Difficulty: Foundation
 Prerequisites: B01 / Part 01 complete  
 Project milestone: B02 — Type the future application  
 Primary source dossier: TYPESCRIPT_HANDBOOK.md; FSO_TYPESCRIPT.md  
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
@@ -31,6 +31,17 @@ Required:
 Recommended first:
 
 - Nothing. This lesson assumes no TypeScript.
+- You should be comfortable with `const`, objects, functions, parameters, and return
+  values in JavaScript. We will add TypeScript one small claim at a time.
+
+If the vocabulary is new, keep this translation nearby:
+
+```text
+value       something the program can use at runtime
+type        a description the checker uses before runtime
+annotation  an explicit type written beside a value or function
+inference   a type the checker works out from the code
+```
 
 Going deeper in DALT Core — optional:
 
@@ -74,6 +85,45 @@ reports disagreements            behaves, or fails
 The checker never runs your program, and your program never consults your types. They do not meet. Everything TypeScript proves is a statement about **the source you showed it**; everything that goes wrong at runtime is about **values it never saw**.
 
 Hold that separation deliberately. Most confusion about TypeScript — including most misuse of `as` — comes from quietly imagining the two columns are one.
+
+## TypeScript is JavaScript with a checking phase
+
+You do not need to learn a new runtime language. TypeScript starts with JavaScript and
+adds information for a checker to read before the JavaScript runs.
+
+Start with a JavaScript function you already know how to read:
+
+```js
+function issueLabel(issue) {
+  return issue.title.toUpperCase();
+}
+
+issueLabel({ title: 'Fix search' });
+```
+
+The JavaScript accepts any value at the call site. A TypeScript version makes one
+assumption visible:
+
+```ts
+type HasTitle = { title: string };
+
+function issueLabel(issue: HasTitle): string {
+  return issue.title.toUpperCase();
+}
+
+issueLabel({ title: 'Fix search' });
+// issueLabel({ title: 404 }); // the checker rejects this call
+```
+
+Read the punctuation slowly. `issue: HasTitle` describes the parameter. `: string`
+describes the result. Neither colon converts a value, checks a server response, or
+changes what JavaScript can receive at runtime. The declarations give the checker a
+relationship to compare before execution.
+
+That is the beginner-sized definition of TypeScript for this course:
+
+> **JavaScript runs the program. TypeScript checks useful relationships before the
+> program runs.**
 
 ## Start with a JavaScript surprise
 
@@ -402,6 +452,25 @@ Close the source and answer these from memory before opening the comparison answ
 
 ## In the project
 
+### DALT connection — a future JSON contract
+
+Later, a DALT/PHP endpoint will return JSON describing an issue. A TypeScript type can
+document what the browser expects:
+
+```ts
+type Issue = {
+  id: number;
+  title: string;
+  status: 'backlog' | 'todo' | 'in_progress' | 'done';
+};
+```
+
+That type does not travel across HTTP to PHP, and PHP cannot see it. It only helps the
+browser code reason about values created inside the TypeScript project. Whether an
+actual response has this shape is the runtime-boundary problem in FS02.5 and Part 04.
+
+For now, use the type to understand the idea. Do not build an API client yet.
+
 This is the foundation of **B02 — Type the future application**, and of every typed line after it. Nothing is written here; what carries forward is the two-column model.
 
 It is also the reason Part 02 spends five lessons before React. FS03.1 types a component's props on day one, and a learner who thinks a typed prop validates a server response will build Part 04 on a false assumption. The boundary you set up here is the one Part 04 and Part 05 keep testing.
@@ -442,7 +511,7 @@ FS02.2 remains unavailable until this lesson is complete. You have established t
 - Source dossier: `docs/dalt-fullstack/sources/TYPESCRIPT_HANDBOOK.md`; `docs/dalt-fullstack/sources/FSO_TYPESCRIPT.md`
 - Official sources: TypeScript Handbook — The Basics, Everyday Types, Type Compatibility, type-only imports; `tsconfig` reference for `strict`
 - Versions: TypeScript 5.9.3, Node 25 (CR-08 pinned toolchain)
-- Consulted: 2026-08-14
+- Consulted: 2026-08-19
 - DALT files inspected: `.dalt/course/fullstack/typescript-lab/starter/**`
 - Curriculum authority: `CURRICULUM.md` §12 FS02.1 — the central principle is that a green check is not a runtime guarantee
 - Laravel bridge: not applicable — no DALT or Laravel primitive corresponds to static typechecking

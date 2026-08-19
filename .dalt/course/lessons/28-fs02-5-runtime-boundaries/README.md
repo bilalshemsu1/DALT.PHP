@@ -10,7 +10,7 @@ Difficulty: Foundation
 Prerequisites: FS02.4 — Functions, generics and reusable types
 Project milestone: B02 — Type the future application
 Primary source dossier: TYPESCRIPT_HANDBOOK.md; FSO_TYPESCRIPT.md
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
@@ -31,6 +31,8 @@ Recommended first:
 
 - FS02.3's `unknown` and type-guard material. This lesson is that idea taken seriously.
 - FS01.2's fetch sequence — the place the untrusted value actually arrives.
+- Do not worry about learning a validation library yet. This lesson uses ordinary
+  JavaScript checks first so the trust decision is visible.
 
 Going deeper in DALT Core — optional:
 
@@ -77,6 +79,45 @@ Question 3 is the one that decides whether your guards are evidence or decoratio
 ```
 
 The rule, stated once: **`as` is a claim; a check is evidence.** `as` does not inspect the value, does not run at runtime, and does not appear in the emitted JavaScript — FS02.1's erasure, arriving where it costs something. When you write `as Issue`, you take personal responsibility for a fact nothing verified.
+
+## The DALT boundary in plain language
+
+Imagine DALT/PHP sends this response:
+
+```json
+{
+  "id": 17,
+  "title": "Fix search",
+  "status": "in_progress"
+}
+```
+
+The browser receives runtime data. It does not receive the TypeScript declaration that
+describes an `Issue`, and PHP cannot inspect the browser's TypeScript source. The two
+sides meet through HTTP and JSON:
+
+```text
+DALT/PHP creates a response
+        ↓
+HTTP carries bytes
+        ↓
+the browser parses JSON
+        ↓
+TypeScript code proves the shape it needs
+        ↓
+the React application may use the trusted value
+```
+
+There are two separate responsibilities:
+
+- **Frontend parsing** protects the browser from making false assumptions about the
+  response it received.
+- **DALT validation and authorization** protect the application and database from
+  requests sent by an untrusted browser.
+
+Adding `as Issue` only skips the first responsibility. It never performs either one.
+The real DALT request and response will arrive in Part 04; this lesson gives you the
+reasoning you will need when it does.
 
 The alternative is not more types. It is a small amount of ordinary JavaScript, run at the boundary, once — after which the value is genuinely an `Issue` and everything downstream can rely on the model you built in FS02.2.
 
@@ -486,7 +527,7 @@ Two distrust layers, two different jobs. Knowing which is which is the point of 
 - Source dossier: `docs/dalt-fullstack/sources/TYPESCRIPT_HANDBOOK.md`; `docs/dalt-fullstack/sources/FSO_TYPESCRIPT.md`
 - Official sources: TypeScript Handbook — Narrowing (type predicates), Type Assertions, `unknown`; MDN — `Response.json()`, `JSON.parse()`
 - Versions: TypeScript 5.9.3, Node 25 (CR-08 pinned toolchain)
-- Consulted: 2026-08-14
+- Consulted: 2026-08-19
 - DALT files inspected: `.dalt/course/fullstack/typescript-runtime-boundaries-lab/starter/**`
 - Curriculum authority: `CURRICULUM.md` §12 FS02.5 — recorded as a load-bearing lesson; the required outcome is that external data is untrusted until proven
 - Laravel bridge: deferred to Part 05, where server-side validation is the honest comparison
