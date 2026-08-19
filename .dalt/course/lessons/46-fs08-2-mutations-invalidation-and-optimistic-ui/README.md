@@ -10,20 +10,21 @@ Difficulty: Integration
 Prerequisites: FS08.1 — Client state versus server state
 Project milestone: B08 — Intentional state architecture
 Primary source dossier: FSO_PART_06.md
-Last reviewed: 2026-08-15
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
-A query answers “what remote fact should this screen render?” A mutation answers “what request
-changes remote fact, and how does every affected screen become truthful afterward?” Without that
+A query answers "what remote fact should this screen render?" A mutation answers "what request
+changes a remote fact, and how does every affected screen become truthful afterward?" Without that
 boundary, each submit handler grows its own pending flag, error branch, list patch, and refetch
-sequence. It may look correct on the current page while a detail screen, counter, or another tab
-quietly remains stale.
+sequence. It can look correct on the current page while a detail screen, a counter, or another tab
+quietly stays stale.
 
-The server remains the writer of record. A successful PATCH may normalize data, reject a now-invalid
-transition, add timestamps, or apply authorization that the browser could not know. The client can
-make an interaction feel immediate, but it needs a recovery story. Invalidation is the dependable
-default: mark the relevant query snapshots stale and let their query functions obtain the answer.
+The server remains the writer of record. A successful PATCH may normalize data, reject a
+now-invalid transition, add timestamps, or apply authorization the browser couldn't have known
+about. The client can make an interaction feel immediate, but it needs a recovery story too.
+Invalidation is the dependable default: mark the relevant query snapshots stale and let their
+query functions go get the real answer.
 
 ## Before you start
 
@@ -43,6 +44,8 @@ Going deeper in DALT Core — optional:
 
 ## By the end
 
+You should be able to:
+
 - define a mutation function that returns server-confirmed data;
 - distinguish mutation pending, error, and success from query state;
 - invalidate exactly the query keys a write can change;
@@ -50,6 +53,8 @@ Going deeper in DALT Core — optional:
 - reason about stale responses and concurrent writes without promising impossible certainty.
 
 ## Predict before reading
+
+Write answers down before reading on.
 
 1. After closing issue 12, which cached screens might now be wrong?
 2. Is a button click evidence that the database changed?
@@ -425,25 +430,45 @@ retried, and your test spends its timeout budget failing three times before repo
 
 ## Common mistakes
 
-- Invalidating everything with a bare `invalidateQueries()` after every write. It works,
-  which is why it survives, and it refetches screens nobody is looking at.
-- Invalidating too narrowly and forgetting the list the changed row belongs to, so the
-  detail updates and the list behind it does not.
-- Patching the cache by hand with `setQueryData` *instead of* invalidating, rather than as
-  an optimistic step that still settles with an invalidation.
-- Returning nothing from `onMutate`, so `onError` has no snapshot to restore and the
-  rollback silently does nothing.
-- Forgetting `cancelQueries` in `onMutate`, so an in-flight refetch lands after the
-  optimistic patch and overwrites it with pre-write data.
-- Rolling back on error but not invalidating on settle, leaving a cache that is right by
-  luck until the next write.
-- A single `isPending` shared by every row, so clicking one issue disables the whole list.
-- Optimistically creating a row with a temporary id and never reconciling it, producing a
-  duplicate when the real record arrives.
-- Treating any mutation error as a validation message and rendering an HTTP 403 next to a
-  text input as though the user typed something wrong.
-- Testing that the mutation function was called and stopping there, which proves the click
-  wiring and nothing about what the person ends up seeing.
+### Invalidating everything with a bare `invalidateQueries()` after every write
+
+It works, which is why it survives, and it refetches screens nobody is even looking at. Name the keys the write actually affects.
+
+### Invalidating too narrowly
+
+Forgetting the list the changed row belongs to means the detail updates and the list behind it doesn't — a screen that agrees with itself and disagrees with its own list view.
+
+### Patching the cache by hand with `setQueryData` instead of invalidating
+
+`setQueryData` as a replacement for invalidation, rather than an optimistic step that still settles with one, leaves the cache right only by luck — until the server's actual response would have said something different.
+
+### Returning nothing from `onMutate`
+
+`onError` then has no snapshot to restore, and the rollback silently does nothing — a rollback that was never actually wired up, discovered only when someone needs it.
+
+### Forgetting `cancelQueries` in `onMutate`
+
+An in-flight refetch can land after the optimistic patch and overwrite it with pre-write data — the flicker-back-to-old-value bug that happens roughly one time in twenty and looks unreproducible.
+
+### Rolling back on error but not invalidating on settle
+
+That leaves a cache that's right by luck until the next write, because a failed request may still have reached the server — the rollback restores what you *believed*, not what's actually true.
+
+### A single `isPending` shared by every row
+
+Clicking one issue disables the whole list. Scope pending state to the specific interaction it belongs to.
+
+### Optimistically creating a row with a temporary id and never reconciling it
+
+A duplicate appears the moment the real record arrives with its real id, because nothing ever removed the placeholder.
+
+### Treating any mutation error as a validation message
+
+Rendering an HTTP 403 next to a text input, as though the user typed something wrong, tells them to fix input that was never the problem.
+
+### Testing that the mutation function was called and stopping there
+
+That proves the click wiring and nothing about what the person actually ends up seeing on screen — the claim a test is supposed to make.
 
 ## When this goes wrong
 
@@ -462,30 +487,69 @@ function saveIssue(input: IssueInput) {
 
 ## Exercise
 
-**Goal:** Make one real issue mutation synchronize its remote representations deliberately.
+### Goal
 
-**Starting state:** An issue list or detail query is working from FS08.1.
+Make one real issue mutation synchronize its remote representations deliberately.
 
-**Requirements:** Add a mutation function at the API boundary, a pending control, a visible error,
-and targeted invalidation. Choose one interaction for optimism only if you can write its rollback
-and settlement path; otherwise record why confirmed invalidation is the better choice.
+### Starting state
 
-**Verification:** Observe the control while pending, force a server failure, check list and detail
-screens after success, and run the existing API authorization tests along with frontend tests.
+An issue list or detail query is working from FS08.1.
+
+### Requirements
+
+- Add a mutation function at the API boundary.
+- Add a pending control and a visible error.
+- Add targeted invalidation for every representation the write can change.
+- Choose one interaction for optimism only if you can write its rollback and settlement path; otherwise record why confirmed invalidation is the better choice for it.
+
+### Constraints
+
+- No blanket `invalidateQueries()` with no key — name what the write actually affects.
+- No optimistic update without a snapshot in `onMutate` and a restore in `onError`.
+- No mutation error rendered as a generic sentence when the API distinguished the reason.
+
+### Verification
 
 **Mode: tool-run — browser/network evidence plus `php artisan test`, `npm run typecheck`, `npm run lint`, and `npm run test`.** The platform does not verify this architecture; successful and failed requests are the evidence.
 
-**Hints:** Begin with status, not creation. List affected query keys on paper before coding. Let the
-server response define success, then add optimism only after the confirmed path is correct.
+Observe the control while pending, force a server failure, check list and detail screens after success, and run the existing API authorization tests along with frontend tests.
+
+### Hints
+
+<details>
+<summary>Hint 1 — where to start</summary>
+
+Begin with a status change, not issue creation. A toggle is reversible and frequent — the easiest case to get both the confirmed path and, later, optimism right.
+</details>
+
+<details>
+<summary>Hint 2 — plan invalidation before coding</summary>
+
+List the affected query keys on paper before writing the mutation. If you can't name every representation a write touches, invalidation can't be targeted correctly.
+</details>
+
+<details>
+<summary>Hint 3 — earn optimism, don't default to it</summary>
+
+Let the server response define success first. Add optimism only after the confirmed path is correct, and only for the one interaction where you can answer all four questions from "Deciding whether optimism is worth it."
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is the `changeIssueStatus` mutation function from the mental model section, invalidation in `onSettled` (not `onSuccess`) from "Four callbacks, and one that will not fire," and — if you chose optimism — the full `onMutate`/`onError`/`onSettled` sequence assembled in "Optimism is a trade, not a default," including `cancelQueries`. The proof isn't the happy path succeeding; it's the rollback test from "Testing a mutation" actually restoring the previous value after a forced failure.
+</details>
 
 ## In the project
 
 B08 uses real issue creation, edit, status, and comment actions to make synchronization visible.
-One optimistic status interaction is sufficient. The application does not need labels, assignees,
+One optimistic status interaction is enough. The application doesn't need labels, assignees,
 or a global store merely to demonstrate a library. FS08.3 returns to client-only coordination and
-compares Context, reducers, and Zustand without moving remote data out of the query cache.
+compares Context, reducers, and Zustand — without moving remote data out of the query cache.
 
 ## Closed-book checkpoint
+
+Close the lesson first.
 
 1. What does invalidation do, and what does it not promise?
 2. Why does a mutation need its own pending state?
@@ -496,6 +560,20 @@ compares Context, reducers, and Zustand without moving remote data out of the qu
 7. Why does `cancelQueries` belong in `onMutate`, and what breaks roughly one time in twenty without it?
 8. Name two HTTP failures that must not be rendered as a validation message beside a field.
 9. A write times out with no response. What is the only honest thing the client can do?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. It marks matching cache snapshots stale so they refetch when next needed. It does not itself update the cache with new data — it only asks the query function to check again.
+2. A read and a write on the same screen are different facts. A detail query can be perfectly successful while a status-change button is separately pending, failed, or retrying, and conflating them hides which one actually broke.
+3. Its own detail entry, and every list it appears in — commonly both an "open" and a "closed" filter view, since a status change can move the row between them.
+4. A snapshot of the value before the change, returned from `onMutate` so `onError` has something concrete to restore.
+5. Because a failed write can still have reached the server — invalidating asks what's actually true now, rather than trusting a rollback that only restores what you *believed* before the request.
+6. Callbacks passed to `useMutation` itself (hook-level) still run after unmount, because they're tied to the mutation's lifecycle. Callbacks passed to the `mutate()` call (call-level) are skipped if the component has already unmounted.
+7. Without it, a refetch already in flight when the mutation starts can resolve *after* the optimistic patch and silently overwrite it with pre-write data — a flicker back to the old value that happens intermittently and looks unreproducible.
+8. 401 (session gone) and 403 (not permitted) — neither is about what the user typed, and rendering either beside a form field tells them to fix input that was never the problem.
+9. Ask the server what actually happened, via invalidation — a lost response doesn't mean the write didn't reach the database, only that the client never found out either way.
+</details>
 
 ## Resources
 
@@ -532,3 +610,5 @@ Versions: React 19.2.3; TypeScript 5.9.3; TanStack Query 5.101.4.
 Consulted: 2026-08-15.
 
 Curriculum authority: `CURRICULUM.md` §19, FS08.2; `PROJECT_BLUEPRINT.md` §§47 and 50.
+
+Follow-up pass: 2026-08-19 — verified the hook-level-vs-call-level mutation callback lifecycle claim (call-level callbacks are skipped on unmount, hook-level callbacks are not) against the current TanStack Query mutations guide, matched exactly; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal; light voice pass toward first-person-plural framing to match Parts 00–07. No content rewrite needed — already at the course's strongest tier for precision and code density.

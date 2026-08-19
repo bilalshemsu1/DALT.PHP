@@ -10,21 +10,21 @@ Difficulty: Advanced
 Prerequisites: FS07.3 — Test frontend behavior
 Project milestone: B08 — Intentional state architecture
 Primary source dossier: FSO_PART_06.md
-Last reviewed: 2026-08-15
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
 Manual `useEffect` fetching was the right low-level experience in Part 04. It exposed loading,
-failure, cancellation, stale displays, and the fact that an HTTP response is not automatically
-part of React state. It becomes costly when several routes need the same issue, when navigation
-returns to a screen, or when a successful write must make several displays truthful again. Copying
-an effect into every component creates several accidental caches with no shared policy.
+failure, cancellation, stale displays, and the fact that an HTTP response isn't automatically
+part of React state. It gets costly when several routes need the same issue, when navigation
+returns to a screen, or when a successful write has to make several displays truthful again.
+Copying an effect into every component creates several accidental caches with no shared policy.
 
 An issue list, issue detail, comments, workspace membership, and current-user response are remote
-facts. The browser can retain a recent answer, but it does not own the answer. A dialog being open,
+facts. The browser can retain a recent answer, but it doesn't own the answer. A dialog being open,
 a draft title, and a selected display density are client concerns. A status filter already encoded
-in the address is URL state. Classification comes before a library: it tells you who may change a
-value and what must happen when it is stale.
+in the address is URL state. Classification comes before a library: it tells us who may change a
+value and what has to happen when it goes stale.
 
 ## Before you start
 
@@ -49,6 +49,8 @@ Going deeper in DALT Core — optional:
 
 ## By the end
 
+You should be able to:
+
 - classify URL, local client, derived, and server state by authority;
 - configure one QueryClient for the React application;
 - write stable query keys and query functions at the API boundary;
@@ -56,6 +58,8 @@ Going deeper in DALT Core — optional:
 - explain cache freshness without treating cached data as authorization.
 
 ## Predict before reading
+
+Write answers down before reading on.
 
 1. If an issue title changes in another tab, which copy is authoritative?
 2. Should an open compose dialog survive a full browser refresh?
@@ -387,25 +391,45 @@ failed request               → error state, not “no issues”
 
 ## Common mistakes
 
-- Putting everything behind a query because it worked for the issue list. A form draft in a
-  cache keyed by nothing is harder to reason about than `useState`, not easier.
-- Leaving a request input out of the key, so two filters share one cache entry and the
-  screen shows the previous filter's results.
-- Building the key inline in each component, so `['issues', id]` and `['issue', id]` drift
-  apart and silently address different entries. Use a key factory.
-- Storing query data into `useState` in an effect, which recreates by hand every problem
-  the library was adopted to solve, and adds a render.
-- Catching an API error inside the query function and returning `[]`, which converts a
-  failure into a successful empty result and makes the error state unreachable.
-- Treating `isPending` as "no data" — on a background refetch there is data *and* a request
-  in flight, and blanking the screen for it is a visible regression from Part 04.
-- Setting `staleTime: Infinity` to stop unwanted refetching, which fixes the noise by
-  guaranteeing the data is wrong.
-- Creating the `QueryClient` inside a component, so every render discards the whole cache.
-- Forgetting `queryClient.clear()` on logout and leaving one user's data on screen for the
-  next one.
-- Believing a cached answer means the user is still allowed to see it. Only the server
-  knows that, and only at the moment it is asked.
+### Putting everything behind a query because it worked for the issue list
+
+A form draft in a cache keyed by nothing is harder to reason about than `useState`, not easier. A query key is an address for a *remote* fact; a draft has no remote address to point at.
+
+### Leaving a request input out of the key
+
+Two filters end up sharing one cache entry, and the screen shows the previous filter's results under the new filter's label — silently, with no error to notice.
+
+### Building the key inline in each component
+
+`['issues', id]` in one file and `['issue', id]` in another drift apart and silently address different cache entries. A key factory makes that impossible instead of merely unlikely.
+
+### Storing query data into `useState` in an effect
+
+That recreates by hand every problem the library was adopted to solve — stale closures, a missing dependency, a second copy of the truth — and adds an extra render on top.
+
+### Catching an API error inside the query function and returning `[]`
+
+That converts a failure into a successful empty result. The error state becomes unreachable, and "no issues" and "couldn't reach the server" render as the exact same screen.
+
+### Treating `isPending` as "no data"
+
+On a background refetch there is data *and* a request in flight at the same time. Blanking the screen for that combination is a visible regression from the loading discipline Part 04 already established.
+
+### Setting `staleTime: Infinity` to stop unwanted refetching
+
+That fixes the noise by guaranteeing the data is wrong forever. The actual fix is naming the request inputs the noise is missing from, not silencing the mechanism that would have caught it.
+
+### Creating the `QueryClient` inside a component
+
+Every render then discards the whole cache and builds a new one, which defeats the entire point of having a cache in the first place.
+
+### Forgetting `queryClient.clear()` on logout
+
+The next person at that browser sees the previous user's issue titles rendered from memory, before a single request has been made.
+
+### Believing a cached answer means the user is still allowed to see it
+
+Only the server knows that, and only at the moment it's actually asked. A cache is a snapshot of what the server was once willing to say — never a permission.
 
 ## When this goes wrong
 
@@ -422,21 +446,58 @@ useQuery({ queryKey: ['issues', projectId], queryFn: () => getIssues(projectId, 
 
 ## Exercise
 
-**Goal:** Replace one manual server-data effect with a deliberately keyed query.
+### Goal
 
-**Starting state:** B07 has a routed issue or project screen that fetches from the protected API.
+Replace one manual server-data effect with a deliberately keyed query.
 
-**Requirements:** Write a key factory, move the request into the API client, render pending,
-failure, empty, and success states, and keep the selected status in the URL rather than a new
-global store. Identify one derived value you will calculate rather than store.
+### Starting state
 
-**Verification:** Change the URL filter, observe distinct requests, simulate a failed request,
-and refresh a route. Run the existing frontend tests plus the project checks.
+B07 has a routed issue or project screen that fetches from the protected API.
+
+### Requirements
+
+- Write a key factory, and move the request into the API client.
+- Render pending, failure, empty, and success states as distinct outcomes.
+- Keep the selected status in the URL rather than a new global store.
+- Identify one derived value you will calculate rather than store.
+
+### Constraints
+
+- No query key missing an input that changes its response.
+- No `QueryClient` created inside a component body.
+- No manual `useState`-plus-effect fetch left standing beside the new query.
+
+### Verification
 
 **Mode: tool-run — browser/network evidence plus `npm run typecheck`, `npm run lint`, and `npm run test`.** The platform does not inspect your cache; the visible lifecycle and tool output are the evidence.
 
-**Hints:** Begin with one detail or list screen. Write the key before the query. If you cannot say
-which request input belongs in the key, return to the API function signature.
+Change the URL filter, observe distinct requests, simulate a failed request, and refresh a route. Run the existing frontend tests plus the project checks.
+
+### Hints
+
+<details>
+<summary>Hint 1 — where to start</summary>
+
+Begin with one detail or list screen — whichever already has the simpler manual effect. Get that one query right before touching a second screen.
+</details>
+
+<details>
+<summary>Hint 2 — key before query</summary>
+
+Write the key before the query. If you can't yet say which request input belongs in the key, that's a sign to go back to the API function's signature and read what it actually takes.
+</details>
+
+<details>
+<summary>Hint 3 — the five-state check</summary>
+
+Force each of the five states in turn — pending, empty, success, hard failure, and a background refetch failing while stale data is still shown — and confirm each one renders something visibly different.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is the `queryKeys` factory from "Create one query client," the boring `queryFn` from "Keep the query function boring," and the five-branch render from "Render the lifecycle honestly." The proof isn't that the happy path renders — it's that changing the URL filter produces a genuinely different request, and a stopped API produces an alert rather than a quietly empty list.
+</details>
 
 ## In the project
 
@@ -445,7 +506,17 @@ drafts stay local, shareable filters stay in URLs, and protected writes remain s
 The next lesson gives each write an explicit mutation boundary and invalidates the remote facts it
 can change.
 
+## DALT connection — the cache is a guest in a server-owned house
+
+Nothing about `staleTime`, `gcTime`, or a query key changes what DALT is willing to hand back.
+The cache decides when to *ask again*; the server still decides what the answer *is*, on every
+single request, using the session and the authorization rules Part 06 built. Configure freshness
+as generously as the product allows — a snapshot displayed a few seconds early costs nothing the
+server can't correct on the next request it actually receives.
+
 ## Closed-book checkpoint
+
+Close the lesson first.
 
 1. Why is an issue list server state even after it is cached in the browser?
 2. Which inputs must appear in a query key?
@@ -454,6 +525,18 @@ can change.
 5. What security decision can TanStack Query never make for the server?
 6. What is the difference between `staleTime` and `gcTime`, in one sentence each?
 7. Why must the cache be cleared on logout even though the server still authorizes?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. The browser doesn't own the fact — it owns a snapshot of an answer the server gave once. The server can change it, reject a stale write against it, or revoke access to it at any time.
+2. Every value that changes what the response actually is — a project id, a status filter, a page number. Leave one out and two different requests silently share one cache entry.
+3. An empty result is a successful response whose collection has no rows — a real, valid answer. An error means the request itself failed. Collapsing them makes "no issues" indistinguishable from "couldn't reach the server."
+4. Whenever the value can be computed from state that already exists, rather than needing its own storage and its own synchronization with that state.
+5. Whether the current request is actually allowed. A cache can display data faster; only the server, asked fresh, can say who's allowed to see it right now.
+6. `staleTime` is how long a snapshot is trusted without rechecking. `gcTime` is how long an unused snapshot is kept in memory before being discarded entirely.
+7. A cleared cache is the only guarantee that the next person at that browser doesn't see the previous user's data rendered from memory before any new request has even been made.
+</details>
 
 ## Resources
 
@@ -486,3 +569,5 @@ Versions: React 19.2.3; TypeScript 5.9.3; TanStack Query 5.101.4.
 Consulted: 2026-08-15.
 
 Curriculum authority: `CURRICULUM.md` §19, FS08.1; `PROJECT_BLUEPRINT.md` §§46–50.
+
+Follow-up pass: 2026-08-19 — verified the `isPending`/`isLoading` distinction against the current TanStack Query `useQuery` reference (`isLoading` is exactly `isPending && isFetching`) and the `gcTime` default against the current defaults guide, both matched exactly; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal and a short DALT connection section; light voice pass toward first-person-plural framing to match Parts 00–07. No content rewrite needed — this lesson was already at the course's strongest tier for precision and code density.

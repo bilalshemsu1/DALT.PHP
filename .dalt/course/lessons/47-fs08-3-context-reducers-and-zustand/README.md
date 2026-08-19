@@ -10,11 +10,11 @@ Difficulty: Advanced
 Prerequisites: FS08.2 — Mutations, invalidation and optimistic UI
 Project milestone: B08 — Intentional state architecture
 Primary source dossier: FSO_PART_06.md
-Last reviewed: 2026-08-15
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
-“Global state” is an answer often chosen before there is a question. An issue tracker has state
+"Global state" is an answer often chosen before there's a question. An issue tracker has state
 that crosses component boundaries, but most of it already has a better owner: a route owns location,
 a QueryClient owns remote snapshots, and a form owns an unfinished draft. Moving all of that into
 one store creates duplicate sources of truth and makes a small application hard to trace.
@@ -22,7 +22,7 @@ one store creates duplicate sources of truth and makes a small application hard 
 This lesson compares client-state tools in increasing order of coordination pressure. Lift state and
 compose first. Use Context when a stable value is needed throughout a subtree. Add a reducer when
 related transitions need names and testing. Consider Zustand only when an actual shared client
-concern makes those tools awkward. It never becomes a second server cache.
+concern makes those tools awkward — and it never becomes a second server cache.
 
 ## Before you start
 
@@ -42,6 +42,8 @@ Going deeper in DALT Core — optional:
 
 ## By the end
 
+You should be able to:
+
 - choose local state, lifting, Context, a reducer, or an external store for a stated reason;
 - model related transitions as reducer actions rather than scattered setters;
 - keep Context values narrow and stable enough for their subtree;
@@ -49,6 +51,8 @@ Going deeper in DALT Core — optional:
 - refuse to duplicate URL or server state in a client store.
 
 ## Predict before reading
+
+Write answers down before reading on.
 
 1. If a filter must be copied to another browser, can Context make it shareable?
 2. Does a value read by five components automatically belong in Zustand?
@@ -405,26 +409,45 @@ when components render" makes that visible in about ten seconds.
 
 ## Common mistakes
 
-- Reaching for Context because a prop passed through two components felt tedious. Two levels
-  of props is not prop drilling; it is how React works.
-- Building the provider value inline, so every consumer re-renders whenever an unrelated
-  ancestor does.
-- One context holding values that change at different rates, so a component that only
-  dispatches re-renders on every keystroke.
-- A `null` default with no guard hook, so a missing provider fails somewhere far away
-  instead of at the component that needed it.
-- Mutating state inside a reducer, which produces a UI that does not update and sends you
-  hunting through event handlers.
-- Doing boundary work — fetch, timer, `localStorage` — inside a reducer, which makes it
-  untestable and its results unpredictable under Strict Mode's double invocation.
-- Copying server data into Zustand "so everything is in one place", which reinvents loading,
-  error and staleness and guarantees the two copies disagree after a mutation.
-- Reading the whole store in every consumer, `useStore((s) => s)`, which subscribes each one
-  to every change and discards the reason to use a store.
-- One growing global store because the first one was easy, which is the state of affairs
-  every tool on this page exists to avoid.
-- Installing Zustand to complete the lesson. A project with no production store is the
-  expected outcome, not a gap in your work.
+### Reaching for Context because a prop passed through two components felt tedious
+
+Two levels of props is not prop drilling — it's how React works. Context earns its place at genuine depth, not at the first sign of a passed-through prop.
+
+### Building the provider value inline
+
+Every consumer re-renders whenever any unrelated ancestor does, because the value object gets a new identity on every render whether anything inside it actually changed.
+
+### One context holding values that change at different rates
+
+A component that only dispatches re-renders on every keystroke typed elsewhere, because it's subscribed to the whole context object, not the one field it actually reads.
+
+### A `null` default with no guard hook
+
+A missing provider then fails somewhere far away from the actual mistake, instead of at the component that needed it, with a message naming exactly what's missing.
+
+### Mutating state inside a reducer
+
+That produces a UI that doesn't update — React compares by identity, sees the same object, and skips the render — which sends you hunting through event handlers for a bug that's actually in the reducer.
+
+### Doing boundary work — fetch, timer, `localStorage` — inside a reducer
+
+That makes it untestable without faking the outside world, and its results become unpredictable under Strict Mode's double invocation of reducers in development.
+
+### Copying server data into Zustand "so everything is in one place"
+
+That reinvents loading, error, and staleness by hand, and guarantees the two copies disagree the first time a mutation updates one but not the other.
+
+### Reading the whole store in every consumer
+
+`useStore((s) => s)` subscribes each consumer to every change in the store, discarding the entire reason to select in the first place.
+
+### One growing global store because the first one was easy
+
+That's the exact state of affairs every tool on this page exists to avoid — a single mutable bucket nobody can reason about locally anymore.
+
+### Installing Zustand to complete the lesson
+
+A project with no production store is the expected outcome when no genuine shared-client problem exists, not a gap in the work.
 
 ## When this goes wrong
 
@@ -440,32 +463,69 @@ type Store = { issues: Issue[]; setIssues: (issues: Issue[]) => void };
 
 ## Exercise
 
-**Goal:** Make one shared client-only interaction legible without globalizing server data.
+### Goal
 
-**Starting state:** B08 has query-backed issues and mutation-backed writes.
+Make one shared client-only interaction legible without globalizing server data.
 
-**Requirements:** Classify the interaction, implement the smallest owner that coordinates it, and
-use Context plus a reducer only when related transitions need shared access. Write a short
-Zustand-gate decision. If you use Zustand, use a small store with actions and selectors only for
-that interaction.
+### Starting state
 
-**Verification:** Trigger every named action, refresh the page, inspect that URL and query state
-retain their own behavior, and run the frontend suite. Make one reducer action fail a test before
-restoring it, or demonstrate the equivalent visible behavior manually.
+B08 has query-backed issues and mutation-backed writes.
+
+### Requirements
+
+- Classify the interaction before writing any code.
+- Implement the smallest owner that coordinates it.
+- Use Context plus a reducer only when related transitions genuinely need shared access.
+- Write a short Zustand-gate decision. If you use Zustand, keep the store small — actions and selectors, only for that one interaction.
+
+### Constraints
+
+- No issue, comment, or other server data duplicated into Context or a store.
+- No context value passed without `useMemo` if it's an object or array.
+- No Zustand selector returning a fresh object without `useShallow`.
+
+### Verification
 
 **Mode: tool-run — browser behavior plus `npm run typecheck`, `npm run lint`, and `npm run test`.** This is an architectural choice; the stated interaction and observable result are the evidence.
 
-**Hints:** A Context provider around one layout is usually enough. Start with a reducer before
-installing a store. If the state represents an API response, return to FS08.1.
+Trigger every named action, refresh the page, inspect that URL and query state retain their own behavior, and run the frontend suite. Make one reducer action fail a test before restoring it, or demonstrate the equivalent visible behavior manually.
+
+### Hints
+
+<details>
+<summary>Hint 1 — how much Context is usually enough</summary>
+
+A Context provider scoped around one layout is usually enough. Reach for the application root only when the value is genuinely needed everywhere.
+</details>
+
+<details>
+<summary>Hint 2 — build order</summary>
+
+Start with a reducer before installing a store. Most "I need Zustand" problems turn out to be "I need named transitions," which a reducer already solves for free.
+</details>
+
+<details>
+<summary>Hint 3 — the classification check</summary>
+
+If the state represents an API response in any form, it isn't client state at all — go back to FS08.1 and let the query cache own it instead.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is the ladder from "The ladder, and how to know you are on the wrong rung": closest owner first, Context only for a genuine subtree contract with a memoised value and a guard hook, a reducer wherever transitions have a vocabulary, and Zustand only behind the evidence-based decision from "Decide with evidence." The proof isn't that the interaction works — it's that URL state, query state, and this new client state all still come from three different, undisturbed places after you're done.
+</details>
 
 ## In the project
 
 B08 ends with a state inventory that names each major value's owner. The inventory is the durable
 artifact, not the number of libraries imported. Part 09 can now extract repeated behavior into
-custom hooks and feature boundaries because data fetching, mutations, routes, and client UI have
-explicit seams.
+custom hooks and feature boundaries, because data fetching, mutations, routes, and client UI all
+have explicit seams by this point.
 
 ## Closed-book checkpoint
+
+Close the lesson first.
 
 1. What question must be answered before moving state out of a component?
 2. When is Context preferable to passing a prop?
@@ -476,6 +536,20 @@ explicit seams.
 7. Which reducer test catches accidental mutation, and what symptom does that bug produce?
 8. Why does returning a new object from a Zustand selector defeat the purpose of selecting?
 9. What must a test do about a module-level store, and why?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. Who changes the value, who reads it, how long it needs to live, and whether it's actually a remote fact or a URL value in disguise — classification comes before any tool choice.
+2. When a stable value is needed by many components at real depth in a subtree — not merely because a prop is passed through two components, which is ordinary React.
+3. It names transitions explicitly and makes them testable as pure functions, instead of leaving several related setters that can be called in combinations the product never intended.
+4. State, actions, and narrow selectors.
+5. Zustand has no invalidation policy, no freshness model, and no synchronization with the server. Copying server data into it reinvents those problems and guarantees the two copies disagree after a mutation.
+6. React's context propagation compares the provider's value by identity, not by which fields inside it actually changed — a new object every render means every consumer re-renders every time, regardless of what they read.
+7. The test that mutates state and then compares the original object to a snapshot taken before the reducer ran. The mutation bug it catches produces a UI that silently doesn't update, because React compares by identity and sees the same object.
+8. Zustand compares the previous and next selected value with `Object.is`. A freshly constructed object is never equal to the last one by that comparison, so the component re-renders on every store change regardless of whether the selected fields actually changed.
+9. Reset it between tests — typically with `store.setState(initialState, true)` in `afterEach` — because `create()` produces one singleton shared across the whole test run, and state set by one test would otherwise leak into the next.
+</details>
 
 ## Resources
 
@@ -511,3 +585,5 @@ Versions: React 19.2.3; TypeScript 5.9.3; TanStack Query 5.101.4; Zustand 5.0.15
 Consulted: 2026-08-15.
 
 Curriculum authority: `CURRICULUM.md` §19, FS08.3; `PROJECT_BLUEPRINT.md` §§48–50.
+
+Follow-up pass: 2026-08-19 — verified the React 19 `<Context value={...}>` syntax against the official React 19 release notes (confirmed real, replaces `<Context.Provider>`), and Zustand's `useShallow` import path and default `Object.is`/strict-equality selector comparison against the current Zustand README, both matched exactly; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal; light voice pass toward first-person-plural framing to match Parts 00–07. No content rewrite needed — already at the course's strongest tier for precision and code density.
