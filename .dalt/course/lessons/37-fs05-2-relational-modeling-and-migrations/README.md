@@ -10,23 +10,23 @@ Difficulty: Integration
 Prerequisites: FS05.1 — Designing the application API  
 Project milestone: B05 — Persistent application  
 Primary source dossier: `FSO_RELATIONAL_DATABASES.md`  
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
 An API contract says what an issue means to a client. PostgreSQL has a different job: it
 keeps durable facts coherent when a client is buggy, when another program writes data, or
-when an old server is still running. A table is not persistence by itself. Nullability, keys,
+when an old server is still running. A table isn't persistence by itself. Nullability, keys,
 foreign keys, uniqueness, checks, and delete behaviour decide which facts can exist together.
 Those decisions are product rules, expressed at the one place every writer must pass through.
 
-The tracker already has a relationship story. A workspace contains projects and a project
+The tracker already has a relationship story. A workspace contains projects, and a project
 contains issues. Repeating the workspace name inside every issue looks easy until a rename,
 a join, or an invalid project reference arrives. A relational model gives each fact one home,
 and keys make the connection enforceable. That lets a handler give a friendly response while
-the database preserves truth even when the handler is not the writer.
+the database preserves truth even when the handler isn't the writer.
 
-Migrations change this shared truth. They are ordered SQL history, not files you rewrite
+Migrations change this shared truth. They're ordered SQL history, not files we rewrite
 until one local database looks right. A clean checkout needs the same schema, and an existing
 database needs a record of which steps ran.
 
@@ -64,6 +64,8 @@ Going deeper in DALT Core — optional:
 
 ## By the end
 
+You should be able to:
+
 - model workspaces, projects, and issues as normalized related tables;
 - choose primary, foreign, unique, and check constraints for real rules;
 - decide nullability and deletion behaviour explicitly;
@@ -72,6 +74,8 @@ Going deeper in DALT Core — optional:
 - inspect schema and rows independently of the browser.
 
 ## Predict before reading
+
+Write answers down before reading on.
 
 1. If `issues.project_id` is merely an integer, what prevents a nonexistent project?
 2. Is a project slug globally unique or unique only within a workspace?
@@ -372,14 +376,37 @@ schema rebuilds from nothing.
 
 ## Common mistakes
 
-- Duplicating `workspace_id` in issues without a current requirement.
-- Calling a slug unique when it is only unique within its parent.
-- Using NULL to avoid deciding what an empty field means.
-- Choosing CASCADE because it makes an error go away, then losing data.
-- Forgetting the index on a foreign key you filter and delete against.
-- Editing an applied migration instead of adding a new one.
-- Believing TypeScript, or a React `<select>`, enforces database truth.
-- Forwarding a raw PostgreSQL error to an API client, exposing table names.
+### Duplicating `workspace_id` in issues without a current requirement
+
+A fact stored in two places can disagree. `issues` reaches its workspace through `projects`; add the shortcut only once a real query has felt the pain, not in advance of it.
+
+### Calling a slug unique when it's only unique within its parent
+
+`UNIQUE (slug)` on `projects` would reject `website` in a second workspace that has nothing to do with the first. Name the actual scope: `UNIQUE (workspace_id, slug)`.
+
+### Using NULL to avoid deciding what an empty field means
+
+NULL means "we don't know." An empty string is a deliberate known value. Reach for NULL only when *unknown* is a state the product genuinely needs, not as a shortcut past a decision.
+
+### Choosing CASCADE because it makes an error go away
+
+`CASCADE` on a project silently destroys every issue in it the first time someone deletes the wrong row, with no undo. Choose it only when the child genuinely cannot exist without the parent.
+
+### Forgetting the index on a foreign key you filter and delete against
+
+PostgreSQL indexes the referenced column automatically because it's a primary key — it does not index the referencing column. `issues.project_id`, the column every listing query filters on, gets nothing unless you add it yourself.
+
+### Editing an applied migration instead of adding a new one
+
+The existing database has the old filename recorded as run and will skip your edit forever, while a fresh database executes the new SQL under the same name. The two environments now differ silently.
+
+### Believing TypeScript, or a React `<select>`, enforces database truth
+
+A typed form only constrains the browser you wrote. A curl request, an old deployed client, or a colleague in `psql` is bound by none of it — only a database constraint is.
+
+### Forwarding a raw PostgreSQL error to an API client
+
+A raw error message names your tables and columns. Log it; return the FS05.1 envelope instead.
 
 ## When this goes wrong
 
@@ -396,36 +423,70 @@ learner configuration.
 
 ## Exercise
 
-**Goal:** Make the issue tracker's minimum domain PostgreSQL-enforced.
+### Goal
 
-**Starting state:** FS05.1 has a written contract; B04's fixture is still the source of issue
-data.
+Make the issue tracker's minimum domain PostgreSQL-enforced.
 
-**Requirements:** Add a parent-first migration for workspaces, projects, and issues, including
-primary and foreign keys, intentional nullability, composite uniqueness, status and priority
-checks, timestamps, deliberate delete behaviour, and an index on the issues foreign key. Seed
-one real relationship.
+### Starting state
 
-**Verification:** Build a fresh schema with `migrate:fresh`, rerun unchanged migrations and see
-"No migrations to run", inspect a three-table join, and capture the rejection text for a missing
-parent, an invalid status, a blank title, and a duplicate project slug — plus the acceptance of
-that same slug in another workspace.
+FS05.1 has a written contract; B04's fixture is still the source of issue data.
 
-**Mode: manual PostgreSQL evidence and migration command output.** The database proves these
-rules; the course does not auto-grade your chosen schema.
+### Requirements
 
-**Hints:** Model the present product, not Part 06 users or Part 11 features. Let each constraint
-failure inform the friendly validation you added in FS05.1 — they should agree on what is
-invalid, and disagree only on how politely they say so.
+- Add a parent-first migration for workspaces, projects, and issues.
+- Include primary and foreign keys, intentional nullability, composite uniqueness, status and priority checks, and timestamps.
+- Choose and justify deliberate delete behaviour on each foreign key.
+- Add an index on the issues foreign key.
+- Seed one real relationship using `RETURNING`, not a literal id.
+
+### Constraints
+
+- Model the present product only — not Part 06's users or Part 11's features you haven't built yet.
+- Every constraint failure should agree with FS05.1's validation about what's invalid, and disagree only on how politely it says so.
+- Do not edit an applied migration to fix a mistake. Add a new one.
+
+### Verification
+
+**Mode: manual PostgreSQL evidence and migration command output.** The database proves these rules; the course does not auto-grade your chosen schema.
+
+Build a fresh schema with `migrate:fresh`, rerun unchanged migrations and see "No migrations to run," inspect a three-table join, and capture the rejection text for a missing parent, an invalid status, a blank title, and a duplicate project slug — plus the acceptance of that same slug in another workspace.
+
+### Hints
+
+<details>
+<summary>Hint 1 — build order</summary>
+
+Write tables parent-first: workspaces, then projects, then issues. A foreign key referencing a table that doesn't exist yet fails the migration before you learn anything about your actual design.
+</details>
+
+<details>
+<summary>Hint 2 — proving a constraint exists</summary>
+
+A constraint you've never watched reject something is a constraint you're trusting on faith. For each one, write the `INSERT` that should fail, run it in `psql`, and read the exact error before moving on.
+</details>
+
+<details>
+<summary>Hint 3 — the delete-behaviour decision</summary>
+
+Ask, for each foreign key: can the child mean anything without the parent? If you're unsure, `RESTRICT` is the safer default — it fails loudly and reversibly, where `CASCADE` fails silently and permanently.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is §1's three tables (`BIGSERIAL` primary keys, `workspace_id`/`project_id` foreign keys, `UNIQUE (workspace_id, slug)`, status/priority `CHECK`s), §4's index on `issues.project_id`, and §6's `WITH ... RETURNING` seed. The proof isn't that the migration runs without error — it's that `\d issues` shows the constraints you intended, and that each one visibly rejects the row it exists to reject.
+</details>
 
 ## In the project
 
-The application now owns durable issue facts. The React client need not learn PostgreSQL; it
+The application now owns durable issue facts. The React client doesn't need to learn PostgreSQL; it
 continues to consume the contract from FS05.1. FS05.3 replaces fixture operations with real
 queries and then proves behaviour through both HTTP and rows — because a passing screen and a
 correct database are, once again, two different claims.
 
 ## Closed-book checkpoint
+
+Close the lesson first.
 
 1. What separate rule is expressed by primary key, foreign key, unique, and check?
 2. Why is `UNIQUE(workspace_id, slug)` not the same as global uniqueness?
@@ -433,6 +494,17 @@ correct database are, once again, two different claims.
 4. Which index does a foreign key not give you, and why does it matter?
 5. Why must migration history be ordered and append-only?
 6. Which invalid states must PostgreSQL reject even after request validation exists?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. Primary key identifies a row; foreign key requires its parent to exist; unique prevents two rows claiming one domain identity; check restricts a stored vocabulary. Four different, independent facts.
+2. `UNIQUE(workspace_id, slug)` scopes the rule to one workspace — `website` can exist once per workspace, but the same slug is fine in a different one. Global uniqueness would reject the second workspace's legitimate use of the same slug.
+3. When the deletion behaviour hasn't been designed yet, or the child genuinely has meaning on its own. RESTRICT fails loudly and reversibly; CASCADE silently destroys data with no undo.
+4. The index on the *referencing* column — `issues.project_id` here. PostgreSQL only automatically indexes the referenced column (because it's a primary key), so every "issues in this project" query and every `ON DELETE RESTRICT` check scans the table without it.
+5. Because a database that already ran a migration must never be told to run different SQL under the same recorded name — that silently produces two environments with different schemas and no way to detect it.
+6. Anything a client can reach directly with a crafted request, a script, or `psql` — a nonexistent parent, an out-of-vocabulary status, a blank title. Request validation only holds for requests that pass through the validated path.
+</details>
 
 ## Resources
 
@@ -471,3 +543,4 @@ correct database are, once again, two different claims.
 - DALT files inspected: `framework/Core/Database.php`; `framework/Core/Migration.php`; `config/database.php`; `database/migrations/`
 - Curriculum authority: `CURRICULUM.md` §15 FS05.2
 - Laravel bridge: Laravel expresses these same constraints through a schema builder DSL; DALT uses the SQL directly so the constraint and its enforcement are the same text.
+- Follow-up pass: 2026-08-19 — verified the PDO/migration claims (`ERRMODE_EXCEPTION`/`EMULATE_PREPARES`, transactional `runOne`, the SQLite→PostgreSQL spelling rewrite) against the actual `framework/Core/Migration.php` and `Database.php` source, no discrepancies found; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal; light voice pass toward first-person-plural framing to match Parts 00–04

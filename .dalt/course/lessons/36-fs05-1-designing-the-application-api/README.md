@@ -10,26 +10,26 @@ Difficulty: Integration
 Prerequisites: FS04.3 — Separating transport from UI  
 Project milestone: B05 — Persistent application  
 Primary source dossier: `FSO_PART_03.md`  
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
 In B04, the fixture supplied an API shape. That was useful: it let React learn waiting,
-failures, and mutations without asking you to debug a database at the same time. It is
-also a temporary dependency. The fixture resets, its data is not your application's
-truth, and its behaviour exists only because course material says so. An API you own
+failures, and mutations without asking us to debug a database at the same time. It's
+also a temporary dependency. The fixture resets, its data isn't our application's
+truth, and its behaviour exists only because course material says so. An API we own
 starts with an agreement, not with controller code.
 
 That agreement lets two independently changing sides cooperate. The client needs to know
 what it may request, what it might receive, and how to distinguish a rejected input from
-a missing resource. The server needs to know which client fields it will accept and which
+a missing resource. The server needs to know which client fields it'll accept and which
 facts it promises to return. Neither side should infer those answers from the other side's
 implementation. Without a contract, a successful-looking UI can quietly invent fields or
 render an error object as an issue.
 
-The aim is not REST purity. It is understandable behaviour: an issue list means one
+The aim isn't REST purity. It's understandable behaviour: an issue list means one
 thing, a missing issue means another, and an invalid create request carries enough
-evidence for the form to recover. That is a contract a person can debug at 2am.
+evidence for the form to recover. That's a contract a person can debug at 2am.
 
 ## Before you start
 
@@ -59,6 +59,8 @@ Going deeper in DALT Core — optional:
 
 ## By the end
 
+You should be able to:
+
 - describe a resource contract in requests, responses, and failure cases;
 - choose routes and methods for projects and issues without a REST checklist;
 - return intentional status codes and one consistent error shape;
@@ -67,6 +69,8 @@ Going deeper in DALT Core — optional:
 - trace a request from React client function to DALT response.
 
 ## Predict before reading
+
+Write answers down before reading on.
 
 1. Is `GET /api/issues` with zero rows a failure? What response proves your answer?
 2. If a browser sends `{ "status": "done", "is_admin": true }`, which fields should a create-issue handler accept?
@@ -223,7 +227,7 @@ and it looks like the obvious choice. Read what `abort` actually produces. It th
 ```php
 private function errorResponse(int $status, string $message): Response
 {
-    return Response::html(sprintf('<h1>%d</h1><p>%s</p>', $status, $this->escape($message)));
+    return Response::html(sprintf('<h1>%d</h1><p>%s</p>', $status, $this->escape($message)), $status);
 }
 ```
 
@@ -539,14 +543,37 @@ version your contract names. Connect no database in this experiment.
 
 ## Common mistakes
 
-- Choosing routes by copying a framework tutorial instead of naming current domain actions.
-- Returning 200 for a missing item because the handler did not throw.
-- Treating `Request::input()` as parsed JSON. It reads `$_POST` and will be empty.
-- Answering 400 for a validation failure, leaving the form with no field to highlight.
-- Returning database rows directly, including internal columns nobody agreed to expose.
-- Letting a client submit fields the endpoint never agreed to accept.
-- Returning on the first validation error, so a three-field form takes three submissions.
-- Treating frontend TypeScript or a client parser as server-side validation.
+### Choosing routes by copying a framework tutorial
+
+Naming an endpoint after a tutorial's resource instead of this project's current domain actions produces routes for operations nobody asked for, and missing routes for the ones they did.
+
+### Returning 200 for a missing item because the handler didn't throw
+
+A handler that reaches its final `return` without an explicit 404 check will happily send `null` or an empty row back with a 200 — a false claim that hands the client a resource that doesn't exist.
+
+### Treating `Request::input()` as parsed JSON
+
+It reads `$_POST`, which PHP only populates for form encodings. A JSON body leaves it empty, and the bug looks exactly like "the client sent nothing" when the client sent everything.
+
+### Answering 400 for a validation failure
+
+400 says "I couldn't understand the request at all" — there's no field to blame. A blank title is 422: the bytes were fine, the application rule wasn't. Answering 400 for both leaves the form with nothing to display next to the input.
+
+### Returning database rows directly
+
+`SELECT *` straight into the response makes your JSON contract a mirror of whatever the schema happens to be today. An `internal_notes` column added two parts from now gets published to every client with no one having decided to expose it.
+
+### Letting a client submit fields the endpoint never agreed to accept
+
+Iterating the client's keys instead of an explicit allowlist means `is_admin` or any field someone invents next year reaches application code the moment it exists — a validator that forbids what you thought of, rather than a boundary that admits only what you decided.
+
+### Returning on the first validation error
+
+A three-field form with three mistakes then takes three round trips to fix — one discovered failure at a time — instead of one.
+
+### Treating frontend TypeScript or a client parser as server-side validation
+
+FS04.3's parser protects the browser's own assumptions. It runs in code the user fully controls and proves nothing to the server, which must validate everything again from scratch.
 
 ## When this goes wrong
 
@@ -565,37 +592,71 @@ have not read.
 
 ## Exercise
 
-**Goal:** Turn the B04 fixture behaviour into an explicit DALT API contract.
+### Goal
 
-**Starting state:** Your typed React client names list, create, update, and delete operations
-against the resettable fixture.
+Turn the B04 fixture behaviour into an explicit DALT API contract.
 
-**Requirements:** Document project and issue routes, response envelopes, accepted input, and
-200/201/204/400/404/422 outcomes. Register one real DALT GET route returning only the
-documented shape. Implement `decodeJsonBody` and one allowlisted create validation that
-collects all field errors. Make the client parser accept the success response and reject a
-deliberately changed field.
+### Starting state
 
-**Verification:** Run curl for success, a missing path, malformed JSON, and an invalid field.
-Inspect status and JSON for each. Then use Network to verify the client invokes the same
-contract.
+Your typed React client names list, create, update, and delete operations against the resettable fixture.
 
-**Mode: manual HTTP evidence, browser evidence, and code review.** This is a design boundary;
-it is not automatically graded.
+### Requirements
 
-**Hints:** Begin with issue detail — one identifier, one response. Keep SQL out of this first
-handler entirely. Write the error envelope before the happy path, so the form has a usable
-recovery shape from the first commit.
+- Document project and issue routes, response envelopes, accepted input, and 200/201/204/400/404/422 outcomes.
+- Register one real DALT GET route returning only the documented shape.
+- Implement `decodeJsonBody` and one allowlisted create validation that collects all field errors.
+- Make the client parser accept the success response and reject a deliberately changed field.
+- Answer both CORS rules: register `OPTIONS /api/{*}`, and route every real response through `apiJson()`.
+
+### Constraints
+
+- No SQL, and no database connection, in this lesson's handler. The response is a written placeholder — persistence is FS05.2 and FS05.3.
+- No field reaches application code unless the allowlist names it explicitly.
+- Do not forward a raw framework or PHP error message as an API response body.
+
+### Verification
+
+**Mode: manual HTTP evidence, browser evidence, and code review.** This is a design boundary; it is not automatically graded.
+
+Run curl for success, a missing path, malformed JSON, and an invalid field. Inspect status and JSON for each. Then use Network to verify the client invokes the same contract, including the preflight.
+
+### Hints
+
+<details>
+<summary>Hint 1 — where to start</summary>
+
+Begin with issue detail — one identifier, one response. Keep SQL out of this first handler entirely; it's proving routing and the envelope, nothing more.
+</details>
+
+<details>
+<summary>Hint 2 — build the error shape first</summary>
+
+Write the error envelope before the happy path, so the form has a usable recovery shape from the first commit rather than an afterthought bolted onto working code.
+</details>
+
+<details>
+<summary>Hint 3 — the CORS check</summary>
+
+If curl succeeds but the browser fails silently, that's the symptom, not a new bug. Check whether the response actually carries `Access-Control-Allow-Origin` — a handler still calling `Response::json()` directly instead of `apiJson()` won't have it.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is §3's `decodeJsonBody` plus an allowlist that collects every field error before returning, §4's one proven GET route, and §"Answer the browser before React does"'s `OPTIONS /api/{*}` route and `apiJson()` wrapper used everywhere instead of `Response::json()`. The proof that it's right isn't that the route "works" — it's that curl and the browser agree, and that a deliberately malformed field produces a 422 your client parser can read.
+</details>
 
 ## In the project
 
-Your B04 API client stays the React boundary. This lesson replaces its assumption that a
+Our B04 API client stays the React boundary. This lesson replaces its assumption that a
 course fixture owns the URL and the behaviour. FS05.2 gives the contract durable facts, and
 FS05.3 maps those facts through parameterized queries and transactions. Because FS04.3 put
-the base URL and error parsing in one module, pointing React at your own server should be a
-one-line change — and if it is not, that is worth knowing now rather than in Part 07.
+the base URL and error parsing in one module, pointing React at our own server should be a
+one-line change — and if it isn't, that's worth knowing now rather than in Part 07.
 
 ## Closed-book checkpoint
+
+Close the lesson first.
 
 1. What is the difference between a path parameter, query parameter, and request body?
 2. Why is an empty collection normally 200 while a missing item is 404?
@@ -603,6 +664,17 @@ one-line change — and if it is not, that is worth knowing now rather than in P
 4. What must a consistent error envelope preserve for a form?
 5. Why must the server allowlist fields even when React has a typed form?
 6. Why does `Request::input()` not contain a JSON request body?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. A path parameter names *which* resource; a query parameter names *which subset, how presented*; a request body carries *what the new state should be*.
+2. An empty collection is an honest answer to "what exists here?" — zero is a valid count. A missing item is a different claim: the specific resource requested doesn't exist at all.
+3. 400 means the bytes couldn't even be understood as a request — malformed JSON, nothing to point at. 422 means the request was understood and refused for an application reason the client can act on, like a blank title.
+4. The same shape every time — a status, a machine-readable code, and (for validation) which field was wrong — so a form doesn't need special-case logic per endpoint to know what to show.
+5. A typed form only constrains what the *browser you wrote* sends. A crafted HTTP request, an old deployed client, or a script bypasses TypeScript entirely, so the server allowlist is the only place the rule actually holds.
+6. It reads from `$_POST`, which PHP populates only for form-encoded or multipart bodies. A JSON request body never reaches `$_POST`, so `input()` sees nothing.
+</details>
 
 ## Resources
 
@@ -642,3 +714,4 @@ one-line change — and if it is not, that is worth knowing now rather than in P
 - DALT files inspected: `framework/Core/Router.php`; `framework/Core/Request.php`; `framework/Core/Response.php`; `framework/Core/HttpException.php`; `routes/routes.php`
 - Curriculum authority: `CURRICULUM.md` §15 FS05.1 — practical API agreement, not REST purity
 - Laravel bridge: Laravel route responses and validation provide the production-framework comparison; DALT uses explicit route handlers and `Response::json()` here
+- Follow-up pass: 2026-08-19 — verified every quoted framework claim (`Request::input()`/`route()`, `Router`'s `{*}` fallback pattern, `abort()`/`ExceptionHandler`, `App::resolve`, the `app/Http/support/` autoload boundary) against the actual `framework/Core/*` source and fixed one snippet that dropped the `$status` argument `ExceptionHandler::errorResponse` actually passes to `Response::html()`; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal; light voice pass toward first-person-plural framing to match Parts 00–04

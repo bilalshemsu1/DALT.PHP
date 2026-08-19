@@ -10,20 +10,20 @@ Difficulty: Integration
 Prerequisites: FS05.2 — Relational modeling and migrations
 Project milestone: B05 — Persistent application
 Primary source dossier: POSTGRESQL_DOCS.md
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
-A schema rejects impossible rows, but it does not yet let React do useful work. This lesson
+A schema rejects impossible rows, but it doesn't yet let React do useful work. This lesson
 connects the API contract to durable queries: list a project's issues, find one, create,
 change, and remove them. The dangerous shortcut is to build SQL by joining strings from a
-request. It appears to work until a title contains an apostrophe, a filter changes query
-structure, or a client controls a sort expression.
+request. It appears to work right up until a title contains an apostrophe, a filter changes
+query structure, or a client controls a sort expression.
 
 A dependable handler makes several decisions in order. It validates a client proposal, chooses
 parameterized SQL, maps a database row into public JSON, and classifies absence or failure. A
 transaction adds one more: when several writes express a single business fact, all of them
-become visible or none do. Catching an exception is not atomicity; rollback is. This is the
+become visible or none do. Catching an exception isn't atomicity; rollback is. This is the
 lesson where the fixture stops being a stand-in and becomes an application backend.
 
 ## Before you start
@@ -51,6 +51,8 @@ Going deeper in DALT Core — optional:
 
 ## By the end
 
+You should be able to:
+
 - implement issue CRUD through DALT routes and prepared SQL;
 - join and map rows into stable API shapes;
 - allowlist filters, sort keys, and pagination values;
@@ -59,6 +61,8 @@ Going deeper in DALT Core — optional:
 - prove HTTP behaviour, stored rows, and rollback independently.
 
 ## Predict before reading
+
+Write answers down before reading on.
 
 1. Why is an interpolated title unsafe even after validation?
 2. Which parts of `ORDER BY` can a parameter bind?
@@ -463,15 +467,41 @@ force the activity write to fail and prove the issue count is unchanged.
 
 ## Common mistakes
 
-- Concatenating request values into SQL because they were "validated."
-- Assuming a bound parameter can control `ORDER BY` structure.
-- Leaving `limit` unbounded, so one request can read the whole table.
-- Using `isset` where `array_key_exists` is meant, losing explicit nulls in a PATCH.
-- Returning raw rows, or raw PDO exception messages, to a client.
-- Calling an empty collection a 404, or a missing detail an empty 200.
-- Trusting a client-supplied issue after POST instead of the `RETURNING` row.
-- Catching every exception as a validation failure, hiding server defects.
-- Catching failure without rolling back, or rolling back without checking `inTransaction()`.
+### Concatenating request values into SQL because they were "validated"
+
+Validation and escaping are separate concerns. A title that passes every rule you wrote can still contain `'`, and a rule someone relaxes in six months can silently reopen the hole — a prepared statement closes it structurally instead.
+
+### Assuming a bound parameter can control `ORDER BY` structure
+
+A placeholder is a value. `ORDER BY ?` sorts by a constant string, which does nothing rather than failing loudly. Column names and directions have to come from a map you wrote, not a bind.
+
+### Leaving `limit` unbounded
+
+An unbounded `limit` is a way for one request to read the entire table. Range-check it before it reaches SQL, even as a bound parameter.
+
+### Using `isset` where `array_key_exists` is meant
+
+`isset` is false for a key explicitly set to `null`. In a PATCH, "set this to null" and "don't touch this field" are different requests, and `isset` cannot tell them apart.
+
+### Returning raw rows, or raw PDO exception messages, to a client
+
+`SELECT *` piped straight into JSON exposes whatever the schema happens to contain today. A raw PDO message names your tables and columns. Map the row; log the exception; return the envelope.
+
+### Calling an empty collection a 404, or a missing detail an empty 200
+
+An empty list is a real, successful answer — zero is a valid count. A missing detail is a different fact entirely. Collapsing them either direction tells the client something false.
+
+### Trusting a client-supplied issue after POST instead of the `RETURNING` row
+
+The server may have assigned an id, applied a default status, or set a timestamp the client never sent. Display what came back, not what was sent.
+
+### Catching every exception as a validation failure
+
+A misspelled column name then reports itself as the user's fault, in a message that sends someone hunting through the React form for a bug that's actually in the SQL. Catch narrowly, by the specific error code you can name.
+
+### Catching failure without rolling back, or rolling back without checking `inTransaction()`
+
+Some failures abort the transaction before your `catch` runs. Calling `rollBack()` on a connection no longer in a transaction throws a second exception that hides the first, and you debug the wrong error.
 
 ## When this goes wrong
 
@@ -488,36 +518,72 @@ which is not the same as what is stored.
 
 ## Exercise
 
-**Goal:** Replace the fixture's issue operations with persistent DALT CRUD.
+### Goal
 
-**Starting state:** FS05.2 created the relational schema and FS05.1 fixed the public contract.
+Replace the fixture's issue operations with persistent DALT CRUD.
 
-**Requirements:** Implement project and issue list and detail, create, partial update, and
-delete. Use parameterized values, a join where project context is returned, allowlisted
-filter/sort/pagination choices, one shared response mapper, and 404/422 distinctions. Classify
-at least one PDO error narrowly and re-throw the rest. Add one real two-write transaction and a
-controlled second-write failure.
+### Starting state
 
-**Verification:** Prove each operation with direct HTTP and with PostgreSQL rows, then through
-the React client. Capture missing detail, invalid create, empty patch, valid mutation, double
-delete, and rollback.
+FS05.2 created the relational schema and FS05.1 fixed the public contract.
 
-**Mode: manual HTTP, PostgreSQL, browser, and command evidence.** The learner owns this
-implementation; evidence must show behaviour rather than source-text resemblance.
+### Requirements
 
-**Hints:** Get a plain list working before filters. Keep one mapper for list and detail. Use
-`RETURNING` rather than guessing defaults or issuing a follow-up SELECT. Add activity only when
-it gives the transaction a truthful second write.
+- Implement project and issue list and detail, create, partial update, and delete.
+- Use parameterized values throughout, a join where project context is returned, and allowlisted filter/sort/pagination choices.
+- Use one shared response mapper for both list and detail.
+- Distinguish 404 and 422 correctly in every handler.
+- Classify at least one PDO error narrowly by code, and re-throw the rest.
+- Add one real two-write transaction, plus a controlled second-write failure to prove the rollback.
+
+### Constraints
+
+- No string concatenation of request values into SQL, anywhere, for any reason.
+- No forwarding a raw PDO message as a response body.
+- Wrap only the write you're actually protecting in a transaction — not a single INSERT that's already atomic on its own.
+
+### Verification
+
+**Mode: manual HTTP, PostgreSQL, browser, and command evidence.** The learner owns this implementation; evidence must show behaviour rather than source-text resemblance.
+
+Prove each operation with direct HTTP and with PostgreSQL rows, then through the React client. Capture missing detail, invalid create, empty patch, valid mutation, double delete, and rollback.
+
+### Hints
+
+<details>
+<summary>Hint 1 — build order</summary>
+
+Get a plain list working before filters, and get list and detail sharing one mapper before adding create, update, or delete. Each layer should be provable on its own before the next one depends on it.
+</details>
+
+<details>
+<summary>Hint 2 — avoid guessing at what got stored</summary>
+
+Use `RETURNING` rather than guessing defaults or issuing a follow-up SELECT. It hands back exactly what PostgreSQL stored, including anything a `DEFAULT` supplied that you didn't send.
+</details>
+
+<details>
+<summary>Hint 3 — proving the transaction</summary>
+
+Add the activity write only once it gives the transaction a truthful second write to protect. Prove the rollback from a *separate* `psql` session — inside your own uncommitted transaction you'd see your own writes and wrongly conclude the rollback failed.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is §1's parameterized listing query with an allowlisted sort map, §2's shared `issueResponse` mapper and the `RETURNING`-based create/update/delete handlers, §3's narrow `PDOException` classification with re-throw, and §4's transaction wrapping issue-creation together with its activity record, guarded by `inTransaction()` before any `rollBack()`. The proof isn't a green screen — it's the row counts in a separate `psql` session staying unchanged after a deliberately sabotaged second write.
+</details>
 
 ## In the project
 
 B05 is now a route-to-row-to-screen loop. The fixture is removed, while the typed client stays
 the seam that stopped a backend replacement from forcing a component rewrite — which is the
 return on FS04.3. Part 06 adds tests, users, sessions, and authorization to these same
-resources, and it will be much easier because the handlers are already small and the contract is
+resources, and it'll be much easier because the handlers are already small and the contract is
 already written down.
 
 ## Closed-book checkpoint
+
+Close the lesson first.
 
 1. Why do values use parameters while sort columns need an allowlist?
 2. What distinguishes a 404 detail result from an empty 200 collection?
@@ -525,6 +591,17 @@ already written down.
 4. Why does `RETURNING` classify a missing row better than `rowCount()`?
 5. What makes two writes one transaction-worthy business fact?
 6. How do you prove rollback rather than merely an exception?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. A parameter is a value sent on a separate channel from SQL structure, so it can never become structure no matter what it contains. A sort column is structure itself — `ORDER BY ?` would try to sort by a constant string — so it has to come from a map of strings you wrote, not a bind.
+2. A missing detail means the specific requested resource doesn't exist — 404. An empty collection means the query is valid and currently matches nothing — a real, successful answer, 200 with `[]`.
+3. A database row is an implementation shape — internal columns, raw types, whatever the schema currently contains. Mapping it deliberately keeps the API contract stable even when the schema changes, and keeps internal-only fields from leaking.
+4. `rowCount()` after an UPDATE can mean either "no row matched" or "the row matched but the values were already identical" — you can't tell which. `RETURNING` with `find()` gives `false` only for a genuinely missing row.
+5. When the history is promised to exist whenever the primary write exists — an issue with no creation record would be exactly the inconsistency the transaction is meant to prevent.
+6. Force a failure in the second write, then query row counts from a *separate* session (not the one running the transaction) before and after. Both counts staying unchanged is the proof; inside your own uncommitted transaction you'd see your own writes and draw the wrong conclusion.
+</details>
 
 ## Resources
 
@@ -562,3 +639,4 @@ already written down.
 - DALT files inspected: `framework/Core/Database.php`; `framework/Core/Response.php`; `framework/Core/Migration.php`
 - Curriculum authority: `CURRICULUM.md` §15 FS05.3
 - Laravel bridge: Laravel's query builder and `DB::transaction()` wrap this same PDO behaviour; writing the boundary by hand here makes the commit and rollback points visible before a helper hides them.
+- Follow-up pass: 2026-08-19 — verified the PDO configuration claims (`ERRMODE_EXCEPTION`, `STRINGIFY_FETCHES`/`EMULATE_PREPARES` off, `findOrFail()` calling `abort()`) against the actual `framework/Core/Database.php` source, no discrepancies found; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal; light voice pass toward first-person-plural framing to match Parts 00–04
