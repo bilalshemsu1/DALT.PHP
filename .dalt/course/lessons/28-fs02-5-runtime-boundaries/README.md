@@ -14,11 +14,11 @@ Last reviewed: 2026-08-19
 
 ## Why this matters
 
-This is the load-bearing lesson of Part 02, and the one this whole course was built to make impossible to skip.
+This is the load-bearing lesson of Part 02 — the one this whole course was built to make impossible to skip past.
 
-Everything so far has been about the compiler's model of your source. That model is genuinely useful and it has a hard edge: **it ends at the boundary of your program.** A JSON body from DALT, a form field, a URL parameter, `localStorage` — none of it was checked by anything when it arrives. Write `const issue: Issue = await response.json()` and you have not validated anything. You have declared something, and the declaration is a claim you did not earn.
+Everything so far has been about the compiler's model of your source. That model is genuinely useful, and it has a hard edge: **it ends at the boundary of your program.** A JSON body from DALT, a form field, a URL parameter, `localStorage` — none of it was checked by anything when it arrived. Write `const issue: Issue = await response.json()` and we haven't validated anything. We've declared something, and the declaration is a claim nobody earned.
 
-That is the false green check in its purest form. The compiler reports success, the editor is quiet, and the program is one malformed response away from `Cannot read properties of null`. Every later part of this course crosses this boundary — Part 04 with real fetches, Part 05 with database rows, Part 06 with session data — so the habit has to be built here, before there is a server to blame.
+That's the false green check in its purest form. The compiler reports success, the editor stays quiet, and the program is one malformed response away from `Cannot read properties of null`. Every later part of this course crosses this exact boundary — Part 04 with real fetches, Part 05 with database rows, Part 06 with session data — so the habit has to get built here, now, before there's a server around to blame.
 
 ## Before you start
 
@@ -486,11 +486,11 @@ The browser may declare `type Issue = ...`; the PHP backend has its own validati
 
 ## In the project
 
-This is the last piece of **B02 — Type the future application**, and the one that makes the rest of it worth having. B02's parser is the seam Part 04 plugs a real server into: `fetch` returns `unknown`, the parser turns it into an `Issue`, and every component downstream works with a value that was actually established.
+This is the last piece of **B02 — Type the future application**, and the one that makes the rest of it worth having. B02's parser is the seam Part 04 plugs a real server into: `fetch` returns `unknown`, the parser turns it into an `Issue`, and every component downstream gets to work with a value that was actually established, not just declared.
 
-Answer to question 4: **yes, the server still validates.** Everything you wrote here runs in a browser the user controls completely — they can edit it, disable it, or send requests that never touch it. Frontend parsing protects *your frontend's assumptions* and gives fast, specific feedback. It is not a security boundary and never becomes one. Part 05's DALT validation and database constraints, and Part 06's authorization, are the boundary that counts, and they trust nothing that arrives over the network.
+Answer to question 4: **yes, the server still validates.** Everything we wrote here runs in a browser the user controls completely — they can edit it, disable it, or send requests that never touch it at all. Frontend parsing protects *our frontend's assumptions* and gives fast, specific feedback. It is not a security boundary, and it never becomes one. Part 05's DALT validation and database constraints, and Part 06's authorization, are the boundary that actually counts, and they trust nothing that arrives over the network — ever.
 
-Two distrust layers, two different jobs. Knowing which is which is the point of this lesson.
+Two distrust layers, two different jobs. Knowing which is which is the whole point of this lesson.
 
 ## Resources
 
@@ -531,3 +531,4 @@ Two distrust layers, two different jobs. Knowing which is which is the point of 
 - DALT files inspected: `.dalt/course/fullstack/typescript-runtime-boundaries-lab/starter/**`
 - Curriculum authority: `CURRICULUM.md` §12 FS02.5 — recorded as a load-bearing lesson; the required outcome is that external data is untrusted until proven
 - Laravel bridge: deferred to Part 05, where server-side validation is the honest comparison
+- Beginner-accessibility pass: 2026-08-19 — voice pass toward first-person-plural framing (owner request, informed by cross-check against Full Stack Open's TypeScript course structure); this lesson already rated strongest for beginner accessibility in the pass, so no structural changes were made; exercises and required sections unchanged

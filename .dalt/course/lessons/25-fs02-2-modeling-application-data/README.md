@@ -14,11 +14,11 @@ Last reviewed: 2026-08-19
 
 ## Why this matters
 
-The issue tracker's `Issue` type is not documentation. It is the definition of which application states are allowed to exist — and every part of this course downstream inherits it. React props in Part 03, request and response shapes in Part 04, table columns and constraints in Part 05, authorization decisions in Part 06: all of them are this model, re-expressed at another layer.
+The issue tracker's `Issue` type isn't documentation. It's the definition of which application states we're allowing to exist — and every part of this course downstream inherits it. React props in Part 03, request and response shapes in Part 04, table columns and constraints in Part 05, authorization decisions in Part 06: all of them are this same model, re-expressed one layer at a time.
 
-A weak model costs you at every one of those layers. `status: string` means every component, every handler, and every query has to defend against values the application never designed for — and eventually one of them will not. A finite union means the invalid state cannot be written down in the first place.
+A weak model costs us at every one of those layers. `status: string` means every component, every handler, and every query has to defend itself against values the application never designed for — and sooner or later, one of them won't. A finite union means the invalid state can't even be written down in the first place.
 
-So the skill here is not syntax. It is **deciding what is true about your domain and saying it precisely enough that the compiler can hold you to it.**
+So the skill here isn't syntax. It's **deciding what's actually true about our domain, and saying it precisely enough that the compiler can hold us to it.**
 
 ## Before you start
 
@@ -32,6 +32,17 @@ Recommended first:
 - Have FS02.1's two-column model in mind. Everything here is still source-level; nothing you write today validates a runtime value.
 - If `type`, `interface`, or `readonly` is new vocabulary, do not memorize a rule
   list. Start with the question: **which values should this application allow?**
+
+New words this lesson uses, if any of them are unfamiliar:
+
+```text
+type alias      a name for a shape, e.g. `type Issue = { ... }`
+interface       another way to name an object shape, mostly interchangeable here
+literal union    a type that lists the exact allowed values, e.g. 'todo' | 'done'
+readonly        a property this lesson's TypeScript will not let you reassign
+optional (?)    the property may be absent entirely
+nullable        the property is present, and its value may deliberately be null
+```
 
 Going deeper in DALT Core — optional:
 
@@ -501,9 +512,9 @@ code. The PHP endpoint and the browser each have their own implementation and th
 own validation. The TypeScript model helps the browser describe what it expects; it
 does not prove that the JSON is honest. FS02.5 handles that proof question later.
 
-This model *is* **B02 — Type the future application**, and it does not stop there. The `Issue`, `Project` and `UserSummary` shapes you settle here become FS03.1's component props, Part 04's request and response bodies, and Part 05's table columns — where a finite union turns into a `CHECK` constraint or an enum, and a nullable column stops being a matter of opinion.
+This model *is* **B02 — Type the future application**, and it doesn't stop there. The `Issue`, `Project` and `UserSummary` shapes we settle here become FS03.1's component props, Part 04's request and response bodies, and Part 05's table columns — where a finite union turns into a `CHECK` constraint or an enum, and a nullable column stops being a matter of opinion.
 
-That is why Part 02 sits before React. You should not be learning object modelling and React props at the same time, and you should not be discovering in Part 05 that your model was never decided.
+That's why Part 02 sits before React. We shouldn't be learning object modelling and React props at the same time, and we shouldn't discover in Part 05 that this model was never actually decided.
 
 ## Resources
 
@@ -544,3 +555,4 @@ FS02.3 remains unavailable until this lesson is complete. It deepens reasoning a
 - DALT files inspected: `.dalt/course/fullstack/typescript-modeling-lab/starter/**`
 - Curriculum authority: `CURRICULUM.md` §12 FS02.2 — project-shaped types, learning target is deciding valid application states
 - Laravel bridge: deferred to Part 05, where the same model appears as columns and constraints
+- Beginner-accessibility pass: 2026-08-19 — added a new-vocabulary table and a voice pass toward first-person-plural framing (owner request, informed by cross-check against Full Stack Open's TypeScript course structure); structure, exercises, and required sections unchanged

@@ -14,11 +14,11 @@ Last reviewed: 2026-08-19
 
 ## Why this matters
 
-So far every type has described one shape. This lesson is about types that describe a **relationship between** shapes — "whatever goes in comes out", "this container holds one of those", "these keys, but all optional".
+So far every type we've written has described one shape. This lesson is about types that describe a **relationship between** shapes — "whatever goes in comes out," "this container holds one of those," "these same keys, but all optional."
 
-That sounds abstract and is intensely practical. Without it you write the same type three times with different names, and the three copies drift. With it, one declaration says the relationship once and the compiler propagates it: change `Issue` and every dependent type follows, or fails loudly at the place that needs a decision.
+That sounds abstract and turns out to be intensely practical. Without it, we write the same type three times under three names, and the three copies quietly drift apart. With it, one declaration says the relationship once and the compiler propagates it everywhere: change `Issue`, and every dependent type follows along, or fails loudly right at the place that needs a real decision.
 
-The trap is the opposite: generics used as decoration. `<T>` on a function that always receives an `Issue` adds a type parameter, a mental cost, and nothing else. The skill is knowing **when a relationship is real** — and this lesson spends as much time on "use the concrete type" as on `<T>`.
+The trap runs the other way too, and it's worth naming up front: generics used as decoration. `<T>` on a function that only ever receives an `Issue` adds a type parameter, a mental cost, and nothing else. The real skill here is knowing **when a relationship is real** — so this lesson spends just as much time on "use the concrete type instead" as it does on `<T>`. It's also the longest lesson in Part 02, on purpose; take the pause point when you get to it.
 
 ## Before you start
 
@@ -30,6 +30,23 @@ Required:
 Recommended first:
 
 - FS01.1's treatment of functions as values. A function type is that idea written down.
+- This is the densest lesson in Part 02 — it has the longest estimated effort of the
+  five for a reason. It's built in two halves: functions and generics first, utility
+  types and `keyof` second. There's a natural pause point between them, marked when
+  you get there. Splitting this across two sittings is a completely normal way to take it.
+
+New words this lesson uses, if any of them are unfamiliar:
+
+```text
+generic          a type written with a placeholder, like <T>, that gets filled in
+                 by whatever the caller actually passes
+type parameter   the placeholder itself — the T in <T>
+constraint       a rule narrowing what a type parameter is allowed to be,
+                 e.g. <T extends { id: number }>
+utility type     a built-in type that builds a new type from one you already have
+                 (Pick, Omit, Partial, Record)
+keyof            "the union of this type's property names," as a type
+```
 
 Going deeper in DALT Core — optional:
 
@@ -60,7 +77,14 @@ Question 1 is the difference between a real relationship and a `<T>` that does n
 
 ## Mental model
 
-A generic is a **promise to preserve a connection**, not a way to accept more things:
+Before the precise version: think of `<T>` as a labeled box, not a magic word. Whatever
+you put into the box is what you get back out — the label doesn't care what's inside,
+it just keeps track of it. A function isn't "generic" because it has `<T>` on it any
+more than a box is useful because it has a label; it's generic because something you
+put in on one side is the same something that comes out on the other, and the label is
+just how TypeScript keeps that promise honest.
+
+Precisely: a generic is a **promise to preserve a connection**, not a way to accept more things:
 
 ```text
 concrete       (items: Issue[]) => Issue
@@ -263,6 +287,15 @@ function findById<T extends { id: number }>(
 ~~~
 
 `T` still varies, but every allowed item guarantees the one capability the implementation needs. In `src/exercise.ts`, hover calls with issues and projects. Then try a local `type Label = { text: string }` array: it should be rejected. Do not over-constrain `T` to `Issue` when `id` is the only needed capability.
+
+> [!TIP]
+> **This is the natural pause point.** Everything above this line is functions and
+> generics — `<T>`, constraints, "is there a real relationship here." Everything below
+> is a different, related skill: building and deriving types from types you already
+> have (`Result<T>`, `Pick`, `Omit`, `Partial`, `Record`, `keyof`). If you've been at
+> this a while, this is a good place to stop, run the lab's checks, and come back to
+> the rest later with a clear head. Nothing below depends on anything you haven't
+> already used in FS02.1–FS02.3.
 
 ## One reusable container, plus familiar narrowing
 
@@ -501,9 +534,9 @@ PHP classes, database columns, or HTTP validation. DALT still validates the requ
 the server, and FS05 will make the database rules explicit. The useful relationship is
 between frontend values—not a promise that two languages share one type definition.
 
-The reusable container you build here — a `RequestState<T>` or equivalent — is the shape **B02** declares and Part 04 fills in for real. It is also your first sight of a pattern that dominates the rest of the course: one type describing "an operation over some payload", narrowed at the point of use.
+The reusable container you build here — a `RequestState<T>` or equivalent — is the shape **B02** declares and Part 04 fills in for real. It's also your first sight of a pattern that dominates the rest of the course: one type describing "an operation over some payload," narrowed at the point of use.
 
-Everything ahead is an instance of it. `useState<Issue[]>` in FS03.2 is a generic call. Part 04's fetch helper preserves the relationship between what you asked for and what you get back. Part 08's TanStack Query result types are the same idea with more surface. None of it is React magic — it is this lesson's `<T>`, which is worth knowing before a library hands it to you pre-assembled.
+Everything ahead is an instance of the same idea. `useState<Issue[]>` in FS03.2 is a generic call. Part 04's fetch helper preserves the relationship between what you asked for and what you got back. Part 08's TanStack Query result types are the same idea with more surface area. None of it is React magic — it's this lesson's `<T>`, worth actually understanding before a library hands it to you pre-assembled and lets you forget it's there.
 
 ## Resources
 
@@ -545,3 +578,4 @@ FS02.5 remains unavailable until this lesson is complete. It addresses separatel
 - DALT files inspected: `.dalt/course/fullstack/typescript-functions-lab/starter/**`
 - Curriculum authority: `CURRICULUM.md` §12 FS02.4 — the boundary is reusable relationships, not advanced type-level programming (`VISION_AND_SCOPE.md` §19)
 - Laravel bridge: not applicable — generics have no DALT or Laravel counterpart
+- Beginner-accessibility pass: 2026-08-19 — added a new-vocabulary table, a plain-language analogy for generics, an explicit mid-lesson pause point separating functions/generics from utility-types/keyof, and a voice pass toward first-person-plural framing (owner request, informed by cross-check against Full Stack Open's TypeScript course structure); structure, exercises, and required sections unchanged

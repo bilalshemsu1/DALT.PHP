@@ -14,11 +14,11 @@ Last reviewed: 2026-08-19
 
 ## Why this matters
 
-Every remaining part of this course puts typed code between a browser and a server. Before that is useful, you need an accurate answer to one question: **what has TypeScript actually established when it says nothing is wrong?**
+Every remaining part of this course puts typed code between a browser and a server. Before that's useful, we need an accurate answer to one question: **what has TypeScript actually established when it says nothing is wrong?**
 
-Get that answer wrong in either direction and you pay for it. Believe too little and you write defensive checks the compiler already covered, and you sprinkle `as` to make honest feedback go away. Believe too much and you ship a green typecheck over data the compiler never saw — which is the failure FS02.5 is entirely about, and the reason this lesson comes first.
+If you've never written a line of TypeScript, that question might sound abstract — stay with it anyway, because the whole lesson is really just answering it slowly. Get the answer wrong in either direction and it costs you. Believe too little and you write defensive checks the compiler already covered, and sprinkle `as` around to make honest feedback go away. Believe too much and you ship a green typecheck over data the compiler never even saw — which is the failure FS02.5 is entirely about, and the reason this lesson comes first.
 
-This is the smallest lesson in Part 02 and the one the other four stand on. It is about the boundary of the compiler's knowledge, not about syntax.
+This is the smallest lesson in Part 02, and the one the other four stand on. It's about the boundary of the compiler's knowledge, not about syntax — the syntax, once you see it, turns out to be the easy part.
 
 ## Before you start
 
@@ -82,16 +82,45 @@ reports disagreements            behaves, or fails
                                  knows nothing about your types
 ```
 
-The checker never runs your program, and your program never consults your types. They do not meet. Everything TypeScript proves is a statement about **the source you showed it**; everything that goes wrong at runtime is about **values it never saw**.
+The checker never runs your program, and your program never consults your types. They don't meet. Everything TypeScript proves is a statement about **the source you showed it**; everything that goes wrong at runtime is about **values it never saw**.
 
-Hold that separation deliberately. Most confusion about TypeScript — including most misuse of `as` — comes from quietly imagining the two columns are one.
+Hold that separation on purpose — it's the one idea worth memorizing before anything else in this lesson. Most confusion about TypeScript, including most misuse of `as`, comes from quietly imagining the two columns are actually one.
 
 ## TypeScript is JavaScript with a checking phase
 
 You do not need to learn a new runtime language. TypeScript starts with JavaScript and
 adds information for a checker to read before the JavaScript runs.
 
-Start with a JavaScript function you already know how to read:
+Before there's a real function to look at, look at the smallest possible one. This
+JavaScript function accepts anything:
+
+```js
+function double(n) {
+  return n * 2;
+}
+
+double(21);      // 42
+double('21');    // '2121' — JavaScript concatenates instead of multiplying
+```
+
+One colon is the entire idea of TypeScript, in its smallest form:
+
+```ts
+function double(n: number): number {
+  return n * 2;
+}
+
+double(21);
+// double('21'); // the checker rejects this call before it ever runs
+```
+
+`n: number` says one thing: *this parameter must be a number*. Nothing about `double`'s
+body changed, and nothing runs differently when the call is valid — the checker only
+gets a fact to compare the call against. Hold that thought; the rest of this lesson is
+the same one colon, applied to shapes instead of a single number.
+
+Now put that same idea on a function with more than one moving part. Start with a
+JavaScript function you already know how to read:
 
 ```js
 function issueLabel(issue) {
@@ -471,9 +500,9 @@ actual response has this shape is the runtime-boundary problem in FS02.5 and Par
 
 For now, use the type to understand the idea. Do not build an API client yet.
 
-This is the foundation of **B02 — Type the future application**, and of every typed line after it. Nothing is written here; what carries forward is the two-column model.
+This is the foundation of **B02 — Type the future application**, and of every typed line after it. Nothing gets built here; what carries forward is the two-column model.
 
-It is also the reason Part 02 spends five lessons before React. FS03.1 types a component's props on day one, and a learner who thinks a typed prop validates a server response will build Part 04 on a false assumption. The boundary you set up here is the one Part 04 and Part 05 keep testing.
+It's also why we spend five lessons on TypeScript before touching React. FS03.1 types a component's props on day one, and a learner who thinks a typed prop validates a server response builds Part 04 on a false assumption. The boundary you just set up here is the one Part 04 and Part 05 keep testing, over and over, for the rest of the course.
 
 ## Resources
 
@@ -515,3 +544,4 @@ FS02.2 remains unavailable until this lesson is complete. You have established t
 - DALT files inspected: `.dalt/course/fullstack/typescript-lab/starter/**`
 - Curriculum authority: `CURRICULUM.md` §12 FS02.1 — the central principle is that a green check is not a runtime guarantee
 - Laravel bridge: not applicable — no DALT or Laravel primitive corresponds to static typechecking
+- Beginner-accessibility pass: 2026-08-19 — fixed a broken-code defect found in FS02.3; added a zero-domain warm-up example, a voice pass toward first-person-plural framing, and (in FS02.2–FS02.4) new-vocabulary tables and a mid-lesson pause point in FS02.4 (owner request, informed by cross-check against Full Stack Open's TypeScript course structure); structure, exercises, and required sections unchanged

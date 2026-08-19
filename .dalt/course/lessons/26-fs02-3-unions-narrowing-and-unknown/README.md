@@ -14,11 +14,11 @@ Last reviewed: 2026-08-19
 
 ## Why this matters
 
-FS02.2 wrote down which values the application allows. That is the model. This lesson is about the other half: **at this exact line, which of those possibilities are still open?**
+FS02.2 wrote down which values the application allows. That's the model. This lesson is about the other half: **at this exact line, which of those possibilities are still actually open?**
 
-That question is what makes typed code pleasant rather than defensive. Without narrowing you write guards the compiler cannot see and access properties it cannot vouch for, and `as` starts creeping in as a way to say "trust me". With narrowing, the guard you already wrote *is* the evidence, and the compiler tracks it for you.
+That question is what makes typed code feel pleasant instead of defensive. Without narrowing you end up writing guards the compiler can't see and reaching for properties it can't vouch for, and `as` starts creeping in as a way of saying "trust me." With narrowing, the guard you were going to write anyway *is* the evidence — the compiler just tracks it for you from then on.
 
-It also introduces the most important type in the course. `unknown` is how you say "a value arrived and I have not proved anything about it yet" — the honest starting point for every server response, every parsed JSON body, every form field. FS02.5 is built entirely on it.
+This lesson also introduces the single most important type in the whole course. `unknown` is how we say "a value arrived, and I haven't proved anything about it yet" — the honest starting point for every server response, every parsed JSON body, every form field you'll ever handle. FS02.5, two lessons from now, is built entirely on this one idea.
 
 ## Before you start
 
@@ -30,6 +30,18 @@ Required:
 Recommended first:
 
 - Have your FS02.2 `Issue` model to hand. The narrowing examples use the same finite unions.
+
+New words this lesson uses, if any of them are unfamiliar:
+
+```text
+narrowing       the compiler shrinking a union down after a runtime check proves
+                one of the possibilities is gone
+discriminant    a shared field (like `status`) whose value tells you which
+                variant of a union you're holding
+type guard      a small function whose job is to prove one fact about a value
+exhaustive      a switch that handles every possibility, with nothing left over
+unknown         "a value arrived, and nothing has been proved about it yet"
+```
 
 Going deeper in DALT Core — optional:
 
@@ -87,10 +99,10 @@ remembers what the check proved on each branch.
 ```ts
 function describeId(id: string | number): string {
   if (typeof id === 'number') {
-    return \`numeric issue id: \${id}\`;
+    return `numeric issue id: ${id}`;
   }
 
-  return \`visible issue key: \${id.toUpperCase()}\`;
+  return `visible issue key: ${id.toUpperCase()}`;
 }
 ```
 
@@ -420,7 +432,7 @@ responses; FS02.5 explains why the response must be parsed before it becomes `da
 
 Discriminated unions are how **B02** models anything with alternatives, and the pattern recurs constantly after that: request state in Part 04 (`idle | loading | success | error` — not three booleans), authentication state in Part 06, and every operation that can succeed or fail with a reason.
 
-`unknown` matters even more. It is the type every value crossing into your program should start as, and FS02.5 turns that from a principle into a routine. When Part 04 receives a JSON body from DALT, `unknown` is the honest starting point and narrowing is the road out of it.
+`unknown` matters even more. It's the type every value crossing into our program should start as, and FS02.5 turns that from a principle into a daily routine. When Part 04 receives a JSON body from DALT, `unknown` is the honest starting point, and narrowing is the road out of it.
 
 ## Resources
 
@@ -460,3 +472,4 @@ FS02.4 and FS02.5 remain unavailable until this lesson is complete.
 - DALT files inspected: `.dalt/course/fullstack/typescript-narrowing-lab/starter/**`
 - Curriculum authority: `CURRICULUM.md` §12 FS02.3 — the important exercise is making contradictory state unrepresentable
 - Laravel bridge: not applicable — control-flow narrowing has no DALT or Laravel counterpart
+- Beginner-accessibility pass: 2026-08-19 — fixed a broken template-literal code sample (escaped backticks inside a fenced block that produced invalid TypeScript), added a new-vocabulary table, and did a voice pass toward first-person-plural framing (owner request, informed by cross-check against Full Stack Open's TypeScript course structure); structure, exercises, and required sections unchanged
