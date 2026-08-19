@@ -10,13 +10,13 @@ Difficulty: Advanced
 Prerequisites: FS10.2 — Builds, health and debugging
 Project milestone: B11 — Database-aware application
 Primary source dossier: POSTGRESQL_DOCS.md
-Last reviewed: 2026-08-15
+Last reviewed: 2026-08-20
 
 ## Why this matters
 
-An issue list can be correct and still become the slowest request in the product. A table with fifteen rows tells you almost nothing about the query that will filter a workspace with thousands of issues. PostgreSQL is not a passive place to store rows: its planner estimates alternatives from statistics, then chooses an access path. An index is therefore a cost paid on writes and storage for a measured read workload, not a badge to attach to every column.
+An issue list can be correct and still become the slowest request in the product. A table with fifteen rows tells us almost nothing about the query that will filter a workspace with thousands of issues. PostgreSQL isn't a passive place to store rows: its planner estimates alternatives from statistics, then chooses an access path. An index is a cost paid on writes and storage for a measured read workload — not a badge to attach to every column.
 
-The mature issue tracker finally has a real question: find one workspace's open issues, optionally assigned to one person, newest first, with predictable pagination. This lesson makes the answer observable before changing schema. It also uses PostgreSQL full-text search instead of pretending a leading-wildcard `LIKE` query is the same feature. JSONB appears as a bounded capability, not a replacement for relationships.
+The mature issue tracker finally has a real question: find one workspace's open issues, optionally assigned to one person, newest first, with predictable pagination. This lesson makes the answer observable before we touch the schema. It also uses PostgreSQL full-text search instead of pretending a leading-wildcard `LIKE` query is the same feature. JSONB appears as a bounded capability here, not a replacement for relationships.
 
 ## Before you start
 
@@ -34,6 +34,8 @@ docker compose exec db psql -U issue_tracker -d issue_tracker -c '\d+ issues'
 ```
 
 ## By the end
+
+You should be able to:
 
 - distinguish a query's result correctness from its work and cost;
 - capture and read `EXPLAIN` and `EXPLAIN ANALYZE` for a representative list query;
@@ -328,11 +330,29 @@ same fix.
 
 ## Common mistakes
 
-- Adding an index before capturing the SQL, parameters, and baseline plan.
-- Calling an index “unused” because one small test selected a sequential scan.
-- Reading only total execution time and ignoring estimated-versus-actual rows and buffer work.
-- Running `EXPLAIN ANALYZE` on a destructive statement outside a transaction.
-- Calling substring matching full-text search, or indexing every JSONB column by habit.
+### Adding an index before capturing the SQL, parameters, and baseline plan
+
+Without a before-and-after comparison, you can't actually tell whether the index changed anything — you only have a belief that it did.
+
+### Calling an index "unused" because one small test selected a sequential scan
+
+A sequential scan can be the genuinely correct plan for that predicate's selectivity. The planner choosing it isn't evidence the index is broken.
+
+### Reading only total execution time
+
+Ignoring estimated-versus-actual rows and buffer work misses the actual explanation. Two plans can report similar timing while doing very different amounts of real work, especially on a warm cache.
+
+### Running `EXPLAIN ANALYZE` on a destructive statement outside a transaction
+
+`EXPLAIN ANALYZE` actually executes the statement. Run it on an `UPDATE` or `DELETE` without a transaction to roll back, and the "harmless preview" has already changed the data.
+
+### Calling substring matching full-text search
+
+`ILIKE '%bug%'` can be a fine small administrative query, but it isn't ranking, isn't language-aware, and doesn't use the index structures full-text search actually relies on.
+
+### Indexing every JSONB column by habit
+
+An index on a column nothing queries against is pure write and storage cost with no read benefit — the same mistake as any other unjustified index, just with a trendier data type.
 
 ## When this goes wrong
 
@@ -345,23 +365,67 @@ SELECT websearch_to_tsquery('english', 'login failure');
 
 ## Exercise
 
-**Goal:** turn one measured issue-list request and one search request into documented, evidence-based database decisions.
+### Goal
 
-**Starting state:** the Compose database has a reproducible representative seed and an issue list endpoint that filters by workspace and status.
+Turn one measured issue-list request and one search request into documented, evidence-based database decisions.
 
-**Requirements:** capture the exact list SQL and pre-index `EXPLAIN (ANALYZE, BUFFERS)` output; add only an index justified by its predicates/order; capture the post-index plan; add FTS across title and description with an explicit configuration and GIN; and write a short decision for JSONB that names a real flexible field or rejects JSONB.
+### Starting state
 
-**Verification:** show a peer or your future self the seed command, both plans, the migration, and three searches: a hit, no hit, and an inflection/punctuation case. Explain a plan node and one write cost of the index without reading this page.
+The Compose database has a reproducible representative seed and an issue list endpoint that filters by workspace and status.
+
+### Requirements
+
+- Capture the exact list SQL and pre-index `EXPLAIN (ANALYZE, BUFFERS)` output.
+- Add only an index justified by its predicates and order.
+- Capture the post-index plan.
+- Add FTS across title and description with an explicit configuration and GIN.
+- Write a short decision for JSONB that names a real flexible field, or explicitly rejects JSONB.
+
+### Constraints
+
+- No index added before a captured baseline plan exists to compare it against.
+- No `EXPLAIN ANALYZE` run against a destructive statement outside a transaction.
+- No JSONB column added without a query that actually needs its operators.
+
+### Verification
 
 **Mode: tool-run and manual-proof.** PostgreSQL and your project tests produce the evidence; the course does not pretend to grade your environment.
 
-**Hints:** start with `EXPLAIN` if a query is unsafe to execute. Read plans bottom-up. Keep the same parameters before and after the index. Use `coalesce` when a nullable description enters a search vector.
+Show a peer or your future self the seed command, both plans, the migration, and three searches: a hit, no hit, and an inflection/punctuation case. Explain a plan node and one write cost of the index without reading this page.
+
+### Hints
+
+<details>
+<summary>Hint 1 — when a query might be unsafe to run</summary>
+
+Start with plain `EXPLAIN` if a query is unsafe to execute, or if you just want the estimate before committing to running the real thing.
+</details>
+
+<details>
+<summary>Hint 2 — reading a plan</summary>
+
+Read plans bottom-up. The deepest node is where rows first come from; each node above it processes what came before.
+</details>
+
+<details>
+<summary>Hint 3 — keeping the comparison honest</summary>
+
+Keep the same parameters before and after the index. Changing the query shape along with the schema makes it impossible to tell which change actually caused the difference.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is §2's baseline `EXPLAIN (ANALYZE, BUFFERS)` capture, §3's `(workspace_id, status, created_at DESC)` index chosen from the query's actual predicates and ordering, and §4's generated `tsvector` column with a GIN index and an explicit `english` configuration. The proof isn't that a plan changed — it's that you can name the plan node that disappeared, the buffer count that dropped, and the write cost the new index now imposes on every insert.
+</details>
 
 ## In the project
 
-Commit migrations for the justified index and FTS schema, not a screenshot of a lucky plan. Put the captured query plan and data scale in the project documentation so the next maintainer knows what workload it serves. The API must continue to scope every search and list query to the authorized workspace; an index makes a query faster, never more authorized. B11 asks for representative data and evidence, while FS11.2 will make multi-step changes and tenant isolation safe under concurrent requests.
+Commit migrations for the justified index and FTS schema, not a screenshot of a lucky plan. Put the captured query plan and data scale in the project documentation so the next maintainer knows what workload it serves. The API must keep scoping every search and list query to the authorized workspace — an index makes a query faster, never more authorized. B11 asks for representative data and evidence, and FS11.2 makes multi-step changes and tenant isolation safe under concurrent requests.
 
 ## Closed-book checkpoint
+
+Close the lesson first.
 
 1. What is the difference between `EXPLAIN` and `EXPLAIN ANALYZE`?
 2. Why might a sequential scan be the right plan even when an index exists?
@@ -369,7 +433,19 @@ Commit migrations for the justified index and FTS schema, not a screenshot of a 
 4. What does a GIN index support in this lesson, and what does it not prove?
 5. Name one field that should stay relational even if JSONB is available.
 
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. `EXPLAIN` reports the planner's estimate without running the query. `EXPLAIN ANALYZE` actually executes it and adds real row counts and timing — which is why it needs transaction/rollback care on anything that writes.
+2. When the predicate isn't selective enough — matching most of the table — following many random index pointers costs more than just reading the table straight through. The planner isn't wrong to prefer that; it's comparing real costs.
+3. A multicolumn B-tree index can only be used by matching a prefix of its declared column order. An index on `(workspace_id, status, created_at DESC)` serves a `workspace_id` filter and can narrow further by `status`, but a query filtering on `assignee_id` alone can't use it at all, because that column never appears in the prefix.
+4. It supports fast lookups into a `tsvector` for full-text search (or a JSONB document's keys). It proves nothing about ranking quality, authorization, or that the workspace predicate is still being applied — the index only makes containment/match checks fast.
+5. Anything the application joins, constrains, or queries as a first-class relationship — title, status, project, assignee, or workspace membership are all named in the lesson as columns that deserve real columns and tables, not JSON keys.
+</details>
+
 ## Resources
+
+### Read
 
 - [PostgreSQL EXPLAIN](https://www.postgresql.org/docs/17/using-explain.html)
 - [PostgreSQL indexes](https://www.postgresql.org/docs/17/indexes.html)
@@ -393,3 +469,5 @@ Versions: learner environment is PostgreSQL 17 as pinned by Part 10 Compose mate
 Consulted: 2026-08-15; repository Compose conventions and the authoritative Part 11 curriculum were checked before writing.
 
 Curriculum authority: `docs/dalt-fullstack/CURRICULUM.md` §22, FS11.1; `PROJECT_BLUEPRINT.md` §§62–67.
+
+Follow-up pass: 2026-08-20 — restructured Exercise from bold-label paragraphs into LESSON_STANDARD.md §97's `### Goal`/`Starting state`/`Requirements`/`Constraints`/`Verification`/`Hints` subsections with a hint ladder and reference explanation (this lesson predated the Part 09/10 structural pattern); split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal and a `### Read` subheading under Resources; light voice pass toward first-person-plural framing. Content itself required no changes — the leftmost-prefix, buffers-vs-cost, and keyset-pagination material checked out against PostgreSQL 17's documented behavior.

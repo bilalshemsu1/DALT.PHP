@@ -10,13 +10,13 @@ Difficulty: Advanced
 Prerequisites: FS11.1 — Query performance and PostgreSQL capabilities
 Project milestone: B11 — Database-aware application
 Primary source dossier: POSTGRESQL_DOCS.md
-Last reviewed: 2026-08-15
+Last reviewed: 2026-08-20
 
 ## Why this matters
 
-The request that moves an issue can update its status, append an activity event, and change a related counter. If the second write fails after the first succeeds, the tracker tells a story that never happened. A transaction gives those writes one outcome: all commit, or all roll back. But atomicity alone does not settle what two simultaneous requests can see or overwrite.
+The request that moves an issue can update its status, append an activity event, and change a related counter. If the second write fails after the first succeeds, the tracker tells a story that never happened. A transaction gives those writes one outcome: all commit, or all roll back. But atomicity alone doesn't settle what two simultaneous requests can see or overwrite of each other.
 
-Workspace authorization in application code is essential, yet it depends on every query continuing to include the correct predicate. PostgreSQL row-level security (RLS) adds a database boundary: a correctly configured application role is filtered even when a query forgets a workspace condition. It is defense in depth, not a replacement for authentication, authorization, or careful SQL. This lesson proves behavior as the role that actually experiences the policy, because an owner, superuser, or `BYPASSRLS` role can make a green test meaningless.
+Workspace authorization in application code is essential, yet it depends on every single query continuing to include the correct predicate. PostgreSQL row-level security (RLS) adds a database boundary: a correctly configured application role gets filtered even when a query forgets a workspace condition. It's defense in depth, not a replacement for authentication, authorization, or careful SQL. This lesson proves behavior as the role that actually experiences the policy, because an owner, a superuser, or a `BYPASSRLS` role can make a green test meaningless.
 
 ## Before you start
 
@@ -34,6 +34,8 @@ docker compose exec db psql -U issue_tracker -d issue_tracker -c 'SHOW transacti
 ```
 
 ## By the end
+
+You should be able to:
 
 - place a transaction boundary around a real multi-step issue operation;
 - reproduce and explain a lost-update-style race with two sessions;
@@ -423,11 +425,25 @@ the second line of most handlers.
 
 ## Common mistakes
 
-- Treating adjacent SQL statements as a transaction without an actual boundary.
-- Testing “concurrency” in one session, so no transactions overlap.
-- Holding a lock while calling an external service or waiting for a user.
-- Adding RLS only for `SELECT`, then allowing cross-workspace inserts through a missing `WITH CHECK`.
-- Testing as a superuser, owner, or bypassing role and calling the result RLS coverage.
+### Treating adjacent SQL statements as a transaction without an actual boundary
+
+Two `execute` calls next to each other in a controller are not atomic just because they're adjacent. Without an explicit `BEGIN`/`COMMIT`, the second can fail while the first has already committed.
+
+### Testing "concurrency" in one session
+
+If nothing overlaps, no race can actually happen. A race only exists between two sessions with transactions genuinely open at the same time — sequential statements in one `psql` prompt prove nothing about it.
+
+### Holding a lock while calling an external service or waiting for a user
+
+A lock held across a slow browser round trip or a third-party API call turns one slow request into a queue of blocked ones. Keep transactions short.
+
+### Adding RLS only for `SELECT`
+
+A missing `WITH CHECK` on `INSERT`/`UPDATE` leaves cross-workspace writes wide open even while reads are correctly filtered — a policy that protects half the boundary while looking complete.
+
+### Testing as a superuser, owner, or bypassing role
+
+Table owners and superusers bypass RLS by default. A test run as either one can pass while proving nothing at all about whether the policy actually protects anything.
 
 ## When this goes wrong
 
@@ -441,23 +457,67 @@ FROM pg_policies WHERE tablename = 'issues';
 
 ## Exercise
 
-**Goal:** prove one business operation cannot half-succeed, one concurrent claim cannot silently succeed twice, and tenant A cannot reach tenant B rows through the database role used by the application.
+### Goal
 
-**Starting state:** the tracker has workspaces, issues, membership authorization, an activity table or equivalent related state, and the B11 query work.
+Prove one business operation cannot half-succeed, one concurrent claim cannot silently succeed twice, and tenant A cannot reach tenant B rows through the database role used by the application.
 
-**Requirements:** implement a transaction around a move plus activity write; reproduce a broken two-session claim; replace it with an invariant-preserving conditional update or lock; enable policies for protected tables; and prove both directions of tenant isolation with a non-owner, non-superuser, no-BYPASSRLS role.
+### Starting state
 
-**Verification:** save the two-session transcript/timeline, a rollback proof, and role-based SQL output showing own rows allowed, cross-tenant reads/writes denied, and reciprocal behavior. Run your existing API behavior tests afterward: RLS must not be the only authorization evidence.
+The tracker has workspaces, issues, membership authorization, an activity table or equivalent related state, and the B11 query work.
+
+### Requirements
+
+- Implement a transaction around a move plus activity write.
+- Reproduce a broken two-session claim.
+- Replace it with an invariant-preserving conditional update or lock.
+- Enable policies for protected tables.
+- Prove both directions of tenant isolation with a non-owner, non-superuser, no-`BYPASSRLS` role.
+
+### Constraints
+
+- No RLS test run as the table owner or a superuser.
+- No policy without both `USING` and `WITH CHECK` where both reads and writes matter.
+- No lock held across a browser round trip, human input, or an external API call.
+
+### Verification
 
 **Mode: tool-run and manual-proof.** PostgreSQL sessions and project tests are the evidence; the milestone is explicitly self-assessed.
 
-**Hints:** express the invariant before selecting a lock. `RETURNING` lets an atomic update tell you whether it won. Use `set_config(..., true)` inside an explicit transaction for transaction-local context. `ROLLBACK` makes destructive RLS experiments safe.
+Save the two-session transcript/timeline, a rollback proof, and role-based SQL output showing own rows allowed, cross-tenant reads/writes denied, and reciprocal behavior. Run your existing API behavior tests afterward — RLS must not be the only authorization evidence.
+
+### Hints
+
+<details>
+<summary>Hint 1 — start from the invariant</summary>
+
+Express the invariant in one sentence before selecting a lock or a conditional update. "At most one successful claim" is a different problem from "the final value is correct," and the fix follows from which one you're actually solving.
+</details>
+
+<details>
+<summary>Hint 2 — the cheapest race-safe pattern</summary>
+
+`RETURNING` lets an atomic update tell you whether it actually won. A zero-row result from a guarded `UPDATE` is the evidence, not a separate check.
+</details>
+
+<details>
+<summary>Hint 3 — proving RLS safely</summary>
+
+Use `set_config(..., true)` inside an explicit transaction for transaction-local context, and reach for `ROLLBACK` liberally — it makes destructive RLS experiments safe to run against real data.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is §1's transaction around the move-plus-activity write, §3's conditional `UPDATE ... WHERE assignee_id IS NULL RETURNING`, and §5–§6's `issue_app` role — created with `NOBYPASSRLS` and the sequence grant before any policy — proven under `SET ROLE issue_app`, not as the table owner. The proof isn't that the SQL runs without error; it's the two-session transcript showing the second claim actually failing, and the reciprocal cross-tenant test where workspace 8's role cannot read, write, or insert against workspace 7's rows.
+</details>
 
 ## In the project
 
-Document the exact database role, tenant-context mechanism, connection-lifecycle rationale, and tables covered by RLS. Keep the app-level membership checks: they provide useful API errors and defend every non-database operation. The database policy catches a missing tenant predicate at the SQL boundary. B11 is complete only when the same product story holds across both: moving an issue is atomic, claiming it is race-safe, and an authorized workspace cannot become a cross-tenant query because a developer forgot one condition.
+Document the exact database role, tenant-context mechanism, connection-lifecycle rationale, and tables covered by RLS. Keep the app-level membership checks — they provide useful API errors and defend every non-database operation. The database policy catches a missing tenant predicate at the SQL boundary. B11 is complete only when the same product story holds across both: moving an issue is atomic, claiming it is race-safe, and an authorized workspace can't become a cross-tenant query just because a developer forgot one condition.
 
 ## Closed-book checkpoint
+
+Close the lesson first.
 
 1. What does a transaction guarantee, and what concurrency problem can remain after adding one?
 2. Why is a conditional `UPDATE ... WHERE assignee_id IS NULL RETURNING` safer than read-then-write?
@@ -465,7 +525,19 @@ Document the exact database role, tenant-context mechanism, connection-lifecycle
 4. What is the difference between a policy's `USING` and `WITH CHECK` expressions?
 5. Why can an RLS test pass while proving nothing when run as the wrong role?
 
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. A transaction guarantees its enclosed statements commit together or not at all — atomicity. It says nothing about what two simultaneous transactions can see or overwrite of each other; a lost-update-style race can still happen inside individually atomic transactions.
+2. A separate read-then-write lets two sessions both observe the same "available" state before either writes, so both can believe they succeeded. The conditional update makes the check and the write one atomic operation — the affected row count (via `RETURNING`) tells you directly whether this request actually won.
+3. After a serialization failure or a deadlock, when PostgreSQL has aborted the transaction because it couldn't guarantee a safe interleaving. It must restart the whole transaction because the snapshot it was reasoning from is no longer valid — replaying only part of it would use stale assumptions.
+4. `USING` determines which existing rows are visible or targetable by a command. `WITH CHECK` determines what values a new or modified row is allowed to have. A policy that only filters reads but has no `WITH CHECK` can still let a write claim another workspace.
+5. Table owners and superusers bypass RLS by default. A test run as either one succeeds regardless of whether the policy actually filters anything, so a green result says nothing about whether the boundary holds for the role that actually experiences it in production.
+</details>
+
 ## Resources
+
+### Read
 
 - [PostgreSQL transaction isolation](https://www.postgresql.org/docs/17/transaction-iso.html)
 - [PostgreSQL explicit locking](https://www.postgresql.org/docs/17/explicit-locking.html)
@@ -489,3 +561,5 @@ Versions: learner environment is PostgreSQL 17 as pinned by Part 10 Compose mate
 Consulted: 2026-08-15; DALT's repository database/connection behavior was treated as the implementation truth and tenant-context architecture remains an application decision to document.
 
 Curriculum authority: `docs/dalt-fullstack/CURRICULUM.md` §22, FS11.2; `PROJECT_BLUEPRINT.md` §§68–72.
+
+Follow-up pass: 2026-08-20 — cross-checked this lesson against `docs/dalt-fullstack/WORKLOG.md`'s F24/F25/F26 findings (the missing sequence grant, the NULL-vs-empty-string RLS fail-safe, and the role-created-after-use ordering); all three documented fixes are present and correctly explained, and the DALT-specific claim that `Database::class` is a container singleton was verified directly against `framework/Core/bootstrap.php` (confirmed — `$container->singleton(Database::class, ...)`); restructured Exercise from bold-label paragraphs into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal and a `### Read` subheading under Resources; light voice pass toward first-person-plural framing.
