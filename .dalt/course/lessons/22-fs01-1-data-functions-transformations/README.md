@@ -10,15 +10,15 @@ Difficulty: Foundation
 Prerequisites: FS00.1, FS00.2  
 Project milestone: B01 — JavaScript readiness  
 Primary source dossier: FSO_PART_01.md  
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
-Part 00 established that browser JavaScript can participate in application behavior. Here, focus on the language mechanisms that application code uses to shape data before it reaches a screen or changes state.
+Part 00 established that browser JavaScript can take part in application behavior. Here, we’re going to focus on the language mechanisms application code actually uses to shape data before it reaches a screen or changes state.
 
-You already know how to program. This is a focused refresher for the JavaScript patterns that will repeatedly appear in TypeScript and, later, React: issue lists, callback functions, derived values, and deliberate updates.
+You already know how to program — this is a focused refresher for the JavaScript patterns we’ll keep meeting in TypeScript and, later, React: issue lists, callback functions, derived values, deliberate updates.
 
-One of them matters more than the rest. React decides whether to re-render by comparing references, so "did I change this array or produce a new one?" stops being a style question and becomes the difference between a screen that updates and one that silently does not. That is why this lesson spends its time on references and immutable updates rather than on syntax you could look up.
+One of them matters more than the rest. React decides whether to re-render by comparing references, so "did I change this array, or did I produce a new one?" stops being a style question and becomes the difference between a screen that updates and one that silently doesn’t. That’s why we’re spending this lesson’s time on references and immutable updates, rather than on syntax we could just look up.
 
 ## Before you start
 
@@ -47,7 +47,7 @@ You should be able to:
 
 ## Predict before reading
 
-Write your predictions first. Run each snippet only after committing to an answer.
+Write your predictions down first. Only run each snippet once we’ve committed to an answer.
 
 ### 1. Shared object reference
 
@@ -133,7 +133,7 @@ Predict all four values. Why is it useful that the changed issue and the contain
 
 ## Mental model
 
-Two ideas carry the whole lesson.
+Two ideas carry this whole lesson.
 
 **A binding is a name pointing at a value. For objects and arrays, the value is a reference.**
 
@@ -146,7 +146,7 @@ const c = { ...a }              ← c points at a NEW object
 c.title = 'Something else'      ← a is untouched
 ```
 
-`const` prevents the *name* being re-pointed. It says nothing about the object it points at.
+`const` only stops the *name* from being re-pointed — it says nothing about the object that name points at.
 
 **A transformation produces the next value; it does not edit the current one.**
 
@@ -155,11 +155,11 @@ current value  ──transformation──▶  next value
      (unchanged)                      (new reference)
 ```
 
-`map`, `filter` and spread work this way. `push`, `sort` and direct property assignment do not. Both styles are valid JavaScript; only one survives contact with React, which is why the habit is worth building now, four lessons before you need it.
+`map`, `filter`, and spread work this way. `push`, `sort`, and direct property assignment don’t. Both styles are valid JavaScript — only one survives contact with React, which is exactly why we’re building the habit now, four lessons before we need it.
 
 ## Values, bindings, and references
 
-Use `const` for a binding you will not reassign. Use `let` when you genuinely will reassign the binding. Neither keyword makes an object immutable.
+In this course we default to `const`, and reach for `let` only when a binding genuinely needs reassigning. Neither keyword makes an object immutable.
 
 ```js
 const issue = { status: 'open' };
@@ -168,14 +168,14 @@ issue.status = 'closed';       // allowed: the object changed
 // issue = { status: 'open' }; // not allowed: the const binding cannot point elsewhere
 ```
 
-Primitive values such as strings, numbers, and booleans behave like values you can replace. Objects and arrays are reference values: a variable holds a reference to an object or array elsewhere. Assigning that reference does not make another object.
+Primitive values — strings, numbers, booleans — behave like values we can just replace. Objects and arrays are reference values: a variable holds a reference to an object or array that lives elsewhere. Assigning that reference doesn’t create another object.
 
 ```text
 issue ───────────┐
 selectedIssue ───┴──→ { status: 'open' }
 ```
 
-That is why prediction 1 prints `closed` and `true`. It is not spooky shared state; both bindings refer to the same object.
+That’s why prediction 1 prints `closed` and `true`. It’s not spooky shared state — both bindings just refer to the same object.
 
 ### Copying deliberately, and the shallow boundary
 
@@ -189,7 +189,7 @@ const queue = [issue];
 const nextQueue = [...queue, nextIssue];
 ```
 
-This is a **shallow** copy. The outer container is new; nested objects and arrays are still the same references unless you also copy the branch you are changing.
+This is a **shallow** copy. The outer container is new; nested objects and arrays stay the same references unless we also copy the branch we’re changing.
 
 ```js
 const project = { name: 'Atlas', settings: { notifications: true } };
@@ -202,11 +202,11 @@ console.log(project.settings.notifications);     // true
 console.log(project.settings === nextProject.settings); // false
 ```
 
-Do not reach for deep cloning as a habit. Copy the specific path whose next value differs. That keeps the transformation clear and preserves unrelated values.
+Don’t reach for deep cloning as a habit. Copy the specific path whose next value differs — that keeps the transformation clear and leaves unrelated values alone.
 
 ## Functions are values
 
-A function can be stored, passed, returned, and called later. Function declarations are useful when a named function reads best; arrow functions are compact when a function is a value in an expression.
+A function can be stored, passed around, returned, and called later. Function declarations read best when a name matters; arrow functions stay compact when the function is just a value inside an expression.
 
 ```js
 function formatIssue(issue) {
@@ -220,11 +220,11 @@ console.log(applyToIssue({ id: 4, title: 'Broken search' }, formatIssue));
 console.log(applyToIssue({ id: 4, title: 'Broken search' }, formatTitle));
 ```
 
-`formatter` is a callback: `applyToIssue` receives it now and calls it later. `formatIssue` passes the function value. `formatIssue()` calls it immediately, so it passes the return value instead. That distinction matters for array methods now and for event handlers later.
+`formatter` is a callback: `applyToIssue` receives it now and calls it later. `formatIssue` passes the function itself as a value. `formatIssue()` calls it immediately, so what gets passed is the return value instead. That distinction matters for array methods now, and for event handlers soon.
 
 ### A practical closure
 
-When a function is created, it retains access to its lexical environment. It can run later and still use values from that surrounding scope.
+When a function is created, it keeps access to its lexical environment. It can run later and still reach values from that surrounding scope.
 
 ```js
 const makeStatusFilter = (status) => {
@@ -237,11 +237,11 @@ const issues = [{ status: 'open' }, { status: 'closed' }];
 console.log(issues.filter(isOpen));
 ```
 
-`isOpen` was created while `status` was `'open'`. When `filter` calls it later, the inner function still has access to that `status`. This practical pattern—create a function configured with some data, then use it later—is a closure.
+`isOpen` was created while `status` was `'open'`. When `filter` calls it later, the inner function still has access to that `status`. This pattern — create a function configured with some data, then hand it off to be used later — is a closure.
 
 ## Shape data with destructuring, spread, and rest
 
-Destructuring names the values you need without repeated property access.
+Destructuring names the values we need without repeated property access.
 
 ```js
 const issue = { id: 8, title: 'Fix search', status: 'open', priority: 'high' };
@@ -259,7 +259,7 @@ const { priority, ...issueWithoutPriority } = issue;
 const addLabels = (issue, ...labels) => ({ ...issue, labels });
 ```
 
-Read the direction carefully: spread expands values into a new literal or call; rest gathers the remaining values during destructuring or parameter collection.
+Read the direction carefully: spread expands values out into a new literal or call; rest gathers the remaining values back in, during destructuring or parameter collection.
 
 ## Choose the operation that states the intent
 
@@ -299,11 +299,11 @@ const countsByStatus = issues.reduce((counts, issue) => ({
 }), {});
 ```
 
-`reduce` is appropriate when you need one accumulated result, such as grouped counts. It is not a badge of sophistication. Prefer `map`, `filter`, `find`, `some`, or `every` when one of those names says exactly what the requirement means. For example, use `find` instead of `filter(...)[0]` when you want one item.
+`reduce` earns its place when we need one accumulated result, like grouped counts — it’s not a badge of sophistication. Reach for `map`, `filter`, `find`, `some`, or `every` whenever one of those names already says exactly what we mean. Use `find` instead of `filter(...)[0]`, for instance, when what we actually want is one item.
 
 ## Current value → transformation → next value
 
-JavaScript permits mutation. We are deliberately practising transformations that create a next array or object because application state becomes easier to inspect: you can compare the old and new value, know which branch changed, and avoid surprising another reference.
+JavaScript allows mutation. We’re deliberately practising transformations that produce a next array or object instead, because application state gets easier to inspect this way: we can compare the old and new value, know exactly which branch changed, and avoid surprising some other reference that was pointing at the same data.
 
 ```js
 const closeIssue = (issues, issueId) =>
@@ -312,7 +312,7 @@ const closeIssue = (issues, issueId) =>
   );
 ```
 
-This returns a new array. It keeps unchanged issue objects as they were and creates a new object only for the issue being changed. It is an intentional, shallow update—not a claim that JavaScript itself is immutable.
+This returns a new array. It keeps the unchanged issue objects exactly as they were, and creates a new object only for the one being changed. It’s an intentional, shallow update — not a claim that JavaScript itself is immutable.
 
 ## Try it
 
@@ -345,18 +345,18 @@ untouched issue object is the *same* reference in both arrays, and only the chan
 a new object.
 
 **Why:** `map` always returns a new array, but the callback above only builds a new object
-for the id that matches — every other iteration returns the exact value it received. This is
-not an accident worth losing: it is the reason `closeIssue` is cheap to call on a large list,
-and it is exactly the signal a reference-comparing re-render check needs later — an unrelated
-issue's row can skip re-rendering because its object identity provably did not change,
-something a full deep clone of every issue would have destroyed without changing a single
-visible value.
+for the id that matches — every other iteration returns the exact value it received. This
+isn’t an accident worth losing: it’s the reason `closeIssue` stays cheap to call on a large
+list, and it’s exactly the signal a reference-comparing re-render check needs later — an
+unrelated issue's row can skip re-rendering because its object identity provably didn’t
+change, something a full deep clone of every issue would have destroyed without touching a
+single visible value.
 
 ## Focused exercise — Issue triage report
 
 **Mode: self-reported practice with your own Node or browser-console evidence. This exercise is not automatically verified.**
 
-Create a small file such as `issue-triage.js` outside this repository, or use your browser console. Start with this fixture:
+Let’s create a small file — `issue-triage.js` works, outside this repository — or just use the browser console. Start with this fixture:
 
 ```js
 const issues = [
@@ -376,7 +376,7 @@ Write small functions that, from this one dataset:
 - derive counts grouped by status;
 - close one issue by ID without mutating the input array or its original issue object.
 
-Then run this experiment before you repair it:
+Then run this experiment before repairing it:
 
 ```js
 const copiedIssues = [...issues];
@@ -386,7 +386,7 @@ console.log(issues[0].assignee.name);
 console.log(issues[0] === copiedIssues[0]);
 ```
 
-Observe the unexpected result. Explain which reference is still shared. Repair the update so that only the relevant issue and its `assignee` branch receive copies—for example, when changing an assignee’s name. Finally, prove with `console.log` or assertions that the original `issues` fixture is unchanged after both updates.
+Observe the unexpected result, and explain which reference is still shared. Repair the update so only the relevant issue and its `assignee` branch receive copies — when changing an assignee’s name, for example. Finally, prove with `console.log` or assertions that the original `issues` fixture is untouched after both updates.
 
 ### Hints
 
@@ -424,7 +424,7 @@ The reference bug occurs because array spread copies only the array container. I
 
 ## When this goes wrong
 
-When a transformation surprises you, use this small loop:
+When a transformation surprises us, run through this small loop:
 
 1. Inspect the input before the transformation.
 2. Inspect the returned value—not only the screen or final log.
@@ -447,15 +447,15 @@ This is especially useful for a missing `return` in a callback, a predicate that
 
 ## In the project
 
-This is **B01 — JavaScript readiness**. No issue-tracker code is written here; what carries forward is the reasoning.
+This is **B01 — JavaScript readiness**. No issue-tracker code gets written here — what carries forward is the reasoning.
 
-Every one of these operations reappears with a name attached. `issues.filter(...)` becomes FS03.2's derived `visibleIssues`. `issues.map(...)` becomes FS03.1's list rendering and FS03.2's immutable status update. Functions passed as values become FS03.3's `onCreate` callback. And the reference rule becomes load-bearing: React compares the old and new state by identity, so mutating an array in place produces data that changed and a screen that did not.
+Every one of these operations reappears later with a name attached. `issues.filter(...)` becomes FS03.2's derived `visibleIssues`. `issues.map(...)` becomes FS03.1's list rendering and FS03.2's immutable status update. Functions passed as values become FS03.3's `onCreate` callback. And the reference rule turns load-bearing: React compares old and new state by identity, so mutating an array in place gives us data that changed and a screen that didn’t.
 
-TypeScript and React add vocabulary on top. They do not replace any of this.
+TypeScript and React add vocabulary on top of this. They don’t replace any of it.
 
 ## Closed-book checkpoint
 
-Close the lesson and answer before reopening the details.
+Close the lesson and answer before reopening the details below.
 
 1. Why can a `const` variable still refer to a mutable object?
 2. Explain the difference between `map` and `filter` using an issue list.
@@ -502,3 +502,4 @@ Close the lesson and answer before reopening the details.
 - Consulted: 2026-08-14
 - Curriculum authority: `CURRICULUM.md` §11 FS01.1 — topics and exercise style
 - Laravel source: not applicable; this is language groundwork before framework work
+- Wording pass: 2026-08-19 — prose voice re-aligned toward Full Stack Open's first-person-plural, plainer-sentence register (owner request); structure, headings, exercises, code, and depth unchanged

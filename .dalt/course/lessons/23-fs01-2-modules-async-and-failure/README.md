@@ -10,11 +10,11 @@ Difficulty: Foundation
 Prerequisites: FS01.1  
 Project milestone: B01 — JavaScript readiness  
 Primary source dossier: FSO_PART_02.md  
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
-Soon, an issue screen will ask a server for data. Before React and TypeScript add their own vocabulary, make the browser-to-server path visible in ordinary JavaScript:
+Soon, an issue screen is going to ask a server for data. Before React and TypeScript add their own vocabulary, let’s make that browser-to-server path visible in ordinary JavaScript:
 
 ```text
 module → function → Promise → Response → body → application value
@@ -22,7 +22,7 @@ module → function → Promise → Response → body → application value
 
 Each arrow is a boundary. A failure at one boundary is not necessarily a failure at another.
 
-That last sentence is the lesson. Most broken data-loading code comes from collapsing those boundaries into one idea called "the request failed" — so a `404` is reported as a network problem, a `500` renders as an empty list, and a malformed body throws somewhere with no useful message. Keeping the boundaries distinct here is what makes Part 04's loading and error states honest instead of a single spinner and a shrug.
+That last sentence is the lesson. Most broken data-loading code comes from collapsing all four boundaries into one idea called "the request failed" — so a `404` gets reported as a network problem, a `500` renders as an empty list, and a malformed body throws somewhere with no useful message. Keeping the boundaries distinct here is what makes Part 04's loading and error states honest, instead of a single spinner and a shrug.
 
 ## Before you start
 
@@ -51,7 +51,7 @@ You should be able to:
 
 ## Predict before reading
 
-Write answers down first.
+Write our answers down first.
 
 1. `const data = fetch(url)`. What is in `data`?
 2. A request returns `404`. Does the returned Promise reject, or fulfil?
@@ -63,7 +63,7 @@ Question 2 is the one that produces silent bugs in real applications.
 
 ## Mental model
 
-A single `fetch` is four separate things that can go wrong, at four separate boundaries:
+A single `fetch` is really four separate things that can go wrong, at four separate boundaries:
 
 ```text
 1. TRANSPORT     fetch(url) ──▶ Promise<Response>
@@ -82,9 +82,9 @@ A single `fetch` is four separate things that can go wrong, at four separate bou
                  valid JSON that your application cannot use
 ```
 
-The rule to carry: **`fetch` rejects only at boundary 1.** Answer to question 2 — a `404` *fulfils*. The Promise's job is "did I get an answer?", not "was the answer good news?". Code that only wraps `fetch` in `try`/`catch` handles one boundary out of four and reports the other three as success.
+The rule to carry: **`fetch` rejects only at boundary 1.** Answer to question 2 — a `404` *fulfils*. The Promise's job is only "did I get an answer?", never "was the answer good news?" Code that just wraps `fetch` in `try`/`catch` handles one boundary out of four, and quietly reports the other three as success.
 
-The second idea, underneath all of it: **a Promise is not its value.** It is a handle on work that will finish later. `await` unwraps it — and only inside the async function that wrote it. Answer to question 4: the rest of the page keeps running; `await` suspends this function's continuation, not the browser.
+The second idea sits underneath all of it: **a Promise is not its value.** It's a handle on work that will finish later. `await` unwraps it — and only inside the async function that wrote it. Answer to question 4: the rest of the page keeps running; `await` suspends this function's continuation, not the browser.
 
 ## Start with a tiny module boundary
 
@@ -114,11 +114,11 @@ You just ran the same ordinary array transformation from FS01.1. The new part is
 
 **Try it:** rename the exported function to `titlesForOpenIssues` but leave the import unchanged. Run it and read the error. Then repair either side so the exported name and imported name agree. Next change the path to `./issue-title.mjs`, observe that this is a *module-location* error, then restore it.
 
-Each module has its own scope. `openTitles` is not automatically visible in `issue-report.mjs`; exporting and importing makes that relationship explicit.
+Each module has its own scope. `openTitles` isn’t automatically visible in `issue-report.mjs` — exporting and importing is what makes that relationship explicit.
 
 ### Recognize a default export
 
-Named exports are the default in this course because their names stay visible at the import site. You will still encounter this form:
+We default to named exports in this course, because their names stay visible at the import site. You’ll still run into this form out in the wild:
 
 ```js
 // format-title.mjs
@@ -130,7 +130,7 @@ export default function formatTitle(title) {
 import formatTitle from './format-title.mjs';
 ```
 
-A default export has no braces at import. It is one designated export from that module; named exports use braces and must match their exported names. Prefer a named export unless one primary export genuinely makes the file clearer.
+A default export has no braces at import. It's one designated export from that module; named exports use braces and have to match their exported names. We prefer a named export unless one primary export genuinely makes the file clearer.
 
 ## An operation that finishes later
 
@@ -144,9 +144,9 @@ setTimeout(() => console.log('3. Later'), 0);
 console.log('2. Continue now');
 ```
 
-Run it. The usual order is `Start`, `Continue now`, then `Later`. A synchronous statement completes before the next statement continues. The timer callback represents work that may run later, so JavaScript continues with the synchronous code already available.
+Run it. The usual order is `Start`, `Continue now`, then `Later`. A synchronous statement finishes before the next one starts. The timer callback represents work that may run later, so JavaScript just carries on with the synchronous code it already has.
 
-This is enough event-loop depth for now: JavaScript execution remains ordered, while browser and timer work can complete outside the immediate call flow. A callback, or the continuation after an `await`, does **not** mean the whole JavaScript runtime stopped.
+That’s enough event-loop depth for now: JavaScript execution stays ordered, while browser and timer work can complete outside the immediate call flow. A callback, or the continuation after an `await`, does **not** mean the whole JavaScript runtime stopped.
 
 ## Meet the Promise before `await`
 
@@ -175,7 +175,7 @@ pendingTitle
 
 **Try it:** before you run this, decide whether `pendingTitle` already contains the string. Then run it and inspect the first log. Call `loadIssueTitle(true)` and observe the rejection handler.
 
-A Promise is a representation of a future outcome. It starts **pending**, then settles exactly once as either **fulfilled** with a value or **rejected** with a reason/error.
+A Promise represents a future outcome. It starts **pending**, then settles exactly once — either **fulfilled** with a value, or **rejected** with a reason/error.
 
 ```text
 loadIssueTitle()
@@ -185,7 +185,7 @@ Promise (pending)
 fulfilled with a title  OR  rejected with an error
 ```
 
-Calling a Promise-returning function is not receiving its eventual value. The `.then(...)` and `.catch(...)` calls make the two outcomes visible; they are not a second kind of asynchronous work.
+Calling a Promise-returning function is not the same as receiving its eventual value. `.then(...)` and `.catch(...)` just make the two outcomes visible — they aren’t a second kind of asynchronous work.
 
 ## Rewrite the same consumer with `async` / `await`
 
@@ -204,9 +204,9 @@ console.log('This synchronous log can happen before the title');
 
 **Predict, then run:** which logs occur before the title? Change the call to `showIssueTitle(true)`. Where does the failure appear?
 
-`async` means this function returns a Promise. `await` suspends the continuation of **this async function** until the awaited Promise settles. It does not turn the underlying work into a normal immediate value, and it does not pause all JavaScript.
+`async` means this function returns a Promise. `await` suspends the continuation of **this async function** until the awaited Promise settles. It doesn’t turn the underlying work into a normal immediate value, and it doesn’t pause all of JavaScript.
 
-On fulfillment, `await` gives the fulfilled value. On rejection, it behaves like an exception thrown at the `await` expression. Put the failure handling where the pressure exists:
+On fulfillment, `await` hands us the fulfilled value. On rejection, it behaves like an exception thrown right at the `await` expression. Let’s put the failure handling exactly where the pressure exists:
 
 ```js
 const showIssueTitle = async (shouldFail) => {
@@ -219,11 +219,11 @@ const showIssueTitle = async (shouldFail) => {
 };
 ```
 
-**Try again:** run the success and failure calls. What changed? The syntax and readability changed; the Promise and the asynchronous behavior did not disappear. The `catch` handles thrown errors and rejected Promises that are awaited inside its `try` block.
+**Try again:** run the success and failure calls. What changed? The syntax and the readability changed — the Promise and the asynchronous behavior didn’t go anywhere. The `catch` handles thrown errors and rejected Promises that are awaited inside its `try` block.
 
 ## Fetch is a sequence, not “get data somehow”
 
-Part 00 established that browser JavaScript can initiate HTTP and a server can return a response. Now inspect the code path. Open this lesson in your browser, open DevTools → Network, then paste this into the Console:
+Part 00 established that browser JavaScript can initiate HTTP and a server can return a response. Now let’s inspect the actual code path. Open this lesson in your browser, open DevTools → Network, then paste this into the Console:
 
 ```js
 const inspectIssuePreview = async (path) => {
@@ -258,7 +258,7 @@ Promise for parsed JavaScript values
 application value
 ```
 
-`Response` is not parsed JSON. `response.json()` reads the response body and parses JSON into JavaScript values. A response body can be read once, so do not casually call `response.json()` twice.
+`Response` is not parsed JSON. `response.json()` reads the response body and parses JSON into JavaScript values. A response body can only be read once, so don’t casually call `response.json()` twice.
 
 ## Make an HTTP failure visible
 
@@ -268,9 +268,9 @@ Change only the path:
 inspectIssuePreview('/learn/fullstack/observe/async/missing-issue');
 ```
 
-Before running it, predict: does the `catch` run automatically because the status is 404? Run it. `fetch` fulfilled with a `Response`; the server successfully answered at the HTTP transport level. Your current code then parses its JSON and follows the apparent success path.
+Before running it, predict: does the `catch` run automatically just because the status is 404? Now run it. `fetch` fulfilled with a `Response` — the server successfully answered at the HTTP transport level. Our current code then parses its JSON and follows the apparent success path anyway.
 
-Repair the working example by adding an explicit HTTP boundary **before** parsing:
+Let’s repair the working example by adding an explicit HTTP boundary **before** parsing:
 
 ```js
 const response = await fetch(path);
@@ -282,7 +282,7 @@ if (!response.ok) {
 const body = await response.json();
 ```
 
-Run the success path and then the 404 again. The `catch` now runs because *your code* threw after inspecting the HTTP response. This is not an API-client architecture; it is one small, explicit decision about what counts as success here.
+Run the success path and then the 404 again. The `catch` now runs because *our code* threw after inspecting the HTTP response. This isn’t an API-client architecture — it’s one small, explicit decision about what counts as success here.
 
 ## Make a body failure visible
 
@@ -292,9 +292,9 @@ Keep the repaired `response.ok` check and change the path again:
 inspectIssuePreview('/learn/fullstack/observe/async/invalid-json');
 ```
 
-The fixture deliberately returns HTTP 200 but plain text. `response.ok` is true, then `response.json()` rejects because its body is not valid JSON. The same `catch` can handle it, but the stage is different: the HTTP exchange succeeded; JSON parsing failed.
+The fixture deliberately returns HTTP 200 with plain text. `response.ok` is true, then `response.json()` rejects because its body isn’t valid JSON. The same `catch` can handle it, but the stage is different this time: the HTTP exchange succeeded, and JSON parsing failed.
 
-There is one more boundary. Valid JSON is only data representation, not proof that your application can use it. A JSON body such as `{ "accepted": false, "reason": "project is archived" }` may parse correctly while describing an application-domain failure. Later, FS02.5 asks how runtime code can establish that parsed values have the shape an application expects. Do not solve that with TypeScript yet.
+There’s one more boundary. Valid JSON is only data representation — not proof that our application can actually use it. A JSON body such as `{ "accepted": false, "reason": "project is archived" }` may parse perfectly fine while still describing an application-domain failure. Later, FS02.5 asks how runtime code can establish that parsed values have the shape an application expects. Don’t reach for TypeScript to solve that yet.
 
 ### Four failures, four questions
 
@@ -305,7 +305,7 @@ There is one more boundary. Valid JSON is only data representation, not proof th
 | Body / JSON | 200 body is not JSON | `response.json()` rejects | Did parsing fail after the Response arrived? |
 | Application domain | JSON says an operation was rejected | Depends on your application rule | What did the parsed value actually say? |
 
-A genuine network failure depends on the learner’s network, browser policy, and server state, so this lesson does not fake one. If you later observe one, inspect the rejected error and the absence of a usable `Response`; it is not the same evidence as a 404 response.
+A genuine network failure depends on our network, browser policy, and server state, so this lesson doesn’t fake one. If we run into one later, inspect the rejected error and the absence of a usable `Response` — it’s not the same evidence as a 404 response.
 
 ## Try it
 
@@ -358,16 +358,16 @@ const run = async () => {
 run();
 ```
 
-If you run the files with Node, supply the origin explicitly, for example `const baseUrl = 'http://127.0.0.1:8000';`, and call `fetch(baseUrl + path)` while your local DALT server is running. In a browser Console on this site, the relative paths work directly.
+Running the files with Node? Supply the origin explicitly — something like `const baseUrl = 'http://127.0.0.1:8000';` — and call `fetch(baseUrl + path)` while the local DALT server is running. In a browser Console on this site, the relative paths just work.
 
-Evolve the working version in four short changes. Run and inspect after every one:
+Let’s evolve the working version in four short changes, running and inspecting after every one:
 
 1. Confirm the success request appears in Network and that the imported function returns parsed data.
 2. Change the path to `missing-issue`; make `loadIssuePreview` throw a meaningful HTTP error instead of returning its error JSON as a success value.
 3. Put the calling code in `try`/`catch`; report the failure without swallowing its message or stage.
 4. Change the path to `invalid-json`; keep the HTTP behavior and show that body parsing is a separate failure.
 
-Your result should export/import the loader, inspect HTTP success before parsing, return useful data on success, and let the caller handle a meaningful failure. Do not build a generic client or add React.
+The result should export/import the loader, inspect HTTP success before parsing, return useful data on success, and let the caller handle a meaningful failure. Don’t build a generic client, and don’t reach for React yet.
 
 ### Hints
 
@@ -403,7 +403,7 @@ One valid loader awaits `fetch`, checks `response.ok`, throws an error that incl
 
 ## When this goes wrong
 
-When behavior surprises you, follow this order instead of guessing:
+When behavior surprises us, follow this order instead of guessing:
 
 1. Did this function actually run?
 2. What was logged before the `await`?
@@ -415,7 +415,7 @@ When behavior surprises you, follow this order instead of guessing:
 8. What value did parsing actually produce?
 9. Which `catch` handled the failure?
 
-Keep Network and Console together: Network shows the browser/server exchange; runtime logs show what your JavaScript did with its result.
+Keep Network and Console together: Network shows the browser/server exchange, and the runtime logs show what our JavaScript did with the result.
 
 ## Common mistakes
 
@@ -435,15 +435,15 @@ Answer to question 5: the second `response.json()` rejects, because the body is 
 
 ## In the project
 
-This is the second half of **B01 — JavaScript readiness**, and it is the closest Part 01 gets to the real system.
+This is the second half of **B01 — JavaScript readiness**, and it’s the closest Part 01 gets to the real system.
 
-The four boundaries reappear directly. FS02.5 takes boundary 4 seriously — valid JSON that is not a valid `Issue` — and turns it into a parser. Part 04 turns all four into visible application states, because a user needs to be told something different for "you are offline", "that issue does not exist", and "the server sent something we could not read". Part 06 adds a fifth: a `401` that means the session expired.
+The four boundaries reappear directly. FS02.5 takes boundary 4 seriously — valid JSON that isn’t a valid `Issue` — and turns it into a parser. Part 04 turns all four into visible application states, because a user needs to hear something different for "you're offline", "that issue doesn't exist", and "the server sent something we couldn't read". Part 06 adds a fifth: a `401` that means the session expired.
 
-Notice how much of that is decided here, in plain JavaScript, before any library offers to hide it.
+Notice how much of that gets decided right here, in plain JavaScript, before any library offers to hide it.
 
 ## Closed-book checkpoint
 
-Close the lesson and answer before opening the disclosure.
+Close the lesson and answer before opening the disclosure — no peeking.
 
 1. What does an `async` function return?
 2. What is the difference between a Promise and its fulfilled value?
@@ -493,3 +493,4 @@ Close the lesson and answer before opening the disclosure.
 - Consulted: 2026-08-14
 - Curriculum authority: `CURRICULUM.md` §11 FS01.2 — topics and required outcome
 - Laravel source: not applicable; this is language groundwork before framework work
+- Wording pass: 2026-08-19 — prose voice re-aligned toward Full Stack Open's first-person-plural, plainer-sentence register (owner request); structure, headings, exercises, code, and depth unchanged
