@@ -10,13 +10,13 @@ Difficulty: Applied
 Prerequisites: FS04.1 — Fetching data and effects  
 Project milestone: B04 — First full-stack loop  
 Primary source dossier: `FSO_PART_02.md`  
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
 Loading asks the server a question. Creating, changing, and deleting ask it to make a durable decision. That distinction changes what the screen is allowed to claim. A draft in an input belongs to the browser; an issue created by POST belongs to the server only after a successful response. A button click is not proof that the server accepted anything.
 
-This is the first place the local-interface mental model breaks in a useful way. With an array in one component, adding a row and updating truth were the same action, performed at the same instant, with no possibility of disagreement. Across HTTP they are two actions separated by a delay, with at least four outcomes: accepted, rejected for a reason the user can fix, rejected for a reason they cannot, and no answer at all. Good UI makes the delay and each outcome visible rather than displaying confidence it has not earned.
+This is the first place our local-interface mental model breaks in a useful way. With an array in one component, adding a row and updating truth were the same action, performed at the same instant, with no possibility of disagreement. Across HTTP they're two actions separated by a delay, with at least four outcomes: accepted, rejected for a reason the user can fix, rejected for a reason they can't, and no answer at all. Good UI makes the delay and each outcome visible, rather than displaying confidence it hasn't earned.
 
 ## Before you start
 
@@ -65,6 +65,8 @@ Content-Type: application/json; charset=utf-8
 
 ## By the end
 
+You should be able to:
+
 - send JSON request bodies with the appropriate HTTP method;
 - distinguish success, validation failure, unexpected failure, and no response;
 - hold a draft separately from a pending submission;
@@ -73,6 +75,8 @@ Content-Type: application/json; charset=utf-8
 - explain why a 204 response cannot be parsed as JSON.
 
 ## Predict before reading
+
+Write answers down before reading on.
 
 1. You append the draft locally before POST finishes. What should happen if the server returns 422?
 2. Is `response.json()` valid after a 204 DELETE response?
@@ -358,14 +362,37 @@ Use Network's request payload and response tabs for one create, one PATCH, and o
 
 ## Common mistakes
 
-- Updating the list on click rather than after a confirmed response.
-- Clearing a draft before knowing whether the server accepted it.
-- Calling `json()` on a 204 DELETE response.
-- Handling every non-2xx response as a generic "network error."
-- Ending pending state outside a `finally`, so a thrown error disables a control forever.
-- A single `isLoading` boolean for initial loading, every mutation, and every failure.
-- Disabling every page control while one row is saving.
-- Building the appended row from the draft instead of from the server's response.
+### Updating the list on click rather than after a confirmed response
+
+A click is not proof the server accepted anything. Update the screen from what came back, not from the intent that started the request.
+
+### Clearing a draft before knowing whether the server accepted it
+
+Clear on success, keep on failure. Clearing first turns a recoverable validation error into the user's typing quietly disappearing.
+
+### Calling `json()` on a 204 DELETE response
+
+A 204 carries no body. Parsing one throws a `SyntaxError` about unexpected end of input — an error that looks like a bug in your code and is actually a protocol you didn't branch on.
+
+### Handling every non-2xx response as a generic "network error"
+
+A 422 is not a network problem — the request arrived, was understood, and was refused, with a reason the user can act on. Collapsing it into "something went wrong" throws away the one piece of information that would let them fix it.
+
+### Ending pending state outside a `finally`
+
+Without `finally`, an early return or a thrown error leaves the pending flag `true` forever, and the control it disables stays disabled — usually discovered only after something else has already gone wrong, which is the worst moment for a retry button to stop working.
+
+### A single `isLoading` boolean for initial loading, every mutation, and every failure
+
+One row saving should not freeze the whole page. Give each operation its own pending marker, scoped to what it actually affects.
+
+### Disabling every page control while one row is saving
+
+The interface equivalent of a global lock, and just as unpleasant to use. `aria-busy` on the specific row is enough.
+
+### Building the appended row from the draft instead of from the server's response
+
+The server may normalise a title, assign an id, or set a `createdAt` you didn't send. Displaying what you sent shows the user their request; displaying what came back shows them reality — and the two diverge exactly when it matters most.
 
 ## When this goes wrong
 
@@ -375,23 +402,68 @@ If the server receives no JSON, inspect the Network request headers and payload 
 
 ## Exercise
 
-**Goal:** Make your create form, mark-done action, and delete action operate through the fixture API.
+### Goal
 
-**Starting state:** FS04.1 loads and displays remote issues.
+Make your create form, mark-done action, and delete action operate through the fixture API.
 
-**Requirements:** POST a title, PATCH an issue status, and DELETE an issue. Model pending state per operation. Preserve drafts on error, use the server's returned issue after success, handle 204 without parsing a body, and visibly distinguish 422, network failure, and unexpected HTTP failure.
+### Starting state
 
-**Verification:** In Network, identify methods, JSON bodies, statuses, and response bodies for all three actions. Deliberately submit whitespace, stop the fixture for a network failure, and retry successfully.
+FS04.1 loads and displays remote issues.
+
+### Requirements
+
+- POST a title, PATCH an issue status, and DELETE an issue.
+- Model pending state per operation, not one page-wide boolean.
+- Preserve the draft on a failed create; clear it only after a confirmed success.
+- Use the server's returned issue to update displayed state — never the value you sent.
+- Handle 204 without parsing a body.
+- Visibly distinguish 422, network failure, and unexpected HTTP failure — three different sentences, not one.
+
+### Constraints
+
+- Confirm-then-update only. No optimistic updates yet — that tradeoff comes later, once you can trace the confirmed path by hand.
+- No client module yet. Keep the `fetch` calls near the components that use them; FS04.3 is where extraction earns its keep.
+- End every pending state in a `finally`, with no exceptions.
+
+### Verification
 
 **Mode: manual browser evidence and TypeScript compiler output.** The platform does not inspect your implementation; your evidence is the requests and visible state transitions you observed.
 
-**Hints:** Implement POST first. Make 422 visible before adding PATCH. For DELETE, branch before body parsing. Keep the operation's `finally` block responsible for ending its pending state.
+In Network, identify methods, JSON bodies, statuses, and response bodies for all three actions. Deliberately submit whitespace, stop the fixture for a network failure, and retry successfully.
+
+### Hints
+
+<details>
+<summary>Hint 1 — build order</summary>
+
+Implement POST first, end to end, before touching PATCH or DELETE. Make the 422 branch visible on screen before you add a second operation — it's the case most likely to get lost if you build all three at once.
+</details>
+
+<details>
+<summary>Hint 2 — the DELETE branch</summary>
+
+Branch on `response.status` before you touch the body. A 204 has nothing to parse, and reaching for `response.json()` anyway is where this exercise most commonly breaks.
+</details>
+
+<details>
+<summary>Hint 3 — pending state that survives failure</summary>
+
+Whatever ends a pending flag, put it in a `finally` block, not at the end of the `try`. An early return or a thrown error skips everything after it except a `finally`.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is the `createIssue` function in §1, the `setStatus` function in §3, and the `deleteIssue` function in §4: each reads the response's status before touching its body, and each result — `created`, `invalid`, `failed` — maps to one distinct thing on screen. Pending state is scoped per operation (`isCreating`, `pendingId`) rather than one shared boolean, and each `finally` ends its own flag regardless of which branch ran.
+</details>
 
 ## In the project
 
-B04 now becomes a real full-stack loop: a React interaction creates a request, the fixture server decides, JSON returns, and React replaces its local representation. The PHP fixture is intentionally simple and temporary. Part 05 replaces it with your DALT routes and PostgreSQL; do not smuggle persistence, authentication, or retry logic into this lesson. What you are building here is the shape of the loop, and the shape survives the replacement.
+B04 now becomes a real full-stack loop: a React interaction creates a request, the fixture server decides, JSON returns, and React replaces its local representation. The PHP fixture is intentionally simple and temporary. Part 05 replaces it with your DALT routes and PostgreSQL; don't smuggle persistence, authentication, or retry logic into this lesson. What we're building here is the shape of the loop, and the shape survives the replacement.
 
 ## Closed-book checkpoint
+
+Close the lesson first.
 
 1. What belongs to a draft, pending, and server-list state respectively?
 2. Why is 422 different from a rejected `fetch` promise?
@@ -399,6 +471,17 @@ B04 now becomes a real full-stack loop: a React interaction creates a request, t
 4. Why must DELETE branch before `response.json()`?
 5. What information should a pending control expose to a user?
 6. Why is a retried DELETE safe when a retried POST is not?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. Draft belongs to the browser until a successful submit; pending belongs to one operation for the duration of that request; the server list is a cached representation of server truth, correct only until the next response says otherwise.
+2. A rejected `fetch` promise means nothing answered — no status exists to read. A 422 is a resolved promise: the server received the request, understood it, and refused it, with a status and a body you can act on.
+3. Confirming first means the screen can only ever be *behind* the server, which is recoverable. Updating before the response arrives risks the screen getting *ahead* of the server — a lie the moment the request fails.
+4. A 204 has no body. Calling `response.json()` on it throws a `SyntaxError`, which looks like a parsing bug but is actually a protocol you didn't branch on before reading.
+5. Which specific operation is pending (not "something, somewhere"), so unrelated controls stay usable and the user isn't left guessing what's frozen and why.
+6. DELETE is idempotent — sending it twice leaves the world exactly as sending it once would. POST is not: two identical POSTs create two issues, so a retry after a timeout can silently duplicate the user's action.
+</details>
 
 ## Resources
 
@@ -436,3 +519,4 @@ B04 now becomes a real full-stack loop: a React interaction creates a request, t
 - DALT files inspected: `.dalt/course/fullstack/react-server-fixture/fixture-api.php`
 - Curriculum authority: `CURRICULUM.md` §14 FS04.2
 - Laravel bridge: optional only — Part 05 teaches the DALT implementation that will produce these HTTP results
+- Follow-up pass: 2026-08-19 — restructured Exercise into LESSON_STANDARD.md §97's Goal/Starting state/Requirements/Constraints/Verification/Hints subsections with a progressive `<details>` hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal; light voice pass toward first-person-plural framing to match Parts 00–03

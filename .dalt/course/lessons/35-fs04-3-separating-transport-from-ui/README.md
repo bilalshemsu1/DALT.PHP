@@ -10,15 +10,15 @@ Difficulty: Integration
 Prerequisites: FS04.2 — Mutating server data  
 Project milestone: B04 — First full-stack loop  
 Primary source dossier: `FSO_PART_02.md`  
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
-Putting the first `fetch` in a component was useful: it made the request lifecycle visible. Repeating headers, status checks, URL strings, JSON parsing, and error wording in every component is not useful. It makes a component answer two unrelated questions at once: "what should this screen do?" and "how are bytes transported over HTTP?"
+Putting the first `fetch` in a component was useful: it made the request lifecycle visible. Repeating headers, status checks, URL strings, JSON parsing, and error wording in every component isn't useful. It makes a component answer two unrelated questions at once: "what should this screen do?" and "how are bytes transported over HTTP?"
 
-The answer is a small client module, introduced only now that you have felt the duplication. It is not an architecture astronaut's layer cake. It is one boundary with typed functions whose names describe application operations: list issues, create issue, change status, remove issue. Components call those operations and render their result. One place owns URL construction, request conventions, response validation, and normalized errors.
+The answer is a small client module, introduced only now that we've actually felt the duplication. It's not an architecture astronaut's layer cake. It's one boundary with typed functions whose names describe application operations: list issues, create issue, change status, remove issue. Components call those operations and render their result. One place owns URL construction, request conventions, response validation, and normalized errors.
 
-There is a concrete payoff waiting in Part 05. When the fixture is replaced by your own DALT routes, the base URL changes, the error envelope may change, and the ids stop looking like `ISS-41`. If those facts live in one module, that is a morning's work. If they live in nine components, it is a rewrite.
+There's a concrete payoff waiting in Part 05. When the fixture gets replaced by our own DALT routes, the base URL changes, the error envelope may change, and the ids stop looking like `ISS-41`. If those facts live in one module, that's a morning's work. If they live in nine components, it's a rewrite.
 
 ## Before you start
 
@@ -38,6 +38,8 @@ Going deeper in DALT Core — optional:
 
 ## By the end
 
+You should be able to:
+
 - separate domain types from HTTP details;
 - create a typed client module with one public function per operation;
 - normalize network, HTTP, parse, and shape failures into useful errors;
@@ -46,6 +48,8 @@ Going deeper in DALT Core — optional:
 - explain why this is not yet a generic data-fetching framework.
 
 ## Predict before reading
+
+Write answers down before reading on.
 
 1. If every component calls `fetch`, where will you change the base URL in six months?
 2. Can a TypeScript return type prove that a malicious or broken server sent that shape?
@@ -347,14 +351,37 @@ Step 2 is the plausible-fake check on your own parser. A parser that never rejec
 
 ## Common mistakes
 
-- Moving only the URL string while leaving response parsing and status checks in components.
-- Returning `any` or using assertions to make invalid JSON look typed.
-- Catching every error and replacing it with "Something went wrong," losing 422 versus network information.
-- Letting the error-parsing path itself throw on a non-JSON error body.
-- Putting React state setters or JSX in the client module.
-- Creating a generic repository framework for four functions.
-- Dropping abort support during the extraction, reintroducing the FS04.1 race.
-- Refactoring all operations at once and losing the known-good checkpoint.
+### Moving only the URL string
+
+Leaving response parsing and status checks behind in the component means the boundary isn't real yet — it's a rename, not an extraction. The component still has to know what a 204 means.
+
+### Returning `any` or asserting to make invalid JSON look typed
+
+`data as Issue` is a claim, not a check. It makes the compiler quiet without making the response any more trustworthy — exactly the debt FS04.1 flagged and this lesson exists to pay off.
+
+### Catching every error and replacing it with "Something went wrong"
+
+That collapses 422 and a dead network into one sentence, losing the only information that would let a caller behave differently — keep the draft, or offer a retry.
+
+### Letting the error-parsing path itself throw on a non-JSON body
+
+A proxy or dev server can return HTML on a 502. If reading that body throws and the throw escapes, the user sees a JSON parsing error instead of "the server returned 502" — a bug about the error path, discovered at the worst possible moment.
+
+### Putting React state setters or JSX in the client module
+
+The moment `issues.ts` imports `useState` or returns JSX, transport depends on UI, and the module can no longer run in a plain Node script or get swapped for a fake in a test.
+
+### Creating a generic repository framework for four functions
+
+`Repository<T>` with pagination, nullable lookups, and a query DSL has more concepts in its signature than the application has features — every one of them now has to be maintained forever, for nothing that was asked for.
+
+### Dropping abort support during the extraction
+
+Losing the `signal` parameter on the way into the client module quietly reintroduces the FS04.1 race — the exact bug this refactor is supposed to preserve the fix for, not undo.
+
+### Refactoring all operations at once
+
+Moving GET, POST, PATCH, and DELETE in one pass and then hitting a bug leaves no way to tell whether you moved the code wrongly or changed behaviour. Move one flow, confirm it, then move the next.
 
 ## When this goes wrong
 
@@ -364,23 +391,67 @@ If TypeScript reports a type as unused, it may belong in the domain module rathe
 
 ## Exercise
 
-**Goal:** Move all fixture communication into a small typed issue API module.
+### Goal
 
-**Starting state:** FS04.2 has working fetch calls in components.
+Move all fixture communication into a small typed issue API module.
 
-**Requirements:** Export one function each for list, create, status update, and delete. Parse unknown response data — including every member of a list — before returning it. Normalize errors with status, code, and message, while keeping components responsible for pending state and presentation. Preserve abort support. Leave no `fetch(` outside the module and no React import inside it.
+### Starting state
 
-**Verification:** Search for `fetch(`, execute all four flows, inspect each request in Network, stop the fixture once, and deliberately cause a parser rejection. Confirm the UI still distinguishes its outcomes.
+FS04.2 has working fetch calls in components.
+
+### Requirements
+
+- Export one function each for list, create, status update, and delete.
+- Parse unknown response data — including every member of a list — before returning it.
+- Normalize errors with status, code, and message, while components keep owning pending state and presentation.
+- Preserve abort support on the read.
+- Leave no `fetch(` outside the module, and no React import inside it.
+
+### Constraints
+
+- No generic `Repository<T>` or query DSL — four named functions is the whole surface.
+- No caching, retries, or request deduplication. Those are real design problems with real requirements Part 08 supplies; don't adopt a policy here by reflex.
+- No component-visible change in behaviour. `npm test` passes with no test edits, the same as FS03.4.
+
+### Verification
 
 **Mode: manual browser evidence, code search, and TypeScript compiler output.** The module is not automatically graded; the evidence proves a boundary that actually works.
 
-**Hints:** Extract the GET function verbatim first, then improve its return parser. Write `requestJson` only after two operations repeat the same mechanics — you have four, so this is safe. Keep the 204 branch inside the helper.
+Search for `fetch(`, execute all four flows, inspect each request in Network, stop the fixture once, and deliberately cause a parser rejection. Confirm the UI still distinguishes its outcomes.
+
+### Hints
+
+<details>
+<summary>Hint 1 — extraction order</summary>
+
+Extract the GET function first, close to verbatim, and confirm the screen behaves exactly as before. Only then improve its return parser to check every list member instead of just array-ness.
+</details>
+
+<details>
+<summary>Hint 2 — when to write the shared helper</summary>
+
+Write `requestJson` only once two operations are visibly repeating the same mechanics — you have four functions, so this is safe to wait for rather than design up front.
+</details>
+
+<details>
+<summary>Hint 3 — the 204 branch</summary>
+
+Keep the 204 check inside the shared helper, not duplicated in `deleteIssue`. The rule "a 204 has no body" should exist in exactly one place.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is §1's four exported functions plus the unexported `requestJson` helper, §2's `isIssue`/`parseIssue`/`parseIssueList`, and §3's `ApiError`/`errorFromResponse`. Each component-facing function takes and returns domain values only; `requestJson` is the only place that knows about methods, headers, and status codes. If your version differs in naming, the actual test is the one in "Try it": grep your source for `fetch(` and find exactly one file.
+</details>
 
 ## In the project
 
-This completes B04's server seam. Your React components now express issue-tracker work, and a small client layer owns HTTP. In Part 05 the fixture's base URL and temporary behaviour are replaced by application-owned DALT routes and persistent PostgreSQL data. The API client survives that replacement because components depend on its domain contract, not on its fixture URL — which is the entire return on the work you just did.
+This completes B04's server seam. Our React components now express issue-tracker work, and a small client layer owns HTTP. In Part 05 the fixture's base URL and temporary behaviour get replaced by application-owned DALT routes and persistent PostgreSQL data. The API client survives that replacement because components depend on its domain contract, not on its fixture URL — which is the entire return on the work we just did.
 
 ## Closed-book checkpoint
+
+Close the lesson first.
 
 1. What belongs in a component and what belongs in an API client?
 2. Why does a return type not validate a server response?
@@ -388,6 +459,17 @@ This completes B04's server seam. Your React components now express issue-tracke
 4. Why does the 204 branch belong in the shared helper rather than in `deleteIssue`?
 5. What makes this module a boundary rather than an abstraction for its own sake?
 6. Why must the error-parsing path tolerate a non-JSON body?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. The component owns user intent, draft state, pending state, selection, and rendering. The client owns URLs, methods, headers, status codes, and parsing bytes into domain values. Neither should borrow the other's vocabulary.
+2. A return type is a promise made to the compiler about source the compiler can see. It says nothing about bytes that arrived over a network — only a runtime check earns that.
+3. The status, a machine-readable code, and the human-readable message — enough for a caller to decide whether to keep the draft (422) or offer a retry (anything else).
+4. Because "a 204 has no body" is one rule about the transport protocol, not about deletion specifically. Stating it once in the helper means the fifth operation someone adds later inherits it for free instead of needing to remember it.
+5. You could swap `fetch` for a WebSocket, or for an in-memory fake in a test, without touching a single component. If a component would notice the swap, transport has leaked upward and the boundary isn't real.
+6. A proxy or dev server can return an HTML error page instead of JSON on a failure like a 502. If parsing that body throws and the throw escapes uncaught, the user sees a confusing JSON parsing error instead of the actual status.
+</details>
 
 ## Resources
 
@@ -426,3 +508,4 @@ This completes B04's server seam. Your React components now express issue-tracke
 - DALT files inspected: `.dalt/course/fullstack/react-server-fixture/fixture-api.php`; existing Fullstack TypeScript runtime-boundary lab
 - Curriculum authority: `CURRICULUM.md` §14 FS04.3 — client layer only, explicitly no over-architecture
 - Laravel bridge: optional only — the client's transport boundary is framework-neutral; DALT/Laravel route implementation arrives in Part 05
+- Follow-up pass: 2026-08-19 — restructured Exercise into LESSON_STANDARD.md §97's Goal/Starting state/Requirements/Constraints/Verification/Hints subsections with a progressive `<details>` hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal; light voice pass toward first-person-plural framing to match Parts 00–03

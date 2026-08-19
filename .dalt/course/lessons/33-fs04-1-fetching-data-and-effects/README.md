@@ -10,15 +10,15 @@ Difficulty: Applied
 Prerequisites: FS03.4 — Tailwind and accessible application UI  
 Project milestone: B04 — First full-stack loop  
 Primary source dossier: `FSO_PART_02.md`  
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
-Until now the issue list was a local array. Reading it was immediate and could not fail, because the browser owned every value. A real application begins with a different fact: the useful data lives elsewhere. The browser asks for a representation, waits, and then decides what that representation means on screen.
+Until now the issue list was a local array. Reading it was immediate and could not fail, because the browser owned every value. A real application starts from a different fact: the useful data lives elsewhere. The browser asks for a representation, waits, and then decides what that representation means on screen.
 
-That wait is not an implementation detail. Before data arrives, the list is neither empty nor loaded; it is unknown. If the request fails and you show an empty-state message, you have told the user a lie with a friendly illustration on it. If the server answers 500, `fetch` still resolves successfully, so treating a resolved promise as success is a second lie. And a component that starts a request while rendering will start another on every state update, which is how a page ends up making four hundred requests to a healthy server.
+That wait isn't an implementation detail. Before data arrives, the list is neither empty nor loaded — it's unknown. Show an empty-state message during that wait and we've told the user a lie with a friendly illustration on it. The server answers 500 and `fetch` still resolves successfully, so treating a resolved promise as success is a second lie. And a component that starts a request while rendering starts another on every state update, which is how a page ends up making four hundred requests to a perfectly healthy server.
 
-This lesson makes those states explicit while the data is still read-only. Part 04's next lesson adds mutations, and mutations are much harder to reason about if "what is on screen right now" is already ambiguous.
+This lesson makes those states explicit while the data is still read-only. Part 04's next lesson adds mutations, and mutations get much harder to reason about if "what's on screen right now" is already ambiguous.
 
 ## Before you start
 
@@ -65,6 +65,8 @@ Restarting the fixture resets its state. It is course material living in the git
 
 ## By the end
 
+You should be able to:
+
 - distinguish loading, empty, network failure, and HTTP failure;
 - explain why `fetch` does not reject for HTTP 404 or 500;
 - load an issue list in an effect without rendering a Promise;
@@ -73,6 +75,8 @@ Restarting the fixture resets its state. It is course material living in the git
 - name one race that cleanup prevents.
 
 ## Predict before reading
+
+Write answers down before reading on.
 
 1. What renders if `useState<Issue[]>([])` is the only state and a request has not finished yet?
 2. Does `await fetch('/missing')` throw for a 404? Predict before trying it.
@@ -363,13 +367,33 @@ With DevTools Network open, reload the page. Find `GET /api/issues`; read its st
 
 ## Common mistakes
 
-- Starting `fetch` in the component body. Every state update causes another render and another request.
-- Treating `[]` as loading. It makes a slow service look like it has no work.
-- Calling `response.json()` without checking status. An error document becomes an accidental success path.
-- Making the effect callback `async`. React receives a Promise where it expected a cleanup function.
-- Setting failure state on an `AbortError`. Every navigation flashes an error the user did not cause.
-- Putting an object or function created during render in the dependency array. Its identity changes each render and loops the effect.
-- Silencing the dependency linter instead of describing the values the effect reads.
+### Starting `fetch` in the component body
+
+Every state update causes a render, and every render starts another request. This is FS03.1's purity rule arriving with a real consequence: not an infinite `console.log`, but a fetch loop against a real server.
+
+### Treating `[]` as loading
+
+An empty array looks identical whether the request hasn't finished or the server genuinely has nothing to show. It makes a slow service look like it has no work — exactly the two facts `LoadState` exists to keep apart.
+
+### Calling `response.json()` without checking status first
+
+`fetch` resolves just as happily for a 404 or 500 as for a 200. Skip the `response.ok` check and an error document gets parsed and treated as an accidental success.
+
+### Making the effect callback `async`
+
+An `async` function always returns a Promise. React expects the callback to return either nothing or a cleanup function, so it receives the wrong thing and cannot call your cleanup correctly.
+
+### Setting failure state on an `AbortError`
+
+An abort isn't a failure the user caused — it's cleanup doing its job. Skip the `controller.signal.aborted` guard and every navigation or filter change flashes an error nobody actually produced.
+
+### An object or function created during render, in the dependency array
+
+Its identity is different on every render, so the array is never equal to the previous one, and the effect never stops re-running — including the renders it causes itself.
+
+### Silencing the dependency linter instead of listening to it
+
+If the linter objects, it's nearly always right, and you're nearly always about to ship a stale closure — an effect quietly using values from the render it first ran on.
 
 ## When this goes wrong
 
@@ -379,23 +403,67 @@ If the request is absent from Network entirely, the effect did not run or the co
 
 ## Exercise
 
-**Goal:** Replace your local initial issue array with the fixture's `GET /api/issues` result.
+### Goal
 
-**Starting state:** B03 renders typed local issues instantly.
+Replace your local initial issue array with the fixture's `GET /api/issues` result.
 
-**Requirements:** Render a loading status, a real empty state, a network failure state, and an HTTP failure state. Check `response.ok`; hold the parsed body as `unknown` until you have checked something about it; abort the request during cleanup and do not report the abort as a failure. Keep filtering and selection as local UI state after data is ready.
+### Starting state
 
-**Verification:** Run all four cases from §5 and confirm each produces a visibly different screen. Restore the route and the fixture, and make the list render again.
+B03 renders typed local issues instantly.
+
+### Requirements
+
+- Render a loading status, a real empty state, a network failure state, and an HTTP failure state — four visibly different screens for four different situations.
+- Check `response.ok` before treating a response as success.
+- Hold the parsed body as `unknown` until you have checked something about it.
+- Abort the request during cleanup, and do not report the abort itself as a failure.
+- Keep filtering and selection as local UI state once data is ready — they stay client-side in this lesson.
+
+### Constraints
+
+- No data-fetching library. `fetch` and `useEffect`, by hand, is the lesson.
+- No `isLoading` boolean living beside a `data` field — use the discriminated `LoadState` union.
+- Do not remove `<StrictMode>` to make the double-effect in development "go away."
+
+### Verification
 
 **Mode: manual browser evidence and TypeScript compiler output.** Nothing marks this exercise automatically; keep the Network screenshots or notes that prove each state.
 
-**Hints:** Start with `LoadState`, not with JSX branches. Add the happy path first, then stop the server before writing the catch UI. If TypeScript objects to the response, keep it as `unknown` until you can state the check you performed.
+Run all four cases from §6 and confirm each produces a visibly different screen. Restore the route and the fixture, and make the list render again.
+
+### Hints
+
+<details>
+<summary>Hint 1 — where to start</summary>
+
+Start with `LoadState`, not with JSX branches. Decide that the three cases exist before you decide how any of them look.
+</details>
+
+<details>
+<summary>Hint 2 — build order</summary>
+
+Add the happy path first — GET, check `response.ok`, `setState({ kind: 'ready', ... })` — and confirm it renders. Then stop the fixture server and write the `catch` branch against a failure you can actually watch happen, rather than one you're imagining.
+</details>
+
+<details>
+<summary>Hint 3 — the unknown boundary</summary>
+
+If TypeScript objects to the response shape, don't reach for `as` to make it stop. Keep the value as `unknown` until you can state, in one sentence, what check you performed to earn the narrower type.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The full working shape is the component in §5: a `LoadState` union driving a `switch`, an effect that fetches once, checks `response.ok`, holds the JSON as `unknown` until `Array.isArray` narrows it, and a cleanup function that aborts. Your file layout can differ — the four visibly distinct screens and the abort-on-cleanup behavior are the actual requirement, not this exact shape.
+</details>
 
 ## In the project
 
-B04's first stage replaces the local array with this GET request. The fixture stays deliberately disposable: it gives the React application a remote truth without pre-empting Part 05's actual work — DALT routes, validation, persistence, and PostgreSQL. Do not add database code, authentication, or a data-fetching library here. The point of Part 04 is that you can see every moving part; a library that hides them is worth adopting only after you can describe what it hides.
+B04's first stage replaces the local array with this GET request. The fixture stays deliberately disposable: it gives the React application a remote truth without pre-empting Part 05's actual work — DALT routes, validation, persistence, and PostgreSQL. Don't add database code, authentication, or a data-fetching library here. The point of Part 04 is that we can see every moving part; a library that hides them is worth adopting only once we can describe what it's hiding.
 
 ## Closed-book checkpoint
+
+Close the lesson first.
 
 1. Why is an empty list not a loading state?
 2. Which failures reject `fetch`, and which require `response.ok`?
@@ -403,6 +471,17 @@ B04's first stage replaces the local array with this GET request. The fixture st
 4. What incorrect result can a late request produce?
 5. Why is response JSON `unknown` at the boundary?
 6. Why must the effect callback not be `async`?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. An empty array can mean "nothing has arrived yet" or "the server genuinely has zero issues" — two different facts a plain array cannot tell apart. `LoadState` keeps them separate.
+2. A network failure — no usable HTTP response at all, offline, DNS, refused, aborted — rejects the `fetch` promise. An HTTP failure — 404, 500, and so on — is a resolved promise with an unsuccessful status; only checking `response.ok` catches it.
+3. The values from component scope this exact effect reads. It isn't a timing knob — an empty array is only accurate when the effect reads nothing from scope.
+4. A stale response arriving after a newer request can overwrite the current screen with an older answer — the exact race abort-on-cleanup prevents.
+5. A `200` response can still contain invalid JSON, or valid JSON in a shape the UI cannot safely use. `unknown` forces something to be proven before the value is trusted, matching FS02.5's rule.
+6. React expects the effect callback to return nothing or a cleanup function. An `async` function always returns a Promise, and React would try to call that Promise as cleanup.
+</details>
 
 ## Resources
 
@@ -440,3 +519,4 @@ B04's first stage replaces the local array with this GET request. The fixture st
 - DALT files inspected: `.dalt/course/fullstack/react-server-fixture/fixture-api.php`; Part 03 lab source and Vite configuration
 - Curriculum authority: `CURRICULUM.md` §14 FS04.1
 - Laravel bridge: optional only — DALT request handling is introduced in Part 05, after the browser/API seam is understood
+- Follow-up pass: 2026-08-19 — restructured Exercise into LESSON_STANDARD.md §97's Goal/Starting state/Requirements/Constraints/Verification/Hints subsections with a progressive `<details>` hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal; fixed a stale "§5" cross-reference in the exercise verification (the four-cases walkthrough is §6); light voice pass toward first-person-plural framing to match Parts 00–03
