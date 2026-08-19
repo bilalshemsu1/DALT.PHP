@@ -10,7 +10,7 @@ Difficulty: Integration
 Prerequisites: FS07.1 — URLs and React Router
 Project milestone: B07 — Navigable tested application
 Primary source dossier: FSO_PART_07.md
-Last reviewed: 2026-08-15
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
@@ -35,6 +35,8 @@ Going deeper in DALT Core — optional:
 
 ## By the end
 
+You should be able to:
+
 - identify the boundary that owns a decision;
 - represent loading, success, and failure explicitly;
 - make a small, observable behavior change;
@@ -42,6 +44,8 @@ Going deeper in DALT Core — optional:
 - explain why a convenient client state is not a security boundary.
 
 ## Predict before reading
+
+Write answers down before reading on.
 
 1. What should a route do while current-user information is unknown?
 2. What observable result distinguishes a failed request from an empty result?
@@ -91,8 +95,8 @@ stop a crafted request. On 401, recover to login; on 403, explain that this user
 on 419, preserve a safe draft and obtain fresh CSRF proof according to your API contract.
 
 ```ts
-export async function getCurrentUser(): Promise<CurrentUser | null> {
-  const response = await fetch('/api/me', { credentials: 'include' });
+export async function getCurrentUser(signal?: AbortSignal): Promise<CurrentUser | null> {
+  const response = await fetch('/api/me', { credentials: 'include', signal });
   if (response.status === 401) return null;
   if (!response.ok) throw new Error('Could not load the current user');
   return response.json();
@@ -142,206 +146,190 @@ unknown session       → loading message, no premature redirect
 network failure       → visible retryable error
 ```
 
-## Session lifecycle and recovery details
+## Translate status codes in one place
 
-A current-user request is the synchronization point between a browser cookie and a server that may
-have expired its session. Loading means the server has not answered. Anonymous means it answered
-that there is no usable identity. Failed means the client could not establish the fact at all.
-These states cannot be aliases without causing premature redirects and misleading empty screens.
+Four different statuses need four different reactions, and if every component decides for
+itself, the application ends up with three incompatible ideas of what "not allowed" means:
 
-Keep status translation at one client boundary. If every component invents its own rule for 401,
-the application develops incompatible login experiences: one page redirects, another shows stale
-data, and a third calls an error an empty list. The shell and route screens should turn a typed
-API result into UI, while request details remain in one reusable client module.
+```ts
+type AuthOutcome =
+  | { kind: 'sign-in-required' }   // 401
+  | { kind: 'forbidden' }          // 403
+  | { kind: 'stale-session' }      // 419
+  | { kind: 'unreachable' };       // network error, or anything else
 
-A 401 usually means the session is absent or expired, so login recovery is useful. A 403 means
-the user did authenticate but cannot perform this action; redirecting to login loses useful
-information. A 404 may mean a resource is gone or deliberately hidden. A 419 means CSRF proof no
-longer matches server expectations. A network error is neither an identity nor permission decision.
-These distinctions are part of the visible application contract.
+function classify(error: unknown): AuthOutcome {
+  if (error instanceof ApiError) {
+    if (error.status === 401) return { kind: 'sign-in-required' };
+    if (error.status === 403) return { kind: 'forbidden' };
+    if (error.status === 419) return { kind: 'stale-session' };
+  }
+  return { kind: 'unreachable' };
+}
+```
 
-A local logout covers only its tab. Other tabs learn the truth on their next request. Design the
-client boundary so any later 401 follows the same recovery path. Cross-tab notification can make
-the experience faster, but it is never proof authorization is synchronized; the server must still
-reject every unauthorized request.
+**Predict, then check:** two route screens each handle failure differently — one redirects on
+any non-2xx, the other only reads `error.message`. Force a 403 through both. One sends a
+signed-in user to `/login`, which does nothing useful; the other shows "something went wrong,"
+which is technically true and useless. Route every failure through `classify` instead, once, and
+every screen answers the same question the same way.
 
-The shell needs a safe id, display name or email, and perhaps a server-derived capability. It
-does not need a password hash, raw session identifier, or a speculative role model. A capability
-can simplify presentation, but remains a UX hint; the mutation endpoint rechecks membership and
-ownership. Do not put credentials, session data, or sensitive return paths in browser storage or
-query parameters.
+A 401 means the session is absent or expired — login recovery genuinely helps. A 403 means the
+user authenticated fine and is still refused; sending them to log in again throws away the one
+fact that would actually help them. A 419 means CSRF proof no longer matches, so the fix is fresh
+proof, not a redirect at all. Collapsing any of these into the others isn't simplification — it's
+information the next screen now has to guess its way around.
 
-Login form errors have different origins. Empty required fields can be reported locally. Invalid
-credentials are a generic server response so the endpoint does not reveal whether an account
-exists. A transport failure says sign-in could not complete, not that credentials were wrong.
-These messages lead to different next actions and should not become one generic error paragraph.
+The same discipline applies to a login form's own errors, which have different origins: an empty
+required field is a local check with no request involved; invalid credentials are a deliberately
+generic server response, so the endpoint never reveals whether an account exists; a transport
+failure means sign-in could not even complete. Three different next actions. One generic error
+paragraph collapses them into a screen that tells the user nothing about what to do next.
 
-For a state-changing request, preserve a safe form draft after a CSRF or network failure where
-that helps a person retry. Do not silently replay a mutation after a new session: identity or
-permissions may have changed. Obtain fresh proof according to the documented contract and require
-an intentional next action.
+## Logout is a request, not a local reset
 
-Global navigation is similar. An item can be absent because it is unhelpful for the current user,
-but absence is not the only response to a forbidden deep link. A copied URL must still present a
-403 outcome, and a direct request must still receive the denial. Controls are affordances, never
-gates.
+```tsx
+async function logout() {
+  const response = await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+  if (!response.ok) {
+    setBanner('Could not sign you out. Try again.');
+    return;                                     // do not clear local state yet
+  }
+  setAuth({ status: 'anonymous' });
+  navigate('/login', { replace: true });
+}
+```
 
-When debugging, capture only request URL, method, response status, and the selected state branch.
-Never log cookies, passwords, CSRF secrets, or entire user objects. A stale UI is often a cache or
-request-order problem; a successful forged write is a server-security problem. Calling both auth
-bugs hides the boundary that tells you where to fix them.
+**Predict, then check:** sign in on two tabs, then log out in one. What does the *other* tab show
+right now, and what does it show after you click something in it? The honest answer is:
+unchanged, until its next request. A `setAuth` call in one tab cannot reach into another tab's
+memory. The second tab learns the truth exactly the way the server always tells it — its next
+request gets a 401, and `classify` sends that 401 through the same recovery path every other 401
+gets. Cross-tab messaging can make this feel faster; it is never proof the server agrees, which
+is why the request above is what actually invalidates the session.
 
-Narrate four requests before you finish: current-user load, valid login, forbidden issue load, and
-post-expiry mutation. For each, name what React displays, what the API returns, what the server
-decides, and what data could have changed. If React were deleted, the server answers must remain
-correct.
+That's also why `logout` checks `response.ok` before touching any state. Clearing local identity
+after a *failed* logout tells the user they're signed out while the server still has a live
+session — the same lie FS06.2 spent a whole lesson closing on the backend. Don't reopen it here.
 
-## Design review before integration
+## Don't let a slow response win a race it already lost
 
-Review the decision at every boundary before adding another abstraction. The browser owns location,
-history, focus, and the presentation of a useful result. React owns the mapping from explicit
-state to accessible elements. The API client owns request construction and response translation.
-DALT owns session resolution, validation, authorization, and the durable write. PostgreSQL owns
-constraints and stored facts. A defect is easier to fix when its owner is named before code moves.
+The initial session check and a fast logout click can both be in flight at once, and nothing
+stops the slow "you're signed in" answer from arriving *after* the logout has already set
+`auth` to anonymous — silently reauthenticating someone who just signed out:
 
-A durable feature begins with one scenario. Write the address a person visits, the identity they
-have, the request that screen makes, the response it expects, and the visible result. Then write
-the failure scenario beside it. For an issue detail page that means a valid route with a permitted
-issue, a valid route with a missing issue, an anonymous request, and an authenticated forbidden
-request. The four outcomes should not converge into one empty component.
+```tsx
+useEffect(() => {
+  const controller = new AbortController();
 
-Keep data models small at the edges. Parse a route id once. Translate an HTTP result once. Give
-components values that already express their alternatives. Repeating parse logic or status checks
-in several children is an early signal that the boundary is leaking. Extract a function because it
-owns a decision, not merely because a file has reached an arbitrary length.
+  getCurrentUser(controller.signal)
+    .then((user) => setAuth(user ? { status: 'authenticated', user } : { status: 'anonymous' }))
+    .catch((error: unknown) => {
+      if (controller.signal.aborted) return;
+      setAuth({ status: 'failed', message: classify(error).kind });
+    });
 
-Accessibility makes this review concrete. A person should be able to identify a page heading,
-the current navigation location, a form label, a submit action, and a changed error state. These
-are also the stable handles a behavior test should use. A visual screenshot can be valuable for
-design review, but it does not replace a semantic control or an assertion that a message exists.
+  return () => controller.abort();
+}, []);
+```
 
-Resist effects that copy one source of truth into another. Location is already state; do not mirror
-a route parameter into local selected-id state unless there is a documented temporary editing
-reason. Server current-user information is already state; do not make a second permanent identity
-store merely to avoid passing it through a shell. A copied value has synchronization cost, and
-that cost appears as stale UI after navigation, logout, retry, or browser history.
-
-Failure copy should provide the next honest action. An anonymous person can sign in. A forbidden
-person can return to a workspace list or contact a workspace owner. A missing issue can return to
-the project. A network failure can retry. Do not disclose private resource details merely to make
-an error more descriptive. The product decision about 403 versus 404 belongs to the backend
-contract, and frontend wording must follow that decision.
-
-When changing a route or auth behavior, keep the smallest feedback loop possible. Run typecheck
-after type changes, lint after markup changes, a focused test after behavior changes, then the
-whole suite before integration. Use browser inspection to compare the network status with the
-rendered result. A green test that mocked a response incorrectly is not evidence; a browser view
-that ignores a failed test is not evidence either. The two forms of feedback expose different
-mistakes.
-
-Finally, review the security boundary in plain language. If someone edits a URL, does the client
-validate it and does the server independently validate resource access? If someone changes a
-hidden field or invokes a mutation outside the UI, does the server derive identity from its
-session and preserve the row on denial? If the answer invokes only React, the application has
-usability rules but not protection. Keep the B06 behavior tests as the executable answer.
-
-## Evidence and operational choices
-
-Make each behavior observable before calling it complete. For a session load, inspect the status and
-the heading that appears after it. For a rejected action, inspect both the visible recovery and the
-server result. For a form error, identify whether it was local validation, a documented API
-response, or a transport failure. This habit prevents a UI that appears polished while silently
-misclassifying its inputs.
-
-Keep asynchronous work cancellable in practice. A person can navigate away, sign out, or select a
-different resource while a request is still in flight. Components should not overwrite a newer
-screen with an older response merely because the older request finished later. Put identity and
-resource requests behind boundaries with explicit loading and error transitions, then test the
-case that formerly produced stale content.
-
-Error messages must balance clarity and disclosure. “You do not have access to this issue” may be
-appropriate when the product intentionally returns 403. A server that deliberately returns 404
-for a private resource should be represented as not found rather than reconstructed by the client.
-Never let convenience copy leak resource titles, membership details, or account existence.
-
-Review logout as a complete transaction from a person’s perspective. The client asks the server to
-invalidate the session, receives the result, clears safe cached identity, and moves to a public
-location. If the request fails, do not pretend the session ended; say the action could not be
-confirmed and let the person retry. A local state change alone cannot promise the server has
-invalidated a cookie-backed session.
-
-In tests, make failures legible. Name the scenario, arrange only the data it needs, interact
-through accessible controls, and assert one or two meaningful outcomes. Avoid one enormous test
-that logs in, creates a workspace, creates an issue, changes filters, and signs out. When it
-fails, it provides a mystery rather than feedback. End-to-end coverage is intentionally small for
-the same reason: it protects one high-value seam while component and API tests isolate the rest.
-
-Before committing, run the exact commands the lesson names and read their output. Then use a real
-browser for the route and session paths. Tool output, a visible screen, and a direct protected
-request each answer different questions. Combining them is evidence; substituting one for another
-is how false confidence enters an application.
-
-## A deliberate final pass
-
-Before you declare the screen reliable, reproduce each state from a clean browser session. Visit a
-public route, a protected route, a permitted detail, and a denied detail. Refresh each location.
-Then repeat one interaction using only the keyboard. Note the status code, page heading, message,
-and available next action. These observations expose mismatches between a route table, API client,
-and component branch that source reading often misses.
-
-Keep a clear boundary between an expected product state and an unexpected failure. An empty issue
-list can be successful. A missing issue can be a documented response. A forbidden issue can be a
-documented response. A broken connection is a failure that needs recovery. Tests and UI should
-make this vocabulary visible; otherwise every unavailable value becomes an empty array and future
-debugging starts from a false premise.
-
-Review the evidence with a hostile question: could this check pass if the behavior disappeared?
-If a test only confirms a component rendered, it may. If it finds a labeled button, triggers the
-event, and observes the changed route or alert, it is much harder to satisfy accidentally. If a
-server test makes a direct request and checks the unchanged row, it is harder still. Select the
-smallest proof that makes the claim meaningful, then keep it running.
+This is FS04.1's abort pattern, unchanged — a current-user check is exactly as capable of
+arriving late as an issue fetch is, and it deserves the same protection. **Predict, then check:**
+remove the `AbortController`, then click logout the instant the page loads, before the initial
+check has had a chance to resolve. What does `auth` end up holding? Without the guard, whichever
+answer resolves last wins, regardless of which one is actually true — the shell that started
+this request no longer exists in the sense that matters, and cleanup is what says so.
 
 ## Common mistakes
 
-- Treating a request in flight as proof that the visitor is anonymous.
-- Storing credentials or a long-lived token in browser storage by habit.
-- Redirecting 403 to login and hiding a real authorization problem.
-- Calling hidden controls “security.”
-- Replacing a server error with a blank screen.
-- Testing implementation details instead of a label, navigation, or enabled action.
+### Treating a request in flight as proof that the visitor is anonymous
+
+An unresolved current-user request is not the same fact as "no one is signed in." Redirecting before the answer arrives races the request and misfires for every returning user with a slow connection.
+
+### Storing credentials or a long-lived token in browser storage by habit
+
+The session cookie already handles authentication, with browser-enforced security attributes behind it. A second, hand-rolled identity store in `localStorage` adds a copy of the truth with none of those protections.
+
+### Redirecting 403 to login and hiding a real authorization problem
+
+A signed-in user sent back to login signs in again, arrives at the same denied screen, and concludes the application is broken. 401 means "sign in would help." 403 means it wouldn't.
+
+### Calling hidden controls "security"
+
+A control that doesn't render is a UX improvement, not a boundary. The check that matters runs on the server, against the request, regardless of what the UI chose to show.
+
+### Replacing a server error with a blank screen
+
+A caught error that renders nothing gives a person no information and no recovery action. It also looks, to anyone testing casually, exactly like success.
+
+### Testing implementation details instead of a label, navigation, or enabled action
+
+A test coupled to internal state or structure breaks on every refactor and stays green through real regressions — the opposite of what a test is for.
 
 ## When this goes wrong
 
 If users flash through login before their session appears, locate the branch that conflates
 loading with anonymous. If every request is anonymous, inspect the actual request credentials and
-cookie policy before changing React state. If an old screen remains after logout, invalidate or
-refetch the client cache; do not claim a local `setUser(null)` invalidates a server session.
-
-```tsx
-async function logout() {
-  await fetch('/api/logout', { method: 'POST', credentials: 'include' });
-  navigate('/login', { replace: true });
-}
-```
+cookie policy before changing React state. If an old screen remains after logout, check that
+`logout` above actually waits for `response.ok` before clearing state — a local `setAuth`
+call that runs regardless of the server's answer is exactly the false confidence "Logout is a
+request, not a local reset" warned about.
 
 ## Exercise
 
-**Goal:** Make authentication state a coherent, server-derived frontend experience.
+### Goal
 
-**Starting state:** Routes and protected DALT API endpoints exist.
+Make authentication state a coherent, server-derived frontend experience.
 
-**Requirements:** Add loading, anonymous, authenticated, and failed states; an authenticated
-shell; login recovery for 401; a distinct access-denied path for 403; and authorization-aware
-controls. Keep server enforcement unchanged.
+### Starting state
 
-**Verification:** Refresh a protected route, test an expired session, inspect the network response
-for 401 and 403, and demonstrate that a direct forbidden API mutation still fails.
+Routes and protected DALT API endpoints exist.
 
-**Mode: tool-run — browser behavior plus `npm run typecheck` and `npm run lint`.** The platform
-does not grade this exercise; the API response and visible recovery are its evidence.
+### Requirements
 
-**Hints:** First make unknown distinct from anonymous. Then implement one protected route. Keep
-network translation in a client module rather than scattering status checks across components.
+- Add loading, anonymous, authenticated, and failed states.
+- Build an authenticated shell.
+- Add login recovery for 401, and a distinct access-denied path for 403.
+- Add authorization-aware controls, derived from server data.
+- Keep server enforcement unchanged — this lesson is presentation only.
+
+### Constraints
+
+- No credential, token, or session identifier in `localStorage` or a query string.
+- No redirect-to-login on 403.
+- No component may decide authorization on its own; every hidden control's underlying rule must still hold at the API.
+
+### Verification
+
+**Mode: tool-run — browser behavior plus `npm run typecheck` and `npm run lint`.** The platform does not grade this exercise; the API response and visible recovery are its evidence.
+
+Refresh a protected route, test an expired session, inspect the network response for 401 and 403, and demonstrate that a direct forbidden API mutation still fails.
+
+### Hints
+
+<details>
+<summary>Hint 1 — the first distinction to get right</summary>
+
+Make unknown distinct from anonymous before anything else. Every other state decision depends on this one being correct.
+</details>
+
+<details>
+<summary>Hint 2 — build order</summary>
+
+Implement one protected route completely before adding the rest. A single working example is easier to generalize from than three unfinished ones built in parallel.
+</details>
+
+<details>
+<summary>Hint 3 — where status translation belongs</summary>
+
+Keep network-status translation in one client module rather than scattering status checks across components. If every component invents its own rule for 401, you get incompatible recovery experiences across the app.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is the `AuthState` discriminated union in "Make state explicit," the status-code recovery table in "Session lifecycle and recovery details" (401 → login, 403 → explain, network failure → retry), and the `canEdit`-style derived boolean in "Keep authority on the server." The proof isn't that the happy path renders correctly — it's that a direct, forged mutation against the API still fails regardless of what the UI shows or hides.
+</details>
 
 ## In the project
 
@@ -351,11 +339,23 @@ behavior. It does not replace the B06 backend tests; it complements them.
 
 ## Closed-book checkpoint
 
+Close the lesson first.
+
 1. Why is frontend auth state a cache rather than a security boundary?
 2. What state must exist before an initial current-user request finishes?
 3. Why should 401 and 403 lead to different recovery behavior?
 4. What is one thing a hidden Edit button cannot prove?
 5. Which session event can make a previously rendered client state stale?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. It's a copy of a fact the server decided, held in a browser the user fully controls. The server re-derives and re-checks identity on every request regardless of what the client believes.
+2. A "loading" or "unknown" state — never a default that reads as anonymous. Rendering "logged out" before the request resolves races the answer and misfires for a valid, slow-to-confirm session.
+3. 401 means no identity is present at all, and signing in would resolve it. 403 means a known, real identity was denied by policy, and signing in again changes nothing. Collapsing both into one recovery path sends at least one of them somewhere unhelpful.
+4. That the action is actually forbidden server-side. A hidden button only proves the UI chose not to show it — a direct request bypasses it completely.
+5. Logout in another tab, or the session simply expiring server-side. The client's rendered state doesn't know either happened until its next request meets a 401.
+</details>
 
 ## Resources
 
@@ -388,4 +388,6 @@ Versions: React 19.2.3; TypeScript 5.9.3.
 
 Consulted: 2026-08-15.
 
-Curriculum authority: `CURRICULUM.md` §18, FS07.2; `PROJECT_BLUEPRINT.md` §§40, 42..
+Curriculum authority: `CURRICULUM.md` §18, FS07.2; `PROJECT_BLUEPRINT.md` §§40, 42.
+
+Follow-up pass: 2026-08-19 — fixed a stray double-period typo in this record's curriculum-authority citation; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal. Content pass (owner-approved): replaced four generic, near-code-free essay sections ("Session lifecycle and recovery details," "Design review before integration," "Evidence and operational choices," "A deliberate final pass" — collectively the least code-dense ~1,600 words in the course) with three tighter, code-grounded sections covering the same load-bearing ideas — one-place status-code translation, logout as a real request rather than a local reset, and the auth-check-versus-logout race — each with a predict-then-verify moment matching FS04.1/FS07.3's style. Extended `getCurrentUser` with an optional `AbortSignal` parameter to keep the new race-condition example consistent with its earlier definition in this same lesson. Removed a redundant, weaker duplicate `logout()` snippet from "When this goes wrong" in favour of pointing back at the fuller version.

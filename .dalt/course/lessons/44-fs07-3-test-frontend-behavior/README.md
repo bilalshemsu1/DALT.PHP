@@ -10,7 +10,7 @@ Difficulty: Integration
 Prerequisites: FS07.2 — Authentication in the frontend
 Project milestone: B07 — Navigable tested application
 Primary source dossier: FSO_PART_07.md
-Last reviewed: 2026-08-15
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
@@ -61,6 +61,8 @@ Going deeper in DALT Core — optional:
 
 ## By the end
 
+You should be able to:
+
 - query the DOM the way a person perceives it, by role, label and text;
 - drive a component with `user-event` rather than synthetic events;
 - substitute a fake API client at the seam FS04.3 built, with no network and no library;
@@ -69,6 +71,8 @@ Going deeper in DALT Core — optional:
 - choose a test level by what the failure would cost, not by fashion.
 
 ## Predict before reading
+
+Write answers down before reading on.
 
 1. A test renders your issue list and asserts "Loading issues…" is on screen, then passes.
    What has it actually proven?
@@ -378,17 +382,41 @@ three in the morning, improve the query before moving on.
 
 ## Common mistakes
 
-- Asserting a component rendered, which is true of every component that did not throw.
-- Reaching for `getByTestId` first, which makes the test blind to the markup regressing.
-- Forgetting `await` on a `user-event` call, producing a race that hides until CI is busy.
-- Using `getBy` for something asynchronous, which throws before the element can arrive.
-- Asserting absence immediately after render, before the thing had a chance to appear.
-- Faking the component under test instead of the boundary around it, which proves nothing.
-- Writing a fake that returns a shape the real API cannot produce — a bare array where the
-  server sends an envelope, or a 200 where it sends 422.
-- Calling hidden controls "authorization" and treating a green frontend test as proof.
-- Chasing a coverage percentage, which rewards testing trivial code and ignores the flows
-  a user would file a bug about.
+### Asserting a component rendered
+
+That's true of every component that didn't throw. It says nothing about whether the thing the user actually cares about is on screen.
+
+### Reaching for `getByTestId` first
+
+A test id is invisible to a screen-reader user and blind to the markup regressing underneath it — a `<button>` turned into a `<div>` still passes a `getByTestId` query while breaking for every real user.
+
+### Forgetting `await` on a `user-event` call
+
+Every `user-event` method returns a promise. An unawaited call lets the assertion run before React has processed the event — the single most common cause of a test that passes locally and fails in CI.
+
+### Using `getBy` for something asynchronous
+
+`getBy…` throws immediately if the element isn't there yet. Anything that arrives after an `await` needs `findBy…`, which polls instead of failing on the first check.
+
+### Asserting absence immediately after render
+
+The thing hasn't had a chance to appear yet, so its absence proves nothing. Wait for a positive signal first, then assert the absence you actually care about.
+
+### Faking the component under test instead of the boundary around it
+
+Substituting the thing you're supposed to be testing proves nothing about it. Fake the seam — the API client — and let the real component run.
+
+### Writing a fake that returns a shape the real API cannot produce
+
+A bare array where the server sends an envelope, or a 200 where it sends 422, tests a version of the API that doesn't exist. Type every fake against the real interface so it can't drift.
+
+### Calling hidden controls "authorization"
+
+A component test showing a hidden button proves the UI chose not to render it — nothing about whether a direct request would actually be refused. That claim belongs to a server test.
+
+### Chasing a coverage percentage
+
+Coverage measures which lines ran, not whether anything meaningful was checked. It rewards testing trivial code and says nothing about the flows a user would actually file a bug about.
 
 ## When this goes wrong
 
@@ -417,31 +445,63 @@ afterEach(() => {
 
 ## Exercise
 
-**Goal:** Prove the issue tracker's critical frontend flows with tests that fail when the
-product breaks and survive a refactor that does not change behaviour.
+### Goal
 
-**Starting state:** B07's routes, authenticated shell and API client boundary exist, and
-the client is reachable through a provider your components read.
+Prove the issue tracker's critical frontend flows with tests that fail when the product breaks and survive a refactor that does not change behaviour.
 
-**Requirements:** Cover, at minimum — the login form rejecting an empty submission with a
-visible alert; issue creation adding exactly one row; a server validation failure showing
-a message and preserving the typed draft; an authorization-sensitive control being absent
-for a user who lacks the permission; and a filter interaction narrowing the visible list.
-Every one uses a typed fake at the API seam. No test may require the DALT server or the
-Part 04 fixture to be running.
+### Starting state
 
-**Verification:** `npm run test` passes with the server stopped. Then, for each test,
-break the behaviour it covers and confirm that test — and ideally only that test — goes
-red. Record which test caught which break.
+B07's routes, authenticated shell and API client boundary exist, and the client is reachable through a provider your components read.
 
-**Mode: tool-run — `npm run test`, `npm run typecheck` and `npm run lint`.** The platform
-does not grade this exercise. Your evidence is the suite passing with nothing running, and
-your record of each deliberate break.
+### Requirements
 
-**Hints:** Start with the empty-list case; it needs the least setup and shakes out your
-provider wiring. Type every fake as `IssueApi` rather than leaving it inferred — the
-compiler error you get in Part 08 is the point. If a test needs a comment to explain what
-it proves, the assertion is probably too far from the user's experience.
+Cover, at minimum:
+
+- the login form rejecting an empty submission with a visible alert;
+- issue creation adding exactly one row;
+- a server validation failure showing a message and preserving the typed draft;
+- an authorization-sensitive control being absent for a user who lacks the permission;
+- a filter interaction narrowing the visible list.
+
+Every one uses a typed fake at the API seam. No test may require the DALT server or the Part 04 fixture to be running.
+
+### Constraints
+
+- No `getByTestId` as the first choice for any query.
+- No fake left untyped — every one is annotated against the real client interface.
+- No `setTimeout` anywhere in a test.
+
+### Verification
+
+**Mode: tool-run — `npm run test`, `npm run typecheck` and `npm run lint`.** The platform does not grade this exercise. Your evidence is the suite passing with nothing running, and your record of each deliberate break.
+
+`npm run test` passes with the server stopped. Then, for each test, break the behaviour it covers and confirm that test — and ideally only that test — goes red. Record which test caught which break.
+
+### Hints
+
+<details>
+<summary>Hint 1 — where to start</summary>
+
+Start with the empty-list case. It needs the least setup and shakes out your provider wiring before you build anything more complex on top of it.
+</details>
+
+<details>
+<summary>Hint 2 — type every fake</summary>
+
+Type every fake as `IssueApi` rather than leaving it inferred. The compiler error you get the moment `Issue` changes in Part 08 is the entire point of doing this.
+</details>
+
+<details>
+<summary>Hint 3 — a test smell worth noticing</summary>
+
+If a test needs a comment to explain what it proves, the assertion is probably too far from the user's actual experience. Get closer to what a person would see instead.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is the `ApiProvider`/`useIssueApi` seam from "Fake the client, not the component," queries built with `getByRole`/`getByLabelText`/`findByRole` in that priority order, `user-event` for every interaction, and `MemoryRouter` with real route definitions for the one navigation test. The proof isn't a green suite — it's that breaking each behaviour on purpose turns exactly the test that covers it red, and the lab's five deliberately-failing tests are the worked example of that same standard.
+</details>
 
 ## In the project
 
@@ -457,12 +517,25 @@ prove the person can work, B06's prove the server cannot be tricked.
 
 ## Closed-book checkpoint
 
+Close the lesson first.
+
 1. Why does `getByRole('button', { name: … })` catch regressions that `getByTestId` misses?
 2. What does `user.click` do that `fireEvent.click` does not, and when does it matter?
 3. Why must a fake be typed with the same interface as the real client?
 4. What is wrong with asserting an element is absent immediately after `render`?
 5. Which claim can a component test never make about authorization, and what proves it?
 6. You have a green frontend suite and a broken product. Name two shapes that failure takes.
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. It finds the element the way a screen-reader user would — by role and accessible name. Turn a `<button>` into a clickable `<div>`, and the query fails; a `getByTestId` on the same element would sail right past the regression.
+2. `user.click` checks that the element isn't covered or disabled before clicking, matching real interaction. `fireEvent.click` dispatches the event regardless — so it can "click" a disabled button that a real user could never activate.
+3. An untyped fake can silently drift from what the real API actually returns. A typed one stops compiling the moment the real interface changes, so the test can't describe data the API can no longer produce.
+4. The element hasn't had a chance to appear yet, so its absence at that instant proves nothing about whether it would ever appear. Wait for a positive signal first, then assert the absence that actually matters.
+5. That a denied action is genuinely refused. A hidden or disabled control only proves the UI chose not to show it; only a direct server-side test proves the request itself is rejected.
+6. A test that only confirms a component rendered without throwing, and a fake that returns a shape the real API can no longer produce — both stay green while the actual behaviour is broken.
+</details>
 
 ## Resources
 
@@ -506,3 +579,5 @@ DALT files inspected: `vite.config.mjs` (`globals: true`, jsdom environment, the
 `package.json` for the pinned testing toolchain.
 
 Curriculum authority: `CURRICULUM.md` §18, FS07.3; `PROJECT_BLUEPRINT.md` §§40, 43–44.
+
+Follow-up pass: 2026-08-19 — ran `.dalt/course/fullstack/frontend-testing-lab/starter` directly (`npm run typecheck` clean, `npm run test` — 5 passed, 5 failed, exact error text matching the lesson) and verified the pinned toolchain versions against the actual root `package.json`, no discrepancies found; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal. This lesson did not need a voice pass — its code-dense, verified, predict-then-run style already matches Parts 00–06 closely; it's the strongest of the three FS07 lessons.

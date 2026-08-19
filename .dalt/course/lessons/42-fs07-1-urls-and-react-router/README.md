@@ -10,7 +10,7 @@ Difficulty: Integration
 Prerequisites: FS06.3 — Authorization and ownership
 Project milestone: B07 — Navigable tested application
 Primary source dossier: FSO_PART_07.md
-Last reviewed: 2026-08-15
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
@@ -56,6 +56,8 @@ Going deeper in DALT Core — optional:
 
 ## By the end
 
+You should be able to:
+
 - distinguish a route, a link, a route parameter, and a query parameter;
 - make URL state survive refresh and browser Back/Forward;
 - build a small route table with a useful not-found state;
@@ -63,6 +65,8 @@ Going deeper in DALT Core — optional:
 - explain why a client route never grants access to protected server data.
 
 ## Predict before reading
+
+Write answers down before reading on.
 
 1. What should happen when someone pastes `/issues/999999` into a new tab?
 2. Which state belongs in `?status=open`: a visible filter, a form draft, or both?
@@ -212,146 +216,84 @@ valid URL + forbidden request   → access-denied screen
 invalid URL parameter           → client not-found screen
 ```
 
-## Route design review
+## Search parameters, validated like everything else
 
-A route is a contract between a person, the browser, and the application. It should answer where
-someone is without exposing irrelevant implementation details. A resource id is appropriate when
-the resource is already meaningful to the product. A transient open panel, a hover state, or a
-half-completed form is not automatically a route. Promote state into the URL when refresh,
-bookmarking, sharing, or Back and Forward would make the experience clearer.
+The `status` read at the top of this lesson pulls one value out of the URL. A real filter reads
+several, and every one of them is exactly as untrusted as `issueId` was — a search string gets
+edited by hand, restored from a bookmark, or shared in a link, and none of those paths run
+through your TypeScript.
 
-Design paths from stable nouns. Workspace, project, and issue are domain locations; an endpoint
-name or React component filename is not. Prefer one intentional project location to a path that
-encodes every layout container. Nested paths can describe containment, but nesting is not a prize.
-If the current screen needs only an issue id to load its data, a direct issue URL is easier to
-share and easier to test than a deeply repeated hierarchy.
+```tsx
+const ALLOWED_STATUSES = ['open', 'in_progress', 'closed'] as const;
+type StatusFilter = (typeof ALLOWED_STATUSES)[number];
 
-Route parameters must have validation appropriate to their domain. A database integer needs a
-positive safe integer check. A slug needs its allowed character form. An enum filter needs an
-allowlist and a default. Parsing is not authorization: after a parameter becomes a valid id, the
-API still resolves the current session and applies workspace membership and ownership rules. This
-two-step reasoning explains why a valid-looking copied URL can result in 403 or a deliberate 404.
+function readStatus(search: URLSearchParams): StatusFilter {
+  const value = search.get('status');
+  return (ALLOWED_STATUSES as readonly string[]).includes(value ?? '')
+    ? (value as StatusFilter)
+    : 'open';
+}
+```
 
-Search parameters have their own product costs. They become visible in copied links, analytics,
-browser history, and sometimes logs. Use them for non-sensitive view choices such as status,
-assignee, sort, page, or tab. Do not use them for a password, raw CSRF proof, an authorization
-decision, or a large unsaved draft. Normalize unknown values so a manually edited URL cannot send
-a surprising value to the API or leave the page in an impossible state.
+**Predict, then check:** what renders for `?status=DROP%20TABLE`? With `readStatus` in place it
+falls back silently to `'open'` — the same answer a stale bookmark gets. Without it, `status`
+is the literal string `DROP TABLE`, handed straight to `IssueList`, and whatever that component
+does with an unrecognised value is now undefined behaviour. Try both and watch the difference.
 
-History is observable behavior. A link normally creates a history entry because the person moved
-to another location. A replacement navigation can be correct after successful login, because
-returning to the login form with Back is often unhelpful. Filter changes depend on product intent:
-a deliberate applied filter can earn a history entry, while rapidly changing a search field often
-should not create twenty Back presses. Decide this deliberately and verify it with a real browser.
+Search parameters have a second cost beyond validity: they are visible, in copied links, browser
+history, and often server logs. That's fine for a status filter and wrong for a password, a CSRF
+token, or an unsaved issue title — those belong in state a URL can never carry, never in
+`useSearchParams`.
 
-A shared shell should contain global navigation and a stable place for route content. It should not
-become a hidden global data loader for every screen. Let a project route own project data and an
-issue route own issue data; that keeps loading, error, and not-found states local to the resource
-that caused them. If several routes genuinely share a current-user request, the authentication
-shell is the appropriate common boundary.
+## Don't let an effect redirect on every render
 
-Not-found states need careful language. An unmatched client route is different from a route whose
-parameter is malformed, which is different from a valid parameter whose API resource is absent.
-The UI may present a similar recovery link, but keeping the distinction in code and tests makes
-diagnosis possible. Never show an API error payload that reveals a private resource merely because
-the client wants more descriptive copy.
+The tempting version of a protected-route redirect looks like this:
 
-A deployment that serves an SPA needs a server fallback to the application document for client
-locations. This is deployment configuration, not permission to make every server request return
-the same HTML. API routes must remain API routes with their documented JSON and statuses. When a
-deep link fails only after deployment, first inspect the static asset and fallback configuration;
-do not add route effects or duplicate components to hide a server mismatch.
+```tsx
+// Wrong. Fires on every render where auth.status changes — including the
+// one this redirect itself causes — and fights the browser for control
+// of what Back actually does.
+useEffect(() => {
+  if (auth.status === 'anonymous') navigate('/login');
+}, [auth.status]);
+```
 
-Test route behavior like a user. Start at a project address, follow an issue link, refresh a detail
-address, use Back, and paste a malformed parameter. Then compare the visible page with the actual
-network status. A route test can prove that the application rendered an access-denied message; it
-cannot prove that a forged request was denied. Keep that latter proof in the API suite.
+**Predict, then check:** log in, then press Back. What happens? The effect fires again on the
+next render, sees a stale `auth.status` before the new one has settled, and can bounce the user
+straight back to `/login` — a broken Back button that looks like a router bug and is actually a
+synchronisation bug, the same shape FS03.2 warned about for any other piece of state.
 
-Finally, maintain one source of truth for navigation labels and destinations where the shell needs
-them. This is not an excuse for a generic navigation framework. A short data list is enough when
-the routes are stable. The purpose is to prevent a header link, empty-state link, and not-found
-link from drifting into three different spellings of the same product location.
+Redirect only at the one moment that's actually a decision — an anonymous visitor's session has
+finished resolving, on a route that requires one — and make it part of the render that already
+owns that branch, not a side effect watching for it to change:
 
-## Working through route failures
+```tsx
+if (auth.status === 'loading') return <p>Checking your session…</p>;
+if (auth.status === 'anonymous') return <Navigate to="/login" replace />;
+```
 
-When a route changes, observe it from both directions. Begin with a browser navigation: click a
-link, copy the resulting address, reload it, and move through history. Then begin with a direct
-address: paste it into a fresh tab and inspect the first request. The first experiment proves that
-the app creates a useful location; the second proves that the location can be restored without
-hidden local state.
+That's the whole fix: derive the redirect from the value you already have, instead of watching
+for it to change after the fact.
 
-A route screen should not assume that a successful match means successful data. It needs a loading
-state while the request is active, an empty state when a permitted collection has no records, an
-error state for transport failure, and a resource outcome for missing or forbidden detail. Those
-states are product language. The developer gains diagnostics when each has a distinct status and
-the person gains a useful recovery action rather than a silent screen.
+## Write the route contract down
 
-Do not use an effect to redirect every time a prop changes. Redirect only for an intentional
-navigation decision, such as an anonymous person reaching a protected screen after the session
-has resolved. Effects that mirror route state into component state usually create loops, stale
-closures, or a Back button that appears broken. Derive what can be derived from the current
-location and retain local state only for genuinely temporary interaction.
+A route is a contract between a person, the browser, and the application: path in, screen and
+outcomes out. Writing it down catches the mistake of designing only the happy path and leaving
+every other result to whatever the conditional rendering happens to do:
 
-Consider pagination and sorting before expanding a route. A page number and allowed sort can be
-query parameters, but an arbitrary SQL column must never be interpolated because a route has it.
-The client sends its chosen view state; the API validates and allowlists it. This is the same
-boundary discipline as an issue id: a URL is input, not a command.
+| Path | Params | Calls | Title | Recovery states |
+|---|---|---|---|---|
+| `/login` | — | `POST /api/login` | Sign in | invalid credentials |
+| `/workspaces/:workspaceId/projects/:projectId` | positive int | `GET /api/projects/:id` | project name | 401 → login, 403 → access denied, 404 → not found |
+| `/issues/:issueId` | positive int | `GET /api/issues/:id` | issue title | same three, plus malformed id → client not-found |
 
-A testable routing design stays boring. Route components receive parsed values, call one client
-boundary, and render semantic outcomes. Links have names that describe their destination. The
-not-found page has a heading and recovery link. A test can then start from a memory location and
-assert on a page heading or alert without knowing the router's internal implementation. The browser
-still deserves a quick manual pass because scroll position, history, and deployed fallback behavior
-are browser concerns.
-
-Before moving on, make a small route map in your own words. For every path, write the valid
-parameters, the API it calls, its normal title, and its recovery states. This map prevents a new
-screen from quietly bypassing the conventions you have already established. It also makes future
-state work in Part 08 easier: URL state is not a competing store; it is one of the places the
-application intentionally keeps state.
-
-## Practical route checklist
-
-A route change deserves a short contract review. State the canonical path, the accepted parameter
-forms, the query values, the page heading, and the expected server outcomes. This catches a common
-mistake: designing only the happy-path screen and leaving every other result to accidental
-conditional rendering. The contract also tells a future contributor which changes belong in the
-router, the API client, or the backend.
-
-Check keyboard behavior as well as mouse behavior. A link must be focusable and have a meaningful
-name. A route change should move focus to a useful page heading when your application needs that
-assistance, especially after an action that replaces the whole screen. Error and not-found states
-need the same semantic structure as success states, otherwise a keyboard user reaches an address
-with no understandable destination.
-
-Think about browser reload as a boundary test. In a development server, client routing can appear
-to work because the developer never asks the server for a nested document. A pasted detail URL is
-the first honest test: the host must serve the application document, the router must match, the
-screen must parse the id, and the API must respond. When one of those steps fails, fix that exact
-layer instead of hiding it with a redirect to the root.
-
-Route decisions should make observability better. If a customer reports a broken issue URL, its
-path and query should let you reproduce the intended location without asking them to recreate
-three local clicks. That usefulness is why URL state is durable state. It does not mean every
-ephemeral interaction belongs in the address; a calm, small URL is easier to understand and safer
-to share.
-
-Finally, compare links in every recovery state. The not-found page, an access-denied screen, an
-empty project, and a login recovery should all lead somewhere intentional. A recovery link should
-describe its destination, not merely say “click here.” These small details turn routing from a
-technical configuration into navigable product structure.
-
-## One more verification pass
-
-Compare an internal navigation with a pasted deep link. The first checks that Link creates the
-correct browser location; the second checks the complete restore path. For both, record the page
-heading and network request. Then make the resource unavailable and repeat. A route remains a
-location even when the resource cannot be shown, so its recovery state must be intentional.
-
-Use this final comparison to catch accidental redirects. An unknown route should not silently
-become a different resource. A malformed id should not become zero. An authenticated forbidden
-resource should not become a login page. Each shortcut hides information that a person and a
-future test need to distinguish.
+Three things are worth checking once this table exists, not before it. A link needs a real
+destination and a name a screen reader can announce — `<Link to={...}>{issue.title}</Link>`, not
+a styled `<div>`. A route change that replaces the whole screen should move focus to the new
+page heading, or a keyboard user lands on an address with no announced destination. And a pasted
+deep link is the honest test of all of it — a dev server can make client routing look correct
+while never once asking the server for a nested document, so refreshing `/issues/42` for real,
+not just clicking to it, is what actually proves the contract above holds.
 
 Write down the expected title, response status, and recovery link for each route outcome. That
 small table makes a route contract reviewable before implementation and protects it during later
@@ -359,12 +301,29 @@ state-management changes.
 
 ## Common mistakes
 
-- Keeping the selected issue only in useState when it is a page location.
-- Treating every URL segment as a trusted number.
-- Using `a href="#"` or clickable non-buttons instead of Link.
-- Putting a sensitive form draft or token in a query string.
-- Calling a client-side redirect an authorization check.
-- Forgetting an unmatched-route state and presenting a blank screen.
+### Keeping the selected issue only in `useState` when it's a page location
+
+A selected issue that only lives in component state disappears on refresh and can't be bookmarked or shared. If it's meaningful enough to want back after a reload, it belongs in the URL.
+
+### Treating every URL segment as a trusted number
+
+A route parameter is a string typed, edited, or restored from history by a person or a script. `Number(issueId)` can produce `NaN`; validate before it ever reaches the API as though it were a real id.
+
+### Using `a href="#"` or clickable non-buttons instead of `Link`
+
+An anchor with no real destination, or a `div` with an `onClick`, loses the browser behaviours a real navigation gives you for free — a copyable address, a working new-tab, sensible history.
+
+### Putting a sensitive form draft or token in a query string
+
+Query strings show up in copied links, browser history, and sometimes server logs. Reserve them for non-sensitive view choices like a status filter, never for anything a person wouldn't want reappearing in someone else's browser history.
+
+### Calling a client-side redirect an authorization check
+
+A route that redirects an unauthenticated visitor is a usability improvement, not a security boundary. The server still has to refuse the request independently, because nothing stops a direct one that skips the redirect entirely.
+
+### Forgetting an unmatched-route state and presenting a blank screen
+
+A route table with no catch-all leaves a mistyped or stale URL rendering nothing at all — the worst possible feedback for someone trying to figure out what went wrong.
 
 ## When this goes wrong
 
@@ -382,22 +341,59 @@ return canLoad ? <IssueScreen issueId={parsedId} /> : <NotFoundPage />;
 
 ## Exercise
 
-**Goal:** Give issue detail and project filtering durable URLs.
+### Goal
 
-**Starting state:** The authenticated issue tracker can list data from its DALT API.
+Give issue detail and project filtering durable URLs.
 
-**Requirements:** Implement the routes shown above, one Link into issue detail, parameter
-validation, a `?status=` filter, and an intentional not-found page. Keep authorization entirely
-on the API.
+### Starting state
 
-**Verification:** Refresh each URL, use browser Back/Forward, open one copied link in a new tab,
-and show that an unauthorized direct API request remains denied.
+The authenticated issue tracker can list data from its DALT API.
 
-**Mode: tool-run — browser behavior plus `npm run typecheck`.** The platform does not grade this
-exercise; the observable browser and API results are the evidence.
+### Requirements
 
-**Hints:** Build the not-found page first. Then make a single detail route work before extracting
-a shared layout. Treat every useParams value as string or undefined.
+- Implement the routes shown above, plus one `Link` into issue detail.
+- Validate route parameters before using them.
+- Add a `?status=` filter.
+- Build an intentional not-found page.
+- Keep authorization entirely on the API — the route table only decides what's *shown*, never what's *allowed*.
+
+### Constraints
+
+- No route parameter reaches the API without being validated first.
+- No sensitive value — a draft, a token — lives in a query string.
+- No client-side redirect stands in for a server authorization check.
+
+### Verification
+
+**Mode: tool-run — browser behavior plus `npm run typecheck`.** The platform does not grade this exercise; the observable browser and API results are the evidence.
+
+Refresh each URL, use browser Back/Forward, open one copied link in a new tab, and show that an unauthorized direct API request remains denied.
+
+### Hints
+
+<details>
+<summary>Hint 1 — where to start</summary>
+
+Build the not-found page first. Every other route needs somewhere to fall back to, and building it last means testing it last.
+</details>
+
+<details>
+<summary>Hint 2 — build order</summary>
+
+Make a single detail route work end to end before extracting a shared layout. A layout built around one working route is easier to get right than one built around three unfinished ones.
+</details>
+
+<details>
+<summary>Hint 3 — treat every param as untrusted</summary>
+
+Treat every `useParams` value as `string | undefined`, never as the type your database expects. Validate and convert it explicitly before it reaches any API call.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is the route table in "Route state is application state," the `Number.isSafeInteger` guard from "When this goes wrong," and the server-side `{*}` wildcard routes from "Make the server answer every address React owns." The proof isn't that clicking through the app works — it's that a pasted deep link, a refresh, and a stopped-server direct API request all still behave correctly.
+</details>
 
 ## In the project
 
@@ -407,11 +403,23 @@ shell around these routes; FS07.3 proves their observable behavior.
 
 ## Closed-book checkpoint
 
+Close the lesson first.
+
 1. Why is an issue id in a URL still untrusted input?
 2. Which kinds of state make good query parameters?
 3. What is the difference between a client-side 404 and an API 404?
 4. Why does a hidden route never replace server authorization?
 5. What browser behavior does Link preserve that local state cannot?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. A URL can be typed, edited, or restored from history by anyone. TypeScript's route declaration doesn't turn a malformed value into a valid database id — it's just a string until something checks it.
+2. Non-sensitive, shareable view choices — a status filter, a sort order, a page number. Anything a person wouldn't mind seeing reappear in a copied link or browser history.
+3. A client-side 404 means the router found no matching route for the current location. An API 404 means the route matched and the request reached the server, but the specific resource doesn't exist. They're different failures at different layers.
+4. Because a route decision runs entirely in the browser the user controls. A direct request that skips the hidden route entirely reaches the API exactly the same as any other request, so only server-side authorization actually protects anything.
+5. A real address the user can copy, bookmark, open in a new tab, or return to with Back/Forward — none of which a value held only in component state survives.
+</details>
 
 ## Resources
 
@@ -447,3 +455,5 @@ Versions: React 19.2.3; React Router 7.18.2 (the 8.x line requires React >=19.2.
 Consulted: 2026-08-15.
 
 Curriculum authority: `CURRICULUM.md` §18, FS07.1; `PROJECT_BLUEPRINT.md` §§40–41.
+
+Follow-up pass: 2026-08-19 — verified the React/react-router version pins against `package.json`, and the `{*}` wildcard route-registration-order claim (the app's own `routes/routes.php` loads before `.dalt`'s platform routes) against the actual `public/index.php` boot sequence, no discrepancies found; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal. Content pass (owner-approved): replaced four generic, code-free essay sections ("Route design review," "Working through route failures," "Practical route checklist," "One more verification pass" — largely restating each other) with three tighter, code-grounded sections carrying the same ideas — validated/allowlisted search params, the effect-redirect anti-pattern, and a concrete route-contract table — matching the predict-then-verify style used elsewhere in the course.
