@@ -10,7 +10,7 @@ Difficulty: Applied
 Prerequisites: FS03.1 — Components, JSX and typed props  
 Project milestone: B03 — The local issue tracker  
 Primary source dossier: `FSO_PART_01.md`; `REACT_DOCS.md`  
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
@@ -30,6 +30,16 @@ Required:
 Recommended first:
 
 - Install React DevTools in your browser. It is not required, but the Components panel makes several observations in this lesson much cheaper.
+
+If you are new to React, translate the words this way:
+
+- a **variable** is a JavaScript value your function can read while it runs;
+- **state** is a value React remembers between renders for one component;
+- a **setter** is the function that asks React for a later render with a new state value;
+- an **event handler** is a function that runs because the user did something;
+- **derived data** is calculated from existing props or state instead of stored separately.
+
+State is not the same as a PHP session, a database row, or a global variable. In this lesson it lives in the browser's React tree. Reload the page and the local state disappears. DALT server state arrives later, through HTTP, and Part 04 will teach that different lifecycle.
 
 Going deeper in DALT Core — optional:
 
@@ -90,6 +100,19 @@ new JSX description → React commits the differences
 ```
 
 The load-bearing idea: **state is not a variable you change. It is a value React gives you for the duration of one render.**
+
+Here is the beginner version of the same idea:
+
+```tsx
+const [filter, setFilter] = useState<'all' | 'done'>('all');
+
+function showDone() {
+  // Ask React to use "done" on the next render.
+  setFilter('done');
+}
+```
+
+Calling `setFilter` does not rewrite the old `filter` value inside the currently running function. React runs the component again, and that next run receives `'done'`. Think “new render” before you think “changed variable.”
 
 Inside a single render, `count` is a constant. Calling `setCount` does not reassign it — nothing can, it is a `const`. It tells React "next time you call this function, hand back this instead." Your current render keeps the old value until it finishes, which is why `console.log(count)` prints the *old* number and why two `setCount(count + 1)` calls with the same `count` produce 1, not 2.
 
@@ -376,6 +399,10 @@ The selection-versus-filter question has no canonical answer, but deriving `cons
 
 This is the state architecture **B03** is built on. The four owned values and the two derived ones survive into the real issue tracker essentially unchanged.
 
+### DALT connection — local state is not server truth
+
+The filters, selection, and expanded row in this lesson are UI decisions owned by the browser. They do not need DALT/PHP. The local `issues` array is also only a teaching stand-in; it is not the database. In Part 04, the browser will hold a copy of server data, so loading, failure, stale data, and successful updates become real states instead of local array operations.
+
 It also sets up the problem Part 08 solves. Right now every fact is local and instantly correct because there is one copy in one process. From Part 04 the real facts live on a server, and "one source of truth" becomes genuinely hard — a cached copy in the browser is *always* a second copy. Notice how easy correctness is here, so that you recognise what changes when it stops being easy.
 
 ## Closed-book checkpoint
@@ -430,7 +457,7 @@ Then reopen and correct your answers in a different colour.
 - Source dossier: `docs/dalt-fullstack/sources/FSO_PART_01.md`; `docs/dalt-fullstack/sources/REACT_DOCS.md`
 - Official sources: React Learn — State as a Snapshot, Queueing a Series of State Updates, Choosing the State Structure, Updating Arrays in State, Sharing State Between Components; React Reference — Rules of Hooks, `useState`
 - Versions: React 19.2.3, TypeScript 5.9.3, Vite 8.0.12, Vitest 4.0.18 (CR-08 pinned toolchain)
-- Consulted: 2026-08-14
+- Consulted: 2026-08-19
 - DALT files inspected: `.dalt/course/fullstack/react-foundations-lab/starter/**`
 - Curriculum authority: `CURRICULUM.md` §13 FS03.2
 - Laravel bridge: not applicable — client-side state has no DALT or Laravel counterpart

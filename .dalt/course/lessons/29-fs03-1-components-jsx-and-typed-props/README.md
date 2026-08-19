@@ -10,7 +10,7 @@ Difficulty: Applied
 Prerequisites: FS02.5 — Runtime boundaries  
 Project milestone: B03 — The local issue tracker  
 Primary source dossier: `FSO_PART_01.md`; `REACT_DOCS.md`  
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
@@ -382,7 +382,7 @@ Then reopen the lesson and correct your answers in a different colour.
 - Source dossier: `docs/dalt-fullstack/sources/FSO_PART_01.md`; `docs/dalt-fullstack/sources/REACT_DOCS.md`
 - Official sources: React Learn — Your First Component, Passing Props, Rendering Lists, Conditional Rendering, Writing Markup with JSX; React TypeScript guidance
 - Versions: React 19.2.3, TypeScript 5.9.3, Vite 8.0.12, Vitest 4.0.18 (CR-08 pinned toolchain)
-- Consulted: 2026-08-14
+- Consulted: 2026-08-19
 - DALT files inspected: `.dalt/course/fullstack/react-foundations-lab/starter/**`, `.dalt/course/lessons/25-fs02-2-modeling-application-data/README.md`
 - Curriculum authority: `CURRICULUM.md` §13 FS03.1; CR-02 places lists and keys in FS03.1
 - Laravel bridge: not applicable — no DALT or Laravel primitive corresponds to client-side rendering

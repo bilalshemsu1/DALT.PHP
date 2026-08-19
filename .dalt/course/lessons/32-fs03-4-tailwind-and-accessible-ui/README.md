@@ -10,7 +10,7 @@ Difficulty: Applied
 Prerequisites: FS03.3 — Forms and state design  
 Project milestone: B03 — The local issue tracker  
 Primary source dossier: `FSO_PART_01.md`; `REACT_DOCS.md`  
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
@@ -30,6 +30,16 @@ Required:
 Recommended first:
 
 - Nothing. Tailwind v4 needs no configuration; `@import "tailwindcss"` in `src/index.css` and the Vite plugin are already set up in the lab.
+
+If CSS and Tailwind are both new, use this translation:
+
+- **HTML** gives the page meaning and controls;
+- **CSS** decides layout, spacing, colour, and visual states;
+- a **Tailwind utility** is a short class name for one small piece of CSS;
+- a **responsive prefix** such as `md:` applies a rule at a wider viewport;
+- **accessibility** means people can understand and operate the interface through different input methods and assistive technologies.
+
+Tailwind is not a replacement for HTML semantics, React, or the browser. `flex` does not mean “make it look good”; it means `display: flex`. `focus-visible:outline-2` does not make a control accessible by itself; it makes a keyboard focus indicator visible when the control is already a real, reachable control.
 
 Going deeper in DALT Core — optional:
 
@@ -73,6 +83,8 @@ Work down that list, never up. Each layer depends on the one above it being righ
 The reason is practical, not moral. Choose `<button>` at layer 1 and you receive click, Enter, Space, Tab order, the focus ring, `disabled`, and the announced role — all of it, free, correct in every browser. Choose `<div>` and you owe every one of those, by hand, forever. Layer 4 can be redone in an afternoon; layer 1 mistakes propagate into every component built on top.
 
 Tailwind lives entirely at layers 3 and 4. It has nothing to say about layers 1 and 2, which is precisely why those are where the real decisions are.
+
+For a beginner, build in this order: choose the correct element, put it in the correct document structure, make the layout work, and only then tune the surface. If a card looks like a button but is a `div`, adding more classes makes the visual imitation stronger while leaving the interaction broken.
 
 ## 1. Semantics carry the interaction contract
 
@@ -327,6 +339,10 @@ The disabled-button message is worth noticing as a pattern: the same derived boo
 
 This completes the interface for **B03 — The local issue tracker**: React, TypeScript and Tailwind rendering a usable issue tracker from typed local data.
 
+### DALT connection — presentation does not enforce backend rules
+
+Tailwind classes and browser checks change how the interface looks and feels; they do not protect DALT data. A disabled button cannot stop a crafted HTTP request, and a hidden control cannot authorize an action. Part 04 begins the request boundary, while Part 05 and Part 06 enforce validation and authorization on the server.
+
 **B03 itself is deliberately not started.** No project scaffold, no `resources/app/`, no scaffold manager, no B03 route. Everything you built lives in the resettable lab under `.dalt/workspace/`, and the framework skeleton is untouched. That is the owner's standing decision, not an oversight — resume it only when asked.
 
 ## Part 03 hand-off
@@ -398,7 +414,7 @@ Then reopen and correct your answers in a different colour.
 - Source dossier: `docs/dalt-fullstack/sources/FSO_PART_01.md`; `docs/dalt-fullstack/sources/REACT_DOCS.md`
 - Official sources: MDN — HTML accessibility basics, Flexbox, CSS grid layout, box model, `:focus-visible`; Tailwind CSS — utility classes, responsive design; W3C WAI — keyboard accessibility
 - Versions: Tailwind CSS 4.3.0, React 19.2.3, TypeScript 5.9.3, Vite 8.0.12 (CR-08 pinned toolchain)
-- Consulted: 2026-08-14
+- Consulted: 2026-08-19
 - DALT files inspected: `.dalt/course/fullstack/react-foundations-lab/starter/**` (Tailwind v4 via `@tailwindcss/vite`, no config file)
 - Curriculum authority: `CURRICULUM.md` §13 FS03.4 — practical CSS/Tailwind fundamentals only, no component library
 - Laravel bridge: not applicable — client-side presentation has no DALT or Laravel counterpart

@@ -10,7 +10,7 @@ Difficulty: Applied
 Prerequisites: FS03.2 — State and events  
 Project milestone: B03 — The local issue tracker  
 Primary source dossier: `FSO_PART_01.md`; `REACT_DOCS.md`  
-Last reviewed: 2026-08-14
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
@@ -30,6 +30,16 @@ Required:
 Recommended first:
 
 - Re-read FS00.2's section on what a browser does with an ordinary form submission. You are about to prevent exactly that.
+
+If forms in React are new, these translations help:
+
+- a **field value** is what the user has typed so far;
+- a **controlled input** gets its displayed value from React state and reports edits through `onChange`;
+- a **draft** is unfinished input, not yet accepted as application data;
+- **submit** means “the user has asked the form to perform its action,” whether they clicked the button or pressed Enter;
+- **validation** is a check that decides whether the input is acceptable; it is not permission or security.
+
+React does not remove the browser's form rules. It lets your code observe and manage them. A real `<form>` still knows how to submit, Enter still matters, and a label still needs to be connected to its input.
 
 Going deeper in DALT Core — optional:
 
@@ -79,6 +89,21 @@ discarded freely               the source of truth
 A draft is not a bad or incomplete issue. It is a **different kind of thing**: `{ title: string; priority: Priority }` with no id and no status, because those are not the user's to supply. Modelling it as `Partial<Issue>` blurs a boundary you want sharp — FS02.2's point about optional-versus-absent, arriving in a place where it costs you something real.
 
 The submit is the only moment the two touch. Everything before it is the form's business; everything after it belongs to the owner of the list.
+
+Start with the smallest loop:
+
+```tsx
+const [title, setTitle] = useState('');
+
+return (
+  <input
+    value={title}
+    onChange={(event) => setTitle(event.target.value)}
+  />
+);
+```
+
+The browser reports a new string, React stores it, and the next render displays that string. If you remove either side of the loop, the input and the state stop agreeing. This is the same one-source-of-truth idea from FS03.2, applied to a field the user is editing.
 
 ## 1. Controlled inputs
 
@@ -335,6 +360,10 @@ Everything else follows. Because the draft lives only in the form, the list cann
 
 This is the create flow of **B03**, and it is the last piece of the local issue tracker. After FS03.4 makes it usable, Part 04 replaces `handleCreate`'s array push with a request to a server — and the draft/committed boundary you built here is exactly the seam that change goes through.
 
+### DALT connection — the submit is local for now
+
+When this lesson submits, it adds an issue to an in-memory array. It does not call DALT/PHP, authenticate a user, or write PostgreSQL. That is a deliberate pause: the form must first behave correctly when the only new problem is ownership. In Part 04, the same submit boundary will become an HTTP request, and Part 05 will add server-side validation and persistence.
+
 The pattern also recurs at every later layer. Part 05's DALT validation and Part 06's authorization are the same question — *who is allowed to decide this?* — asked where the answer actually matters, because the server does not trust the form and never will.
 
 ## Closed-book checkpoint
@@ -389,7 +418,7 @@ Then reopen and correct your answers in a different colour.
 - Source dossier: `docs/dalt-fullstack/sources/FSO_PART_01.md`; `docs/dalt-fullstack/sources/REACT_DOCS.md`
 - Official sources: React Learn — Reacting to Input with State, Sharing State Between Components, Choosing the State Structure; React DOM Reference — `<input>`, `<select>`; MDN — Your first form, `preventDefault`
 - Versions: React 19.2.3, TypeScript 5.9.3, Vite 8.0.12, Vitest 4.0.18, `@testing-library/user-event` 14.6.1 (CR-08 pinned toolchain)
-- Consulted: 2026-08-14
+- Consulted: 2026-08-19
 - DALT files inspected: `.dalt/course/fullstack/react-foundations-lab/starter/**`, `.dalt/course/lessons/21-fs00-2-forms-json-and-spa/README.md`
 - Curriculum authority: `CURRICULUM.md` §13 FS03.3
 - Laravel bridge: deferred to Part 05, where server-side validation gives the comparison something to compare
