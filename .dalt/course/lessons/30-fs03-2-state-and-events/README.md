@@ -14,11 +14,11 @@ Last reviewed: 2026-08-19
 
 ## Why this matters
 
-FS03.1's screen is honest but frozen. It renders whatever is in `src/issue.ts` and nothing a user does can change it. The moment you add a filter button, you need somewhere for "which filter is selected" to live — and the choice you make there is the single most consequential decision in a React codebase.
+FS03.1's screen is honest but frozen. It renders whatever is in `src/issue.ts`, and nothing a user does can change it. The moment we add a filter button, we need somewhere for "which filter is selected" to live — and the choice we make there is the single most consequential decision in a React codebase.
 
-Get it wrong and the symptoms are familiar from any interface you have hated: two parts of the screen disagreeing about the same fact, a filter that clears when it shouldn't, a detail panel showing an issue that is no longer visible. None of those are rendering bugs. They are all the same bug — the same fact stored in more than one place, and the copies drifting.
+Get it wrong and the symptoms are familiar from any interface you've hated: two parts of the screen disagreeing about the same fact, a filter that clears when it shouldn't, a detail panel showing an issue that's no longer visible. None of those are rendering bugs. They're all the same bug — the same fact stored in more than one place, and the copies drifting apart.
 
-This lesson is therefore not "how to use `useState`". `useState` takes ten minutes. It is about deciding **what is genuinely state, what is merely derived from state, and who owns it** — and about a mental model of rendering that makes React's stranger behaviours stop being surprises.
+This lesson is therefore not "how to use `useState`." `useState` takes ten minutes. It's about deciding **what is genuinely state, what's merely derived from state, and who owns it** — and about a mental model of rendering that makes React's stranger behaviours stop being surprises.
 
 ## Before you start
 
@@ -403,7 +403,7 @@ This is the state architecture **B03** is built on. The four owned values and th
 
 The filters, selection, and expanded row in this lesson are UI decisions owned by the browser. They do not need DALT/PHP. The local `issues` array is also only a teaching stand-in; it is not the database. In Part 04, the browser will hold a copy of server data, so loading, failure, stale data, and successful updates become real states instead of local array operations.
 
-It also sets up the problem Part 08 solves. Right now every fact is local and instantly correct because there is one copy in one process. From Part 04 the real facts live on a server, and "one source of truth" becomes genuinely hard — a cached copy in the browser is *always* a second copy. Notice how easy correctness is here, so that you recognise what changes when it stops being easy.
+It also sets up the problem Part 08 solves. Right now every fact is local and instantly correct, because there's one copy in one process. From Part 04 on, the real facts live on a server, and "one source of truth" gets genuinely hard — a cached copy in the browser is *always* a second copy. Notice how easy correctness is here, so we recognise what actually changes once it stops being easy.
 
 ## Closed-book checkpoint
 
@@ -461,3 +461,4 @@ Then reopen and correct your answers in a different colour.
 - DALT files inspected: `.dalt/course/fullstack/react-foundations-lab/starter/**`
 - Curriculum authority: `CURRICULUM.md` §13 FS03.2
 - Laravel bridge: not applicable — client-side state has no DALT or Laravel counterpart
+- Follow-up pass: 2026-08-19 — light voice pass toward first-person-plural framing to match Parts 00–02; no content or structural changes, this lesson was already sound

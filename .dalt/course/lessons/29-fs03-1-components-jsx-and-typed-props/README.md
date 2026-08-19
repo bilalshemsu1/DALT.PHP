@@ -16,9 +16,9 @@ Last reviewed: 2026-08-19
 
 Everything you have built so far ran once and finished. A script transforms data, prints, exits. A screen does not work like that. It has to keep matching data that changes — a filter is applied, an issue is marked done, a new one is created — and it has to do that without you writing instructions for each individual change.
 
-The obvious approach is to write those instructions anyway: find the list element, append a row, update the counter, hide the empty message. That approach is what makes interfaces rot. Every new feature adds another place where the screen and the data can silently disagree, and the bug you get is the worst kind — the data is correct, and the screen is lying about it.
+The obvious approach is to write those instructions anyway: find the list element, append a row, update the counter, hide the empty message. That approach is what makes interfaces rot. Every new feature adds another place where the screen and the data can silently disagree, and the bug we get is the worst kind — the data is correct, and the screen is lying about it.
 
-React's answer is narrow and worth stating precisely: **you write a function from data to a description of the UI, and React works out which browser changes are needed.** You stop maintaining the screen and start maintaining the function. That is the whole idea, and this lesson is about getting it exactly right before state arrives in FS03.2 and starts making it feel complicated.
+React's answer is narrow, and worth stating precisely: **we write a function from data to a description of the UI, and React works out which browser changes are needed.** We stop maintaining the screen and start maintaining the function. That's the whole idea, and this lesson is about getting it exactly right before state arrives in FS03.2 and starts making it feel complicated.
 
 ## Before you start
 
@@ -32,6 +32,14 @@ Recommended first:
 - Revisit FS02.2's `Issue` model — the same type is used here.
 - Revisit FS02.4's thinking about function boundaries. A component is a function, and the question "what should this take as arguments?" is the same question.
 
+If you are new to React, translate the words this way:
+
+- a **component** is a JavaScript function that returns a description of some UI;
+- **JSX** is the markup-like syntax you write inside that function — it compiles to plain JavaScript, not to HTML;
+- an **element** is the value JSX produces: a description, not a DOM node and not pixels on screen;
+- **props** are the arguments a component receives, supplied by whoever renders it;
+- **render** means "call the component function and get its current description" — nothing has touched the browser yet when this happens.
+
 Going deeper in DALT Core — optional:
 
 - None. This is the start of the React application, not a detour through Core.
@@ -41,6 +49,7 @@ Going deeper in DALT Core — optional:
 You should be able to:
 
 - explain what React is actually doing when it renders, without using the word "update";
+- explain why a component's render body should only calculate UI, and where side effects actually belong instead;
 - read a JSX expression and say which parts are markup and which are JavaScript;
 - decide what belongs in a component's props and what does not;
 - type a props contract so a wrong call is a compiler error, not a broken screen;
@@ -83,7 +92,9 @@ Three things follow, and they are the whole lesson:
 
 **Render is a description, not a command.** When your component returns JSX, nothing has touched the DOM yet. You have produced a value describing what the UI should look like. React decides what to do with it. This is why you never write "add a row" — you write "here is what the list looks like now" and let React find the difference.
 
-**Render is a function call.** A component is an ordinary JavaScript function. React calls it. When the data changes, React calls it again. There is no persistent object holding your component's insides — a point that becomes load-bearing in FS03.2.
+**Render is a function call.** A component is an ordinary JavaScript function. React calls it. When the data changes, React calls it again — possibly more than once, possibly in an order you do not control. There is no persistent object holding your component's insides — a point that becomes load-bearing in FS03.2.
+
+That has a consequence worth stating now, before it becomes a debugging session: a render function should behave like an ordinary calculation. Given the same props, it should describe the same UI, and it should not do anything *besides* describe UI — no writing to a variable outside itself, no starting a network request, no touching `localStorage`. Those are real actions with real timing, and render is not a place you get to control that timing from. Keep that kind of work out of the component body entirely for now. FS03.2 gives you the place actions belong (an event handler); Part 04 gives you the place synchronization with the outside world belongs (`useEffect`). Neither is this.
 
 **The data flows one way.** A parent passes props to a child. The child cannot reach back and change them. This feels restrictive for about a day, and then it becomes the reason you can look at a wrong value on screen and trace it upward to exactly one owner.
 
@@ -253,6 +264,10 @@ Covered above. The severity is high because it is invisible until state exists, 
 
 `IssueRowProps` disappears at runtime — FS02.5's point, unchanged. It constrains your source, not a server's response.
 
+### Doing real work inside the component body
+
+`console.log` for debugging is harmless, but anything with a real effect — pushing to an array declared outside the component, calling `fetch`, writing `localStorage.setItem` — placed directly in the function body runs during render, as many times and in whatever order React chooses to call the function. It is not "sometimes"; it is unsafe by definition. If it needs to happen because of a user action, it belongs in an event handler, which FS03.2 covers next.
+
 ## When this goes wrong
 
 1. **Nothing renders.** Check the capital letter, then check that the component actually `return`s (an arrow function with `{}` and no `return` gives `undefined`).
@@ -330,9 +345,9 @@ Keys use `issue.id`. The empty-state wording refers to the current view rather t
 
 ## In the project
 
-This is the first code of **B03 — The local issue tracker**, but B03 is not started here and no project scaffold is created. What carries forward is the component boundary: `ProjectPage` → `IssueList` → `IssueRow`, with typed props at each seam.
+This is the first code of **B03 — The local issue tracker**, but B03 isn't started here and no project scaffold gets created. What carries forward is the component boundary: `ProjectPage` → `IssueList` → `IssueRow`, with typed props at each seam.
 
-FS03.2 adds state to the same three components. FS03.3 adds a form beside them. FS03.4 makes them semantic and responsive. If the boundaries are wrong now, each of those lessons makes the mistake more expensive — which is why this lesson spends its time on prop contracts rather than on getting more pixels on screen.
+FS03.2 adds state to the same three components. FS03.3 adds a form beside them. FS03.4 makes them semantic and responsive. If the boundaries are wrong now, each of those lessons makes the mistake more expensive — which is why we spend this lesson's time on prop contracts rather than on getting more pixels on screen.
 
 ## Closed-book checkpoint
 
@@ -345,6 +360,7 @@ Close the lesson and the lab first.
 5. An index key and an id key render identically today. Describe a concrete change that makes them behave differently.
 6. What does a typed props contract prove, and what does it not prove?
 7. Which component should own an empty-state decision, and why not the row?
+8. Why is calling `fetch` directly inside a component body unsafe, when calling it inside an event handler is fine?
 
 Then reopen the lesson and correct your answers in a different colour.
 
@@ -359,6 +375,7 @@ Then reopen the lesson and correct your answers in a different colour.
 ### Go deeper
 
 - [React: Conditional Rendering](https://react.dev/learn/conditional-rendering) — the logical-AND pitfalls section.
+- [React: Keeping Components Pure](https://react.dev/learn/keeping-components-pure) — why render should only calculate, not act.
 - [React TypeScript: typing props](https://react.dev/learn/typescript#typescript-with-react-components).
 
 ### Reference
@@ -372,6 +389,7 @@ Then reopen the lesson and correct your answers in a different colour.
 - [ ] `IssueRow`, `IssueList` and `ProjectPage` each have an explicit props type and no `any`.
 - [ ] I saw the compiler reject an invalid `priority` and named the file it pointed at.
 - [ ] I can explain what an index key would break, using a concrete example.
+- [ ] I can say why a component's render body should only calculate UI, and where a real side effect belongs instead.
 - [ ] My empty state has its own test and says why the list is empty.
 - [ ] I attempted the closed-book checkpoint without notes.
 
@@ -380,9 +398,10 @@ Then reopen the lesson and correct your answers in a different colour.
 ## Maintainer source record
 
 - Source dossier: `docs/dalt-fullstack/sources/FSO_PART_01.md`; `docs/dalt-fullstack/sources/REACT_DOCS.md`
-- Official sources: React Learn — Your First Component, Passing Props, Rendering Lists, Conditional Rendering, Writing Markup with JSX; React TypeScript guidance
+- Official sources: React Learn — Your First Component, Passing Props, Rendering Lists, Conditional Rendering, Keeping Components Pure, Writing Markup with JSX; React TypeScript guidance
 - Versions: React 19.2.3, TypeScript 5.9.3, Vite 8.0.12, Vitest 4.0.18 (CR-08 pinned toolchain)
 - Consulted: 2026-08-19
 - DALT files inspected: `.dalt/course/fullstack/react-foundations-lab/starter/**`, `.dalt/course/lessons/25-fs02-2-modeling-application-data/README.md`
 - Curriculum authority: `CURRICULUM.md` §13 FS03.1; CR-02 places lists and keys in FS03.1
 - Laravel bridge: not applicable — no DALT or Laravel primitive corresponds to client-side rendering
+- Follow-up pass: 2026-08-19 — added the missing "new to React" vocabulary block (FS03.2–FS03.4 already had one; FS03.1 did not), an explicit component-purity note in Mental model / Common mistakes / By the end / checkpoint / You are done when (closing a gap the dossier's §59 "ADD — Component purity" recommended but the shipped lesson never incorporated), and a light voice pass toward first-person-plural framing to match Parts 00–02

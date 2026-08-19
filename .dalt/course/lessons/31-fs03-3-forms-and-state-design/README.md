@@ -14,11 +14,11 @@ Last reviewed: 2026-08-19
 
 ## Why this matters
 
-A form is where every weakness in a state design becomes visible at once. It introduces a second kind of data — a half-finished thing the user is still typing — and that thing is *not* the same as the issues your application owns. Confuse the two and you get the bugs everyone has met: a list that updates as you type, a draft that survives when it should have cleared, a submit button that fires twice.
+A form is where every weakness in a state design becomes visible at once. It introduces a second kind of data — a half-finished thing the user is still typing — and that thing is *not* the same as the issues our application owns. Confuse the two and we get the bugs everyone's met: a list that updates as you type, a draft that survives when it should've cleared, a submit button that fires twice.
 
-FS00.2 already showed you what the browser does with a form on its own: it serialises the fields, sends a request, and navigates to the response. That behaviour is genuinely good, and you are about to switch it off. This lesson is about switching it off deliberately — knowing what you gave up, and taking responsibility for replacing it.
+FS00.2 already showed us what the browser does with a form on its own: it serialises the fields, sends a request, and navigates to the response. That behaviour is genuinely good, and we're about to switch it off. This lesson is about switching it off deliberately — knowing what we gave up, and taking responsibility for replacing it.
 
-It is also where FS03.2's habit gets its real test. Deriving `visibleIssues` was easy because nothing was competing for ownership. A form makes ownership contested, and the right answer stops being obvious.
+It's also where FS03.2's habit gets its real test. Deriving `visibleIssues` was easy because nothing was competing for ownership. A form makes ownership contested, and the right answer stops being obvious.
 
 ## Before you start
 
@@ -358,13 +358,13 @@ Everything else follows. Because the draft lives only in the form, the list cann
 
 ## In the project
 
-This is the create flow of **B03**, and it is the last piece of the local issue tracker. After FS03.4 makes it usable, Part 04 replaces `handleCreate`'s array push with a request to a server — and the draft/committed boundary you built here is exactly the seam that change goes through.
+This is the create flow of **B03**, and it's the last piece of the local issue tracker. After FS03.4 makes it usable, Part 04 replaces `handleCreate`'s array push with a request to a server — and the draft/committed boundary we built here is exactly the seam that change goes through.
 
 ### DALT connection — the submit is local for now
 
-When this lesson submits, it adds an issue to an in-memory array. It does not call DALT/PHP, authenticate a user, or write PostgreSQL. That is a deliberate pause: the form must first behave correctly when the only new problem is ownership. In Part 04, the same submit boundary will become an HTTP request, and Part 05 will add server-side validation and persistence.
+When this lesson submits, it adds an issue to an in-memory array. It doesn't call DALT/PHP, authenticate a user, or write PostgreSQL. That's a deliberate pause: the form has to behave correctly first, while the only new problem is ownership. In Part 04, the same submit boundary becomes an HTTP request, and Part 05 adds server-side validation and persistence.
 
-The pattern also recurs at every later layer. Part 05's DALT validation and Part 06's authorization are the same question — *who is allowed to decide this?* — asked where the answer actually matters, because the server does not trust the form and never will.
+The pattern also recurs at every later layer. Part 05's DALT validation and Part 06's authorization are the same question — *who is allowed to decide this?* — asked where the answer actually matters, because the server trusts nothing that arrives from the form, and never will.
 
 ## Closed-book checkpoint
 
@@ -422,3 +422,4 @@ Then reopen and correct your answers in a different colour.
 - DALT files inspected: `.dalt/course/fullstack/react-foundations-lab/starter/**`, `.dalt/course/lessons/21-fs00-2-forms-json-and-spa/README.md`
 - Curriculum authority: `CURRICULUM.md` §13 FS03.3
 - Laravel bridge: deferred to Part 05, where server-side validation gives the comparison something to compare
+- Follow-up pass: 2026-08-19 — light voice pass toward first-person-plural framing to match Parts 00–02; no content or structural changes, this lesson was already sound

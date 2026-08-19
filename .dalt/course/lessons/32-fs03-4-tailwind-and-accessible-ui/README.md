@@ -14,11 +14,11 @@ Last reviewed: 2026-08-19
 
 ## Why this matters
 
-The screen works and is close to unusable. Everything is stacked at the left margin in serif defaults, the clickable rows are `div`s, and if you put the mouse down and navigate with the keyboard you cannot tell where you are.
+The screen works and is close to unusable. Everything is stacked at the left margin in serif defaults, the clickable rows are `div`s, and the moment we put the mouse down and navigate with the keyboard, we can't tell where we are.
 
-That last one is the reason this lesson is not decoration. **A control you cannot reach or cannot see is a broken control**, in the same category as a handler that never fires — the difference is that your tests pass and you personally never hit it. Accessible structure is not a layer applied at the end by someone else; it is what makes the interaction contract real. A `div` with an `onClick` is not a button. It looks like one to you and to no one else.
+That last one is the reason this lesson isn't decoration. **A control we can't reach or can't see is a broken control**, in the same category as a handler that never fires — the difference is that our tests pass and we personally never hit it. Accessible structure isn't a layer applied at the end by someone else; it's what makes the interaction contract real. A `div` with an `onClick` is not a button. It looks like one to us and to no one else.
 
-The other reason: you are about to learn a utility CSS framework, and the failure mode is learning Tailwind instead of learning CSS. Tailwind has no opinions of its own. `flex` is a one-word spelling of `display: flex`, and if you do not know what a flex formatting context is, the utility gives you a way to produce layouts you cannot debug. Every utility in this lesson is introduced with the CSS it stands for, deliberately.
+The other reason: we're about to learn a utility CSS framework, and the failure mode is learning Tailwind instead of learning CSS. Tailwind has no opinions of its own. `flex` is a one-word spelling of `display: flex`, and if we don't know what a flex formatting context actually is, the utility just gives us a way to produce layouts we can't debug. Every utility in this lesson gets introduced with the CSS it stands for, on purpose.
 
 ## Before you start
 
@@ -341,9 +341,9 @@ This completes the interface for **B03 — The local issue tracker**: React, Typ
 
 ### DALT connection — presentation does not enforce backend rules
 
-Tailwind classes and browser checks change how the interface looks and feels; they do not protect DALT data. A disabled button cannot stop a crafted HTTP request, and a hidden control cannot authorize an action. Part 04 begins the request boundary, while Part 05 and Part 06 enforce validation and authorization on the server.
+Tailwind classes and browser checks change how the interface looks and feels; they don't protect DALT data. A disabled button can't stop a crafted HTTP request, and a hidden control can't authorize an action. Part 04 begins the request boundary, while Part 05 and Part 06 enforce validation and authorization on the server.
 
-**B03 itself is deliberately not started.** No project scaffold, no `resources/app/`, no scaffold manager, no B03 route. Everything you built lives in the resettable lab under `.dalt/workspace/`, and the framework skeleton is untouched. That is the owner's standing decision, not an oversight — resume it only when asked.
+**B03 itself is deliberately not started.** No project scaffold, no `resources/app/`, no scaffold manager, no B03 route. Everything we built lives in the resettable lab under `.dalt/workspace/`, and the framework skeleton stays untouched. That's the owner's standing decision, not an oversight — resume it only when asked.
 
 ## Part 03 hand-off
 
@@ -356,9 +356,9 @@ FS03.3   forms, drafts, lifting, derived validity     the input boundary
 FS03.4   semantics, layout, focus, responsive         the usable surface
 ```
 
-Everything on that screen is local and instantly correct, because there is one copy of every fact in one process. Part 04 breaks that: the real issues live on a server, the browser holds a copy, and the copy can be wrong. Loading states, failures, and staleness are not new features — they are what "one source of truth" costs once the truth is somewhere else.
+Everything on that screen is local and instantly correct, because there's one copy of every fact in one process. Part 04 breaks that: the real issues live on a server, the browser holds a copy, and the copy can be wrong. Loading states, failures, and staleness aren't new features — they're what "one source of truth" costs once the truth lives somewhere else.
 
-Notice how much you did not have to think about here. That is the baseline Part 04 is measured against.
+Notice how much we didn't have to think about here. That's the baseline Part 04 gets measured against.
 
 ## Closed-book checkpoint
 
@@ -418,3 +418,4 @@ Then reopen and correct your answers in a different colour.
 - DALT files inspected: `.dalt/course/fullstack/react-foundations-lab/starter/**` (Tailwind v4 via `@tailwindcss/vite`, no config file)
 - Curriculum authority: `CURRICULUM.md` §13 FS03.4 — practical CSS/Tailwind fundamentals only, no component library
 - Laravel bridge: not applicable — client-side presentation has no DALT or Laravel counterpart
+- Follow-up pass: 2026-08-19 — light voice pass toward first-person-plural framing to match Parts 00–02; no content or structural changes, this lesson was already sound
