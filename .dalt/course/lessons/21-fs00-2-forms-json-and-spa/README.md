@@ -10,15 +10,15 @@ Difficulty: Foundation
 Prerequisites: FS00.1 — What happens when you open a web page?  
 Project milestone: B00 — Trace the system  
 Primary source dossier: FSO_PART_00.md  
-Last reviewed: 2026-08-15
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
-The two forms on the observation page look almost identical. Each has a text field and a button. But submit the first one and the browser leaves the page; submit the second one and the page stays in place while a message changes.
+The two forms on the observation page look almost identical — each has a text field and a button. But submit the first one and the browser leaves the page; submit the second one and the page stays put while a message changes underneath it.
 
-That difference is one of the first important choices in frontend development. A browser already knows how to submit a form and navigate to the response. JavaScript can stop that default behavior, make a request itself, read the response, and update the current page.
+That difference is one of the first real choices we make in frontend development. A browser already knows how to submit a form and navigate to whatever comes back. JavaScript can stop that default behavior, make the request itself, read the response, and update the page in place.
 
-React will make this second style much more organized, but it does not invent the underlying browser behavior. Let’s watch both versions happen before we give the pattern a framework name.
+React will make this second style much more organized, but it doesn’t invent the underlying browser behavior — it just gives it structure. Let’s watch both versions happen before we give the pattern a framework name.
 
 ## Before you start
 
@@ -58,11 +58,11 @@ Before submitting either one, write down your prediction:
 
 Also predict what will happen if you refresh after the JavaScript-controlled form changes the message on screen. Will the message still be there?
 
-Do not worry about getting this right. The point is to make your expectation visible before the Network panel gives you the answer.
+Don’t worry about getting this right. The point is just to make our expectation visible before the Network panel hands us the answer.
 
 ## Mental model
 
-There are two different paths from the same-looking user action.
+There are two different paths hiding behind what looks like the same user action.
 
 ```text
 ordinary form submit
@@ -84,11 +84,11 @@ JavaScript chooses and sends a request
 JavaScript uses the response to update the current page
 ```
 
-The second path still has a server. It still uses HTTP. The difference is who decides what happens after the submit: the browser’s built-in form behavior, or JavaScript that you wrote.
+The second path still has a server. It still uses HTTP. Nothing about the network changed — only who decides what happens after the submit changed: the browser’s built-in form behavior, or JavaScript we wrote ourselves.
 
 ## 1. First, let the browser submit the form
 
-On the observation fixture, the first form is an ordinary HTML form. Its important attributes look like this:
+On the observation fixture, the first form is an ordinary HTML form. Here’s what its important attributes look like:
 
 ```html
 <form method="post" action="/learn/fullstack/observe/forms/traditional">
@@ -102,7 +102,7 @@ On the observation fixture, the first form is an ordinary HTML form. Its importa
 
 The `action` says where the data should go. The `method` says how it should be sent. The `name` on the input gives the submitted value a key.
 
-There is no JavaScript in this example telling the browser what to do. When you press the button, the browser follows its normal form behavior:
+There’s no JavaScript in this example telling the browser what to do. Press the button, and the browser just follows its normal form behavior:
 
 ```text
 you submit the form
@@ -116,11 +116,11 @@ browser requests the next document with GET
 browser displays the returned HTML
 ```
 
-Open the Network panel and submit the ordinary form. With Preserve log enabled, you should be able to find the `POST`, the redirect response, and the following document `GET`.
+Open the Network panel and submit the ordinary form. With Preserve log enabled, we should be able to find the `POST`, the redirect response, and the document `GET` that follows it.
 
-The redirect matters because the server is not directly sending the final page in the `POST` response. It is telling the browser where to go next. The browser follows that instruction and requests a document it can render.
+The redirect matters because the server isn’t sending the final page directly in the `POST` response — it’s telling the browser where to go next. The browser follows that instruction and requests a document it can render.
 
-The form data also has an encoding. With this simple form and no custom `enctype`, the request will normally use a content type such as:
+The form data has an encoding too. With this simple form and no custom `enctype`, the request will normally use a content type like this:
 
 ```text
 Content-Type: application/x-www-form-urlencoded
@@ -128,11 +128,11 @@ Content-Type: application/x-www-form-urlencoded
 title=Browser-created+request
 ```
 
-The browser chose that representation because it was performing the form submission for you.
+The browser chose that representation itself, because it was the one performing the form submission.
 
 ## 2. Now let JavaScript take over
 
-The second form has the same broad shape, but its submit event is handled by JavaScript. The important first line is:
+The second form has the same broad shape, but its submit event is handled by JavaScript. The important first line is this one:
 
 ```js
 form.addEventListener('submit', function (event) {
@@ -142,9 +142,9 @@ form.addEventListener('submit', function (event) {
 })
 ```
 
-`preventDefault()` does one specific thing: it stops the browser’s built-in form submission for this event. It does not send the data, call the server, or update the screen by itself. It gives your code the opportunity to choose those next steps.
+`preventDefault()` does exactly one thing: it stops the browser’s built-in form submission for this event. It doesn’t send the data, call the server, or update the screen on its own — it just hands those next steps to our code.
 
-The fixture’s script then makes a request with JSON:
+The fixture’s script then goes and makes its own request, with JSON:
 
 ```js
 fetch(form.action, {
@@ -154,7 +154,7 @@ fetch(form.action, {
 })
 ```
 
-You do not need to learn every detail of `fetch` yet. Notice the division of work:
+We don’t need to learn every detail of `fetch` yet — just notice the division of work:
 
 1. the submit event starts the JavaScript;
 2. `preventDefault()` stops the normal navigation;
@@ -162,7 +162,7 @@ You do not need to learn every detail of `fetch` yet. Notice the division of wor
 4. the request body is JSON because the script chose that format;
 5. JavaScript reads the response and changes the current document.
 
-Submit the JavaScript-controlled form and compare the Network panel with the first form. You should see a request, but no redirect followed by a new document request. The address bar stays where it was, and the status message inside the page changes.
+Submit the JavaScript-controlled form and compare the Network panel with the first one. We should see a request, but no redirect and no new document request after it. The address bar stays put, and the status message inside the page changes instead.
 
 ## 3. The response is data, not a page
 
@@ -181,7 +181,7 @@ Its response header says:
 Content-Type: application/json; charset=UTF-8
 ```
 
-That header and body describe data. They do not tell the browser to replace the current document with a new HTML page. The JavaScript chooses to read the JSON and place the message into an element that already exists.
+That header and body describe data. They don’t tell the browser to replace the current document with a new HTML page — the JavaScript chooses to read the JSON and place the message into an element that’s already there.
 
 Conceptually, the path is:
 
@@ -197,7 +197,7 @@ JavaScript reads the message
 the current page displays the message
 ```
 
-This is why “the page did not reload” is not the same as “nothing happened.” An HTTP request still happened; only the document navigation was prevented.
+This is why “the page didn’t reload” is not the same as “nothing happened.” An HTTP request still happened — only the document navigation was prevented.
 
 ## 4. The page has a working representation
 
@@ -211,7 +211,7 @@ The fixture’s status message is one small example:
 </p>
 ```
 
-After the JSON response arrives, JavaScript changes the message represented by that element. The browser paints the updated result without fetching a replacement HTML document.
+Once the JSON response arrives, JavaScript changes the message that element represents. The browser paints the updated result straight away, without fetching a replacement HTML document.
 
 React will later give us a more structured way to describe these updates. For now, keep the simpler model:
 
@@ -227,7 +227,7 @@ the visible page changes
 
 ## 5. What “single-page application” means
 
-An SPA, or single-page application, keeps an application shell loaded and lets JavaScript handle many interactions inside it. It can still make many HTTP requests for data. “Single page” does not mean “one request forever,” and it does not mean “there is no server.”
+An SPA, or single-page application, keeps one application shell loaded and lets JavaScript handle most interactions inside it. It can still make plenty of HTTP requests for data — “single page” doesn’t mean “one request forever,” and it doesn’t mean “there is no server.”
 
 The useful contrast is this:
 
@@ -243,13 +243,13 @@ SPA-style interaction
 JavaScript exchanges data and updates the current document
 ```
 
-Some SPA interactions do navigate to a new URL, and some frameworks can request new data while keeping the shell in place. Routing belongs later. For now, the important idea is that a full document replacement is not required for every interaction.
+Some SPA interactions do navigate to a new URL, and some frameworks request new data while keeping the shell exactly where it is. Routing belongs later. For now, the idea worth keeping is that a full document replacement isn’t required for every interaction.
 
 ## 6. What stayed on screen, and what was saved?
 
 After submitting the JavaScript-controlled form, refresh the fixture.
 
-The message disappears. That tells you something important: changing the current document was not the same as storing a record. The fixture accepted the request and returned JSON, but it intentionally does not save the preview title anywhere.
+The message disappears. That tells us something important: changing the current document isn’t the same as storing a record. The fixture accepted the request and returned JSON, but it deliberately never saves the preview title anywhere.
 
 Keep these three ideas separate:
 
@@ -261,11 +261,11 @@ what the server knows about
 what a database stores
 ```
 
-Later, when the issue tracker creates a real issue, a successful response will need to be connected to server and database behavior if the issue is expected to survive a refresh. For this lesson, the disappearing message is the evidence that the state lived only in the current browser document.
+Later, when the issue tracker creates a real issue, a successful response will need to be wired to real server and database behavior if we want that issue to survive a refresh. For this lesson, the disappearing message is our evidence that the state lived only in the browser document, and nowhere else.
 
 ## Try it
 
-Now repeat the experiment, but pay attention to the request body as well as the navigation.
+Now let’s repeat the experiment, but pay attention to the request body this time, not just the navigation.
 
 **Mode: manual-proof.** You will compare two real browser interactions and explain the difference using Network evidence. Nothing is submitted to an automated verifier.
 
@@ -378,7 +378,7 @@ If the message returns after refresh, that is the expected result for this fixtu
 
 ## In the project
 
-This completes the browser-side part of B00 — **Trace the system**. The issue tracker starts later, but its React interface will depend on this distinction:
+This completes the browser-side half of B00 — **Trace the system**. The issue tracker starts later, but its React interface will lean on exactly this distinction:
 
 ```text
 user interaction
@@ -392,11 +392,11 @@ server response
 visible UI update
 ```
 
-Part 01 will make the JavaScript in that path yours to write. Part 03 will use React to build the interface. Part 04 will replace this small fixture with a real server connection.
+Part 01 hands us the JavaScript in that path to write ourselves. Part 03 uses React to build the interface. Part 04 replaces this small fixture with a real server connection.
 
 ## Closed-book checkpoint
 
-Close the lesson and answer these before opening any reveal or resource.
+Close the lesson and answer these before opening any reveal or resource — no peeking.
 
 1. What does the browser normally do when a plain HTML form is submitted?
 2. What does `preventDefault()` change, and what work still remains afterward?
@@ -405,7 +405,7 @@ Close the lesson and answer these before opening any reveal or resource.
 5. If a message disappears after refresh, what does that suggest about where the message lived?
 6. Why can an SPA continue to communicate with a server even when the current document stays loaded?
 
-After you answer, reopen the lesson and correct your notes in a different colour. The correction is part of the learning, not evidence that the exercise failed.
+After you answer, reopen the lesson and correct your notes in a different colour. The correction is part of the learning here, not evidence that we failed the exercise.
 
 ## Resources
 
@@ -437,3 +437,4 @@ After you answer, reopen the lesson and correct your notes in a different colour
 - DALT files inspected: `.dalt/routes/routes.php`, `.dalt/Http/controllers/learn/fullstack-observation.php`, `.dalt/resources/views/learn/fullstack-observation.view.php`
 - Curriculum authority: `CURRICULUM.md` §10 FS00.2 — topics and required outcome
 - Laravel source: not applicable to this web-fundamentals lesson
+- Wording pass: 2026-08-19 — prose voice re-aligned toward Full Stack Open's first-person-plural, plainer-sentence register (owner request); structure, headings, exercises, code, and depth unchanged

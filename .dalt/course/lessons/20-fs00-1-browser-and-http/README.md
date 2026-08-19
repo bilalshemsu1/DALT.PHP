@@ -10,15 +10,15 @@ Difficulty: Foundation
 Prerequisites: None  
 Project milestone: B00 — Trace the system  
 Primary source dossier: FSO_PART_00.md  
-Last reviewed: 2026-08-15
+Last reviewed: 2026-08-19
 
 ## Why this matters
 
-Type `/learn/fullstack` into the address bar and press Enter. A moment later, a page appears. It feels like one action, but several things have happened: the browser has contacted a server, the server has chosen a response, and the browser has decided how to use what came back.
+Let’s type `/learn/fullstack` into the address bar and press Enter. A page appears a moment later. It feels like one action, but several things happened along the way: the browser contacted a server, the server chose a response, and the browser decided what to do with what came back.
 
-That boundary will be the most useful place to look when the issue tracker later behaves strangely. If the screen is empty, the request may have gone to the wrong URL. If the request succeeded but the page is wrong, the response body may not contain what you expected. If the browser never made the request, the problem is somewhere before the server.
+That boundary is where we’ll keep looking when the issue tracker later behaves strangely. If the screen is empty, the request may have gone to the wrong URL. If the request succeeded but the page is wrong, the response body may not contain what we expected. If the browser never made the request, the problem sits somewhere before the server.
 
-Before React, TypeScript, or DALT adds its own vocabulary, let’s watch this basic exchange happen and learn how to describe it precisely.
+Before React, TypeScript, or DALT add their own vocabulary, we’re going to watch this basic exchange happen and learn to describe it precisely.
 
 ## Before you start
 
@@ -54,11 +54,11 @@ Before opening Developer Tools, make a guess about what the browser will do.
 3. If the server returns HTML, who turns that HTML into the page you see?
 4. If the server returns JSON, will the browser automatically replace the page with it?
 
-Write your answers down. They do not need to be correct. A useful prediction gives you something definite to compare with the browser later.
+Write your answers down. They don’t need to be correct — a useful prediction just gives us something definite to compare against the browser later.
 
 ## Mental model
 
-Here is the whole journey in its smallest useful form:
+Here is the whole journey, in its smallest useful form:
 
 ```text
 you enter a URL
@@ -72,9 +72,9 @@ the server sends an HTTP response
 the browser interprets the response
 ```
 
-The browser is the **client**. It starts the conversation and uses the response. The server is a separate process that receives the request, runs application code, and sends something back. HTTP is the protocol used for the messages between them.
+The browser is the **client**. It starts the conversation and decides what to do with the response. The server is a separate process: it receives the request, runs application code, and sends something back. HTTP is just the protocol the two of them use to talk.
 
-That model is intentionally plain. Later, the browser will run JavaScript, the server will call DALT code, and PostgreSQL will sit behind the server. Each new layer adds detail without removing this boundary.
+We’re keeping that model deliberately plain. Later, the browser will run JavaScript, the server will call DALT code, and PostgreSQL will sit behind the server. Every new layer adds detail — none of them remove this boundary.
 
 ## 1. Start with the request
 
@@ -82,11 +82,11 @@ Open the DALT Fullstack journey in your browser:
 
 **→ [/learn/fullstack](/learn/fullstack)**
 
-Open Developer Tools, choose **Network**, and reload the page. The first important entry is the document request. Select it and look at the **Headers** panel.
+Open Developer Tools, choose **Network**, and reload the page. The first entry that matters is the document request. Select it and open the **Headers** panel.
 
-For a normal page visit, the browser usually sends a `GET`. That means it is asking the server to return a representation of the URL. The URL identifies what it wants. Headers carry additional information, such as which response formats the browser can accept or which cookies it already has.
+For a normal page visit, the browser usually sends a `GET`. That’s the browser asking the server to return a representation of the URL — the URL identifies what it wants. Headers carry the rest of the context: which response formats the browser will accept, which cookies it already has, and so on.
 
-This is the shape of the message, not an exact transcript from your machine:
+Here’s the shape of the message. It won’t match your machine byte for byte, but the parts will:
 
 ```text
 GET /learn/fullstack HTTP/1.1
@@ -95,18 +95,18 @@ Accept: text/html, ...
 Cookie: ...
 ```
 
-The exact host, port, and headers will vary. What matters is that a request has identifiable parts:
+The exact host, port, and headers will vary from one machine to the next. What matters is that every request has the same identifiable parts:
 
 - **method** — what kind of operation the client is asking for;
 - **URL** — where the request is going;
 - **request headers** — extra information about the request;
 - **request body** — optional data sent with the request.
 
-A simple `GET` usually has no body. Forms and API calls will often send one later.
+A simple `GET` usually has no body. We’ll see forms and API calls send one soon enough.
 
 ## 2. Read the response
 
-Now stay on the same Network entry and examine the response. The server answers with its own set of information:
+Stay on the same Network entry and look at the response side. The server answers with its own set of information:
 
 - a **status code** describing the result;
 - **response headers** describing the response;
@@ -124,11 +124,11 @@ Content-Type: text/html; charset=UTF-8
 </html>
 ```
 
-`200` tells you that the server successfully returned a response. `Content-Type` tells the browser what the body represents. Here it is HTML, so the browser parses it as a document and renders the result.
+`200` tells us the server successfully returned a response. `Content-Type` tells the browser what the body actually represents. Here it’s HTML, so the browser parses it as a document and renders it.
 
-A `404` would mean that the server could not find what this URL requested. A `500` would mean that the server encountered an error while handling it. A status code is valuable evidence, but it is not the entire story: a successful `200` response can still contain the wrong data or markup.
+A `404` would mean the server couldn’t find what this URL asked for. A `500` would mean the server hit an error while handling it. A status code is useful evidence, but it isn’t the whole story: a `200` can still carry the wrong data or the wrong markup.
 
-Now compare HTML with JSON:
+Now let’s compare that with JSON:
 
 ```text
 Content-Type: application/json
@@ -136,11 +136,11 @@ Content-Type: application/json
 {"message":"The server received the request."}
 ```
 
-JSON is structured data. It is not automatically a new page. JavaScript can read that data and decide what to display, but the browser does not turn every JSON response into a document by itself.
+JSON is structured data, not automatically a new page. JavaScript can read that data and decide what to display with it, but the browser won’t turn a JSON response into a document on its own.
 
 ## 3. One page can mean several requests
 
-Look at the rest of the Network panel. Loading one visible page may produce requests for its HTML document, stylesheet, JavaScript, fonts, and images.
+Now look at the rest of the Network panel. Loading one visible page can produce requests for its HTML document, its stylesheet, its JavaScript, fonts, images — a whole list.
 
 ```text
 browser → GET /learn/fullstack       → HTML document
@@ -149,11 +149,11 @@ browser → GET /assets/app.js         → JavaScript
 browser → GET /assets/icon.svg       → image
 ```
 
-The address bar gave you one visible action, but the HTML document can contain links to resources that the browser fetches separately. This is why the answer to “how many requests did the page make?” is often more than one.
+The address bar gave us one visible action, but the HTML document can link to resources the browser fetches separately. That’s why the honest answer to “how many requests did the page make?” is usually more than one.
 
-Select one stylesheet or script request. Its method will probably also be `GET`, but its `Content-Type` and response body will be different from the document’s. The browser uses each response according to what it represents.
+Pick one stylesheet or script request. Its method will probably also be `GET`, but its `Content-Type` and response body will look nothing like the document’s. The browser treats each response according to what it says it is.
 
-This is also why the Network panel is more useful than a vague report such as “the page loaded slowly.” It lets you ask which resource was requested, what status came back, and what the browser received.
+This is exactly why the Network panel beats a vague report like “the page loaded slowly.” It lets us ask which resource was requested, what status came back, and what the browser actually received.
 
 ## Try it
 
@@ -252,7 +252,7 @@ If you cannot find the response body, select the request and use **Response** or
 
 ## In the project
 
-This is the first half of B00 — **Trace the system**. The issue tracker does not exist yet. What you are building now is a habit you will use throughout it:
+This is the first half of B00 — **Trace the system**. The issue tracker doesn’t exist yet. What we’re building right now is a habit we’ll lean on throughout the whole track:
 
 ```text
 something looks wrong
@@ -264,11 +264,11 @@ identify the request and response
 choose the layer worth investigating
 ```
 
-In Part 04, the browser will request issue data from a server. In Part 05, that server will ask PostgreSQL for it. The path will become longer, but the first question will stay the same.
+In Part 04, the browser will request issue data from a server. In Part 05, that server will ask PostgreSQL for it. The path gets longer from here — the first question stays exactly the same.
 
 ## Closed-book checkpoint
 
-Close this lesson before answering. Do not look back until you have written something for each question.
+Close this lesson before answering. Don’t look back until you’ve written something for each question — even a rough one.
 
 1. What four pieces can you identify in an HTTP request?
 2. What three pieces can you identify in an HTTP response?
@@ -276,7 +276,7 @@ Close this lesson before answering. Do not look back until you have written some
 4. Why can loading one URL produce requests for a document, a stylesheet, and a script?
 5. Draw the path from entering a URL to the browser rendering the response.
 
-Then reopen the lesson and correct your answers in a different colour. The corrections are useful evidence about what you remembered and what you only recognized while reading.
+Then reopen the lesson and correct your answers in a different colour. The corrections tell us something real: what we actually remembered, versus what we only recognized while reading.
 
 ## Resources
 
@@ -306,3 +306,4 @@ Then reopen the lesson and correct your answers in a different colour. The corre
 - DALT files inspected: `.dalt/routes/routes.php`, `.dalt/Http/controllers/learn/index.php`, `.dalt/Core/MarkdownRenderer.php`
 - Curriculum authority: `CURRICULUM.md` §10 FS00.1 — core questions, required outcomes and practice
 - Laravel source: not applicable to this web-fundamentals lesson
+- Wording pass: 2026-08-19 — prose voice re-aligned toward Full Stack Open's first-person-plural, plainer-sentence register (owner request); structure, headings, exercises, code, and depth unchanged
