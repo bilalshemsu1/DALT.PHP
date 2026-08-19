@@ -10,20 +10,21 @@ Difficulty: Integration
 Prerequisites: FS09.1 — Custom hooks and feature boundaries
 Project milestone: B09 — Maintainable frontend
 Primary source dossier: FSO_PART_07.md
-Last reviewed: 2026-08-15
+Last reviewed: 2026-08-20
 
 ## Why this matters
 
 `npm run dev` is a productive editing environment, not a miniature production deployment. It can
-serve source modules, provide Fast Refresh, and proxy requests in ways a deployed browser cannot.
-`npm run build` starts at the application entry point, follows imports, transforms and optimizes the
-module graph, and emits browser assets. A frontend that works only through a dev proxy has not yet
-explained how production requests reach DALT. A frontend that places a secret in `VITE_*` has
-published it to every browser that downloads the build.
+serve source modules, provide Fast Refresh, and proxy requests in ways a deployed browser never
+can. `npm run build` starts at the application entry point, follows imports, transforms and
+optimizes the module graph, and emits browser assets. A frontend that works only through a dev
+proxy hasn't yet explained how production requests actually reach DALT. A frontend that places a
+secret in `VITE_*` has published it to every browser that downloads the build.
 
-Expected API outcomes—401, 403, validation errors, loading, and empty data—need intentional screen
-states. An Error Boundary is different: it contains an unexpected rendering failure that would
-otherwise take down its subtree. It does not replace error handling in an event callback or request.
+Expected API outcomes — 401, 403, validation errors, loading, empty data — need intentional
+screen states. An Error Boundary is different: it contains an unexpected rendering failure that
+would otherwise take down its whole subtree. It doesn't replace error handling in an event
+callback or a request.
 
 ## Before you start
 
@@ -45,6 +46,8 @@ npm run build
 ```
 
 ## By the end
+
+You should be able to:
 
 - distinguish Vite development, TypeScript analysis, and production-build responsibilities;
 - trace an entry module through a module graph to emitted assets;
@@ -502,16 +505,35 @@ Run `npm run typecheck && npm run lint && npm run test && npm run build`, inspec
 
 ### Hints
 
-<details><summary>Hint 1</summary>Use a tiny `config.ts` module so `import.meta.env` is not scattered.</details>
+<details>
+<summary>Hint 1 — where configuration lives</summary>
 
-<details><summary>Hint 2</summary>An Error Boundary is class-based; keep it small and wrap composition.</details>
+Use a tiny `config.ts` module so `import.meta.env` isn't scattered across routes and components. One file to read is one place to audit for what's actually public.
+</details>
 
-<details><summary>Hint 3</summary>A test-only throw component can prove the fallback safely.</details>
+<details>
+<summary>Hint 2 — the boundary itself</summary>
+
+An Error Boundary is class-based; keep it small and wrap it around composition, not around every individual component. A boundary around every button is noise, not protection.
+</details>
+
+<details>
+<summary>Hint 3 — proving the fallback safely</summary>
+
+A test-only component that throws on render can prove the fallback works without needing to find or fake a real rendering bug. Remove it, or gate it behind a test-only route, once you've watched it catch.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is the `config` module from "Vite client values are public build-time configuration," the class-based `AppErrorBoundary` from "Bound unexpected rendering failure," and a feature-scoped boundary placed per "Choose boundary granularity by recovery" rather than at every leaf. The proof isn't that `npm run build` exits zero — it's that a direct request to a nested route still returns the application document after a real `npm run preview`, and that a deliberately thrown render error hits the fallback while a 403 from the API still renders its own access-denied state, not the boundary's.
+</details>
 
 ## In the project
 
 Used in B09 — Maintainable frontend. This gives Part 10 known commands, inspectable output, a named
-client/server configuration split, and expected error behavior before Docker makes serving real.
+client/server configuration split, and expected error behavior before Docker makes serving real —
+none of it needs to be relearned once a container is the thing serving these assets.
 
 ## Closed-book checkpoint
 
@@ -522,6 +544,16 @@ Close the lesson first.
 3. Why is a dev proxy not production routing?
 4. Which failures should a query route render rather than send to an Error Boundary?
 5. What evidence distinguishes a built preview from a production server?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. A build can transform and bundle code successfully while a separate static-analysis pass would still catch an unsafe type relationship. Bundling and type-checking are different tools asking different questions, and a green one says nothing about the other.
+2. Any value referenced with the `VITE_*` prefix gets substituted directly into the client artifact that ships to every browser. `.env` is a file-management convention, not a confidentiality boundary — nothing stops someone from reading it out of the built JavaScript.
+3. The dev proxy exists only for the development process and disappears the moment it stops running. It never answers the actual question of how a deployed browser reaches DALT in production.
+4. Expected outcomes — 401, 403, validation errors, empty results — because those are product states with their own recovery language. A boundary is for rendering itself breaking unexpectedly, not for the API answering as documented.
+5. Whether the browser is running hashed assets from `public/build` under `vite preview`, or the real deployment's actual serving and routing configuration. `vite preview` is a local check of built output, not a stand-in for how production will actually be served.
+</details>
 
 ## Resources
 
@@ -553,3 +585,4 @@ Close the lesson first.
 - Curriculum authority: `docs/dalt-fullstack/CURRICULUM.md` §20, FS09.2.
 - DALT files inspected: `package.json`, `vite.config.mjs`, `tsconfig.json`, `framework/Core/functions.php` (`vite()` manifest behavior), and FS07.3.
 - Laravel source: not applicable; this concerns browser assets and React render containment.
+- Follow-up pass: 2026-08-20 — re-verified the `outDir: 'public/build'` and `public/build/.vite/manifest.json` claims, and the `vite()` helper's manifest-over-dev-server precedence, directly against the current `vite.config.mjs` and `framework/Core/functions.php` — both matched exactly, including the helper's own comment explaining why it prefers the manifest; added a "You should be able to:" lead-in, expanded the Hints into the full ladder plus a reference explanation, and added a Closed-book checkpoint answer reveal; light voice pass toward first-person-plural framing. This lesson's Exercise/Common-mistakes structure was already at the course's current standard and did not need restructuring.

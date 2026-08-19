@@ -10,17 +10,17 @@ Difficulty: Advanced
 Prerequisites: FS08.1, FS08.2, FS08.3
 Project milestone: B09 — Maintainable frontend
 Primary source dossier: FSO_PART_07.md
-Last reviewed: 2026-08-15
+Last reviewed: 2026-08-20
 
 ## Why this matters
 
 The issue tracker now has routes, authenticated requests, query-backed server state, URL filters,
 and a few shared client interactions. A component that has to parse search parameters, name query
-keys, call mutations, and lay out a panel can still work, but its purpose becomes difficult to see.
-The answer is not to put every repeated line behind a `useSomething` wrapper. A poor hook merely
-moves complexity somewhere harder to find. A useful hook expresses one domain concept while keeping
-the source of truth visible: the URL remains URL state, TanStack Query remains the server cache, and
-local interaction state remains near the interaction.
+keys, call mutations, and lay out a panel can still work, but its purpose gets hard to see. The
+answer isn't to put every repeated line behind a `useSomething` wrapper. A poor hook just moves
+complexity somewhere harder to find. A useful hook expresses one domain concept while keeping the
+source of truth visible: the URL stays URL state, TanStack Query stays the server cache, and local
+interaction state stays near the interaction.
 
 ## Before you start
 
@@ -36,6 +36,8 @@ Going deeper in DALT Core — optional:
 - None. This standalone Fullstack track already supplies the needed React and state foundations.
 
 ## By the end
+
+You should be able to:
 
 - identify repeated *behavior*, rather than merely repeated syntax;
 - write a custom hook whose name, inputs, and return value describe one domain concept;
@@ -500,17 +502,35 @@ then force a query invalidation and confirm the display follows the actual owner
 
 ### Hints
 
-<details><summary>Hint 1</summary>Write down what changes together before choosing a file name.</details>
+<details>
+<summary>Hint 1 — where to start</summary>
 
-<details><summary>Hint 2</summary>A URL helper can parse/default search params and expose intent-level setters.</details>
+Write down what changes together before choosing a file name. If you can't state the shared concept in one sentence, it's probably two concepts, not one hook.
+</details>
 
-<details><summary>Hint 3</summary>A Query hook should return `useQuery`; do not mirror `data` in `useState`.</details>
+<details>
+<summary>Hint 2 — the URL hook</summary>
+
+A URL helper can parse and default search params, then expose intent-level setters like `setStatus` rather than a raw `setSearchParams`. The URL stays the source of truth either way.
+</details>
+
+<details>
+<summary>Hint 3 — the query hook</summary>
+
+A Query hook should return what `useQuery` gives it. Do not mirror `data` in `useState` — that recreates the exact synchronization problem TanStack Query exists to solve.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is `useIssueFilters` from "Extract a concept, not a convenience wrapper" (URL in, intent-level setters out) and `useProjectIssues`/`useIssue` from "Wrap a correct owner" (a typed key, a `useQuery` call, nothing copied into local state). The proof isn't that two call sites got shorter — it's that refreshing the URL still restores the filter, and invalidating the query still updates every screen that reads it, exactly as before the extraction.
+</details>
 
 ## In the project
 
 Used in B09 — Maintainable frontend. Extract only repeated complexity that B08 made visible. The
-result should let a future reader find issue behavior without concealing the API, query cache, URL,
-or local interaction that owns it.
+result should let a future reader find issue behavior without the API, query cache, URL, or local
+interaction that owns it ever going invisible.
 
 ## Closed-book checkpoint
 
@@ -520,6 +540,15 @@ Close the lesson first.
 2. What source of truth should `useIssueFilters` preserve, and how can you prove it?
 3. Name one signal that a custom hook is too broad.
 4. Why is copying Query data into local state dangerous after a mutation?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. A custom hook is an ordinary function whose hook calls get pasted into whichever component calls it. Each caller gets its own instance of that state, in its own position in that component's hook order — there's no hidden shared singleton behind the `use` name.
+2. The URL. Prove it by refreshing the page or opening the same address in a new tab: the filter should still be there, because it was never anywhere but the address bar.
+3. It silently supplies more than one domain concept at once — routing, permissions, notifications, and every query bundled behind one name — which hides more than a shorter component would have shown.
+4. The copy has no invalidation policy of its own. After a mutation invalidates the real query, the local copy doesn't know to update, and the screen keeps showing data the server has already superseded.
+</details>
 
 ## Resources
 
@@ -550,3 +579,4 @@ Close the lesson first.
 - Curriculum authority: `docs/dalt-fullstack/CURRICULUM.md` §20, FS09.1.
 - DALT files inspected: `.dalt/course/lessons/45-fs08-1-client-state-versus-server-state/README.md`, `46-fs08-2-mutations-invalidation-and-optimistic-ui/README.md`, and `47-fs08-3-context-reducers-and-zustand/README.md`.
 - Laravel source: not applicable; this is a frontend architecture lesson.
+- Follow-up pass: 2026-08-20 — verified the `renderHook`/`result.current`/`rerender` claims against the current Testing Library API docs, matched exactly; added a "You should be able to:" lead-in, expanded the Hints into the full ladder plus a reference explanation, and added a Closed-book checkpoint answer reveal; light voice pass toward first-person-plural framing. This lesson's Exercise/Common-mistakes structure and "Predict before reading" framing were already at the course's current standard and did not need restructuring.
