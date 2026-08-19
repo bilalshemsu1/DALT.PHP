@@ -10,11 +10,11 @@ Difficulty: Integration
 Prerequisites: FS10.1 — Containers around the application
 Project milestone: B10 — Containerized full stack
 Primary source dossier: DOCKER_DOCS.md
-Last reviewed: 2026-08-15
+Last reviewed: 2026-08-20
 
 ## Why this matters
 
-A container that starts is not necessarily an application that is ready. It may be building assets, waiting for PostgreSQL, using a wrong environment variable, or serving a process that immediately fails after startup. Docker becomes useful when its build inputs, health signal, dependencies, and diagnostic commands turn those possibilities into evidence. This lesson moves the issue tracker from “it works on my machine” to a repeatable system a new developer can inspect and repair.
+A container that starts isn't necessarily an application that's ready. It may be building assets, waiting for PostgreSQL, using a wrong environment variable, or serving a process that immediately fails after startup. Docker becomes useful once its build inputs, health signal, dependencies, and diagnostic commands turn those possibilities into actual evidence. This lesson moves the issue tracker from "it works on my machine" to a repeatable system a new developer can inspect and repair.
 
 ## Before you start
 
@@ -36,6 +36,8 @@ docker compose logs --tail=100
 ```
 
 ## By the end
+
+You should be able to:
 
 - explain image layers, cache invalidation, build context, and a deliberate copy order;
 - use a multi-stage build only where build and runtime needs differ;
@@ -261,8 +263,6 @@ missing volume      → inspect declared mounts and deliberate reset history
 
 `docker compose exec` requires a running container; use `docker compose run --rm` for an intentional one-off command when appropriate. Prefer a narrow command that answers one question over opening an interactive shell and making invisible repairs.
 
-
-
 ## 6. Read cache output as an explanation of inputs
 
 Docker's cache is reliable only when a layer's instruction and inputs are unchanged. The useful consequence is not “make builds fast at any cost”; it is that the Dockerfile documents what dependency installation depends on. Copying `composer.json` and `composer.lock` before source says package installation depends on those manifests, not on every component edit. Copying the whole project first says the opposite, so every source edit invalidates the expensive install step.
@@ -372,8 +372,6 @@ curl -i http://localhost:8000/api/issues
 docker compose down
 ```
 
-
-
 ## 10. Logs are a timeline, not a substitute for a model
 
 Logs are evidence emitted by a process at a time. Use timestamps and a bounded tail to correlate the database becoming ready, an application retrying a connection, a migration running, and the first successful request. But logs do not replace configuration inspection: an application can log the address it attempted without proving that Compose supplied the intended variable. Pair a log question with a state or configuration question.
@@ -429,13 +427,33 @@ docker compose down
 
 ## Common mistakes
 
-- Treating `depends_on` as proof that the database is ready.
-- Using `sleep 10` as a startup strategy.
-- Copying all source before dependency manifests and then wondering why every build reinstalls.
-- Using a multi-stage build solely to satisfy a checklist.
-- Putting a secret in a Dockerfile argument, image layer, or `VITE_*` variable.
-- Fixing a running container manually instead of changing the Dockerfile or Compose inputs.
-- Declaring a health check that can succeed while the required behavior remains unavailable.
+### Treating `depends_on` as proof that the database is ready
+
+`depends_on` alone expresses start order, not readiness. A database container can be running and still not accepting connections yet — that's exactly what `condition: service_healthy` exists to close.
+
+### Using `sleep 10` as a startup strategy
+
+A sleep encodes a guess about timing, not an observation about readiness. It's slow when the dependency is fast and still wrong when the dependency is slow.
+
+### Copying all source before dependency manifests
+
+Every source edit then invalidates the dependency-install layer, and every build reinstalls from scratch — the exact cost the manifest-first copy order exists to avoid.
+
+### Using a multi-stage build solely to satisfy a checklist
+
+A split that doesn't reduce runtime tools or make an output boundary clearer is just extra indirection with nothing bought for it.
+
+### Putting a secret in a Dockerfile argument, image layer, or `VITE_*` variable
+
+Layers can be inspected and reused, so a later `RUN rm` doesn't make an earlier copied secret absent from image history. A `VITE_*` value ships to every browser that downloads the build.
+
+### Fixing a running container manually instead of changing the Dockerfile or Compose inputs
+
+A manual fix disappears the moment the container is recreated, and it leaves the next clean build exactly as broken as before.
+
+### Declaring a health check that can succeed while the required behavior remains unavailable
+
+A shell existing, or a port accepting a connection, isn't the same claim as "the database is ready" or "the application can serve a request." A green `docker compose ps` is only as honest as the command behind it.
 
 ## When this goes wrong
 
@@ -475,17 +493,37 @@ From a clean project copy, run the documented setup, `docker compose up --build`
 
 ### Hints
 
-<details><summary>Hint 1</summary>Copy lockfiles before source so Docker can reuse the install layer.</details>
+<details>
+<summary>Hint 1 — copy order</summary>
 
-<details><summary>Hint 2</summary>A database health command must test database readiness, not merely container existence.</details>
+Copy lockfiles before source so Docker can reuse the install layer. If a source edit is invalidating your dependency install, this is almost always the reason.
+</details>
 
-<details><summary>Hint 3</summary>Begin every incident with <code>docker compose config</code>; it prevents debugging an imagined configuration.</details>
+<details>
+<summary>Hint 2 — what a health check must actually test</summary>
+
+A database health command must test database readiness, not merely container existence. `pg_isready` asks PostgreSQL directly; a bare process check only proves the container hasn't exited.
+</details>
+
+<details>
+<summary>Hint 3 — where to start debugging</summary>
+
+Begin every incident with `docker compose config`. It prevents you from debugging a configuration you imagine exists instead of the one Docker actually resolved.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is §1's manifest-first Dockerfile (composer copied from `composer:2`, `pdo_pgsql` built in its own stage), §3's `pg_isready` health check with `condition: service_healthy`, and §7's real `GET /api/health` route checked with `php -r` rather than `curl`. The proof isn't a green `docker compose up` — it's a deliberately broken database host or port producing a specific, diagnosable failure in rendered configuration and logs, followed by a restored, genuinely healthy system.
+</details>
 
 ## In the project
 
-B10 makes the learner’s full stack runnable as a declared system. Part 11 can now use the same PostgreSQL service for realistic data, query plans, transactions, and isolation rather than a personal host setup.
+B10 makes the full stack runnable as a declared system. Part 11 can now use this same PostgreSQL service for realistic data, query plans, transactions, and isolation, instead of whatever happened to be installed on one person's machine.
 
 ## Closed-book checkpoint
+
+Close the lesson first.
 
 1. Why does Dockerfile instruction order affect rebuild time?
 2. When does a multi-stage build improve the issue tracker, and when is it unnecessary?
@@ -493,6 +531,17 @@ B10 makes the learner’s full stack runnable as a declared system. Part 11 can 
 4. What is the difference between a Compose environment value and a Vite client value?
 5. In what order would you investigate an app that cannot connect to PostgreSQL?
 6. Why is a startup sleep weaker evidence than a health check?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. Docker caches each layer, and changing one invalidates it and every layer after it. Copying stable inputs like a lockfile before frequently-changing source means an unrelated code edit doesn't force a fresh dependency install.
+2. It helps when build tooling and runtime needs genuinely differ — Node to produce browser assets, served afterward by something that doesn't need Node at all. It's unnecessary when the existing architecture already has a justified single-image path, and adding one anyway is indirection with nothing bought for it.
+3. Because "running" only means the process hasn't exited. It says nothing about whether that process can currently do the specific thing a dependent service needs — accept a database connection, or serve a real request.
+4. A Compose environment value is read by the server at request time, and changing it follows the server's own runtime/restart rules. A Vite client value is embedded into the browser bundle at build time — changing it requires a full rebuild and redeploy, and it's visible to anyone who downloads the assets.
+5. Rendered configuration first, then whether the container exists and is running, then its logs, then whether it can resolve and reach the database over the network, then the credentials and query itself — evidence in that order, not a guess at the end of it.
+6. A sleep encodes a guess about timing. A health check observes the actual condition — the database accepting connections, the process able to respond — so it's correct regardless of how long that condition actually takes to become true.
+</details>
 
 ## Resources
 
@@ -524,3 +573,4 @@ B10 makes the learner’s full stack runnable as a declared system. Part 11 can 
 - Curriculum authority: `docs/dalt-fullstack/CURRICULUM.md` §21, FS10.2.
 - DALT files inspected: root `package.json`, `vite.config.mjs`, `framework/Core/functions.php`, and B09 specification.
 - Laravel source: not applicable; the portable model is Docker/Compose behavior, not a Laravel-specific runtime.
+- Follow-up pass: 2026-08-20 — cross-checked this lesson against `docs/dalt-fullstack/WORKLOG.md`'s F22/F23/F33/F34/F30 findings (the composer-binary-copy pattern, `pdo_pgsql` build, the `public/build` COPY path, the nonexistent `artisan health:check`, and the `pg_isready`/`localhost` prediction); all five documented fixes are present and correctly explained in the current text, no regression found; added a "You should be able to:" lead-in, expanded Common mistakes into explained subsections, expanded Hints into the full ladder plus a reference explanation, added a Closed-book checkpoint answer reveal, and removed two stray double-blank-line artifacts; light voice pass toward first-person-plural framing.

@@ -10,11 +10,11 @@ Difficulty: Integration
 Prerequisites: FS09.2 — Build pipeline, configuration and failure boundaries
 Project milestone: B10 — Containerized full stack
 Primary source dossier: DOCKER_DOCS.md
-Last reviewed: 2026-08-15
+Last reviewed: 2026-08-20
 
 ## Why this matters
 
-A host-installed frontend, PHP server, and PostgreSQL database can work while hiding the assumptions that make it work: a locally installed extension, an unused port, a database on `localhost`, or files from an earlier run. Containers make those assumptions explicit. They are not deployment magic. They package a process and its declared environment; Compose describes the several processes that make one application. The issue tracker is the useful subject because it already has a browser build, API behavior, and persistent data worth preserving.
+A host-installed frontend, PHP server, and PostgreSQL database can work while hiding the assumptions that make it work: a locally installed extension, an unused port, a database on `localhost`, or files left over from an earlier run. Containers make those assumptions explicit. They're not deployment magic — they package a process and its declared environment, and Compose describes the several processes that make up one application. The issue tracker is the useful subject here because it already has a browser build, real API behavior, and persistent data worth preserving.
 
 ## Before you start
 
@@ -36,6 +36,8 @@ docker compose config
 ```
 
 ## By the end
+
+You should be able to:
 
 - distinguish an image, container, and Compose service;
 - explain host ports, container ports, networks, service DNS, and `localhost` precisely;
@@ -185,8 +187,6 @@ docker compose ps
 
 Use the rendered configuration to notice defaults, interpolation, port mappings, and volume names. YAML is input; the resolved Compose model is the thing Docker receives. Do not infer a service address from the project directory name or a remembered default.
 
-
-
 ## 6. Filesystems are separate until you connect them
 
 Each container has its own writable filesystem layer. A file generated in the application container is not automatically present on the host or in a sibling web container. An image layer is also distinct from a running container's writable layer: rebuilding creates a new image; recreating a container starts from that image and its declared mounts. These differences explain why a manual edit inside a container disappears after recreation, while a database row survives recreation when its directory is mounted from a named volume.
@@ -263,8 +263,6 @@ docker compose exec app printenv DB_HOST
 
 An application should default only values that have a safe, documented local meaning. It should fail clearly for required credentials rather than silently connecting somewhere surprising. The same image can run in another environment with different runtime configuration, but a browser bundle with a different `VITE_*` value must be rebuilt. Do not blur those lifetimes just because both values appear near Docker commands.
 
-
-
 ## 9. Container lifecycle is part of the operational contract
 
 A Compose command has a scope. `up` creates or starts services; `stop` stops their processes while retaining containers; `down` removes the project containers and network; `down -v` additionally removes named volumes. A rebuild changes an image, but a running container does not become the new image until it is recreated. These are lifecycle facts, not implementation trivia: they let a learner explain why a code change is absent, why a test database row remained, or why it vanished.
@@ -301,8 +299,6 @@ docker compose logs --timestamps --tail=50
 A healthy review asks questions rather than checking fashionable features. Does a separate `web` service actually serve built assets or route API requests? Does a volume protect state the project needs? Is a database port published solely for an intentional host workflow? Is an environment variable consumed by the correct service? Does a build context omit artifacts that cannot affect runtime? Record the answer close to the Compose file or README so the next maintainer can revise the system without rediscovering its reasons.
 
 This is also why Part 10 has no automatic structural verifier for the learner's final Compose file. A file can contain strings named `healthcheck`, `volume`, and `network` without providing a working system. The honest evidence is configuration output, real containers, direct database/API behavior, and the learner's ability to repair a controlled failure.
-
-
 
 ## 11. Keep operational commands intentional
 
@@ -341,12 +337,29 @@ docker compose down
 
 ## Common mistakes
 
-- Treating a container as a VM and installing fixes interactively instead of changing inputs.
-- Using `localhost` from one service to reach another service.
-- Publishing every port “just in case,” making boundaries less clear.
-- Storing database data only in the container writable layer.
-- Copying `.env` or an entire working tree into a build context without inspection.
-- Calling a named volume a backup; it is persistent runtime state, not recovery strategy.
+### Treating a container as a VM and fixing it interactively
+
+A shell fix inside a running container disappears the moment it's recreated. The Dockerfile or Compose file is the only place a fix actually persists.
+
+### Using `localhost` from one service to reach another
+
+Inside the `app` container, `localhost` names the `app` container itself, never `db`. Only the Compose service name is a usable address for a sibling service.
+
+### Publishing every port "just in case"
+
+Containers on the same Compose network can already reach each other without any host port at all. Publishing one anyway is an exposure decision, not a requirement, and it makes the actual boundary harder to see.
+
+### Storing database data only in the container writable layer
+
+That layer is disposable — it vanishes the moment the container is recreated. Only a named volume, owned explicitly, survives.
+
+### Copying `.env` or an entire working tree into a build context without inspection
+
+A build context has no access control of its own. Anything it contains can end up in an image layer, discoverable long after a later instruction tries to remove it.
+
+### Calling a named volume a backup
+
+It's persistent runtime state, not a recovery strategy. It protects against container replacement, not against a mistaken `DELETE`, a corrupted write, or a deliberate `down -v`.
 
 ## When this goes wrong
 
@@ -385,23 +398,53 @@ Run `docker compose config`, `docker compose up -d`, `docker compose ps`, and a 
 
 ### Hints
 
-<details><summary>Hint 1</summary>Within the default Compose network, a service name is a hostname.</details>
+<details>
+<summary>Hint 1 — addressing the database</summary>
 
-<details><summary>Hint 2</summary>Use a named volume, not a host-path mount, for the first database model.</details>
+Within the default Compose network, a service name is a hostname. `db` resolves from `app`; `localhost` never does.
+</details>
 
-<details><summary>Hint 3</summary>Use <code>docker compose config</code> before debugging a value you expected Compose to interpolate.</details>
+<details>
+<summary>Hint 2 — where the data actually lives</summary>
+
+Use a named volume, not a host-path mount, for the first database model. Docker owns its location and lifecycle, which is one fewer thing to get wrong while you're still building the rest of the model.
+</details>
+
+<details>
+<summary>Hint 3 — debug the model before the container</summary>
+
+Use `docker compose config` before debugging a value you expected Compose to interpolate. It shows the resolved configuration Docker actually received, not the YAML you wrote.
+</details>
+
+<details>
+<summary>Reference explanation — read after an honest attempt</summary>
+
+The working shape is §2's two-service Compose file (`DB_DRIVER` set explicitly alongside `DB_HOST`/`DB_PORT`, service DNS instead of `localhost`) and §3's named volume for `db`. The proof isn't that `docker compose up` exits cleanly — it's that `docker compose exec app getent hosts db` resolves, and that data written before `docker compose down` (without `-v`) is still there after `docker compose up` again.
+</details>
 
 ## In the project
 
-This establishes B10’s first invariant: the issue tracker can name its application, database, network, configuration, and durable data boundaries. FS10.2 will make that model reproducible and health-aware.
+This establishes B10's first invariant: the issue tracker can name its application, database, network, configuration, and durable data boundaries. FS10.2 makes that same model reproducible and health-aware.
 
 ## Closed-book checkpoint
+
+Close the lesson first.
 
 1. What is the difference between an image, a container, and a Compose service?
 2. Why is `localhost` usually wrong for app-to-database traffic in Compose?
 3. Which side of `8000:8000` is the host port?
 4. What survives `docker compose down`, and what extra flag changes that answer?
 5. Why does the build context deserve an ignore file?
+
+<details>
+<summary>Reveal comparison answers</summary>
+
+1. An image is a built filesystem and metadata — not running. A container is one running instance of that image, with its own writable layer and runtime configuration. A Compose service is the declared role from which Compose creates containers in the first place.
+2. Inside a container, `localhost` names that container itself, not a sibling service. The app container's `localhost` is the app container — PostgreSQL is reachable only by the database's Compose service name.
+3. The left side. `8000:8000` maps host port 8000 to container port 8000; in `HOST:CONTAINER`, the host is always first.
+4. Named volumes survive an ordinary `docker compose down` — only the containers and network are removed. Adding `-v` additionally removes named volumes, deliberately destroying that persistent data.
+5. A build context has no access control of its own — everything inside `.` that `docker build` sends can end up copied into an image layer. An ignore file keeps `node_modules`, `.git`, local build output, and `.env` out of that context before they ever have the chance.
+</details>
 
 ## Resources
 
@@ -432,3 +475,4 @@ This establishes B10’s first invariant: the issue tracker can name its applica
 - Curriculum authority: `docs/dalt-fullstack/CURRICULUM.md` §21, FS10.1.
 - DALT files inspected: `package.json`, `vite.config.mjs`, `framework/Core/functions.php`, and B09 specification.
 - Laravel source: not applicable; Laravel may run in a container but does not alter Docker networking semantics.
+- Follow-up pass: 2026-08-20 — cross-checked this lesson against `docs/dalt-fullstack/WORKLOG.md`'s F21/F23/F27 findings (the positional `artisan serve` CMD, the silent-sqlite `DB_DRIVER` omission, and the `docker volume ls` command name); all three documented fixes are present and correctly explained in the current text, no regression found; added a "You should be able to:" lead-in, expanded Common mistakes into explained subsections, expanded Hints into the full ladder plus a reference explanation, added a Closed-book checkpoint answer reveal, and removed three stray double-blank-line artifacts; light voice pass toward first-person-plural framing.
