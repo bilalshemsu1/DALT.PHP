@@ -10,7 +10,7 @@ Difficulty: Integration
 Prerequisites: FS04.3 — Separating transport from UI  
 Project milestone: B05 — Persistent application  
 Primary source dossier: `FSO_PART_03.md`  
-Last reviewed: 2026-08-19
+Last reviewed: 2026-08-20
 
 ## Why this matters
 
@@ -198,26 +198,41 @@ function decodeJsonBody(Request $request, ?string $raw = null): array
     }
 
     try {
-        $decoded = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
+        // Decoded as objects, not associative arrays. `json_decode('{}', true)`
+        // and `json_decode('[]', true)` both produce the same empty PHP array,
+        // so a check written against that array cannot tell an empty JSON
+        // *object* from an empty JSON *array* — see the warning below before
+        // you reach for the more obvious `associative: true` version.
+        $decoded = json_decode($raw, associative: false, flags: JSON_THROW_ON_ERROR);
     } catch (JsonException) {
         // Not "invalid title" — we could not read the request at all.
         throw new InvalidJsonBody('Request body is not valid JSON.');
     }
 
-    // A JSON body of `7` or `"hello"` is valid JSON and still not an object.
-    if (!is_array($decoded) || array_is_list($decoded)) {
+    // A JSON body of `7`, `"hello"`, or `[1,2,3]` is valid JSON and still not
+    // an object — `stdClass` is the only thing PHP's decoder produces for a
+    // genuine `{...}`, so it is the only thing this check needs to accept.
+    if (!$decoded instanceof stdClass) {
         throw new InvalidJsonBody('Request body must be a JSON object.');
     }
 
-    return $decoded;
+    return (array) $decoded;
 }
 ```
 
-Two things there are easy to skip. `php://input` can only be read once per request in some
-SAPIs, so read it in one place rather than sprinkling the call through handlers. And the
-`array_is_list` check catches a JSON array where an object was expected — without it,
-`[1,2,3]` reaches your validation code and produces a confusing message about a missing
-title.
+Two things there are easy to skip, and one of them is a real trap rather than a style choice.
+`php://input` can only be read once per request in some SAPIs, so read it in one place rather
+than sprinkling the call through handlers. And the object-vs-array distinction above is not
+decoration: **`json_decode('{}', true)` and `json_decode('[]', true)` are the same PHP value.**
+Both decode to `[]` under `associative: true`, and `array_is_list([])` is `true` — an empty array
+is vacuously a list — so a check written as `!is_array($decoded) || array_is_list($decoded)`
+rejects a perfectly valid empty JSON object as though it were an array. That specific case is not
+hypothetical: it is exactly what FS05.3's PATCH exercise sends when it asks you to prove "an empty
+object is refused" — and the refusal has to be your handler's 422 "no supported fields", not this
+boundary's 400 "not an object", or the two failure modes collapse into one and the exercise cannot
+tell them apart. Decoding as `stdClass` instead sidesteps the ambiguity entirely: PHP's decoder
+gives you a `stdClass` for `{}` and a `list<mixed>` array for `[]`, so the type itself is the
+answer, and no case analysis on the *contents* of an already-collapsed array is needed.
 
 The custom exception deserves an explanation, because DALT already gives you `abort(400)`
 and it looks like the obvious choice. Read what `abort` actually produces. It throws
@@ -575,6 +590,10 @@ A three-field form with three mistakes then takes three round trips to fix — o
 
 FS04.3's parser protects the browser's own assumptions. It runs in code the user fully controls and proves nothing to the server, which must validate everything again from scratch.
 
+### Deciding "is this a JSON object?" from an associative-array decode
+
+`json_decode('{}', true)` and `json_decode('[]', true)` both produce the exact same empty PHP array, so any check built on `is_array()`/`array_is_list()` after an associative decode cannot distinguish an empty object from an empty array — and an empty object is exactly what a PATCH with no changed fields sends. Decode as `stdClass` first and cast afterward; the type PHP gives you is the answer, not something you have to reconstruct from an already-collapsed value.
+
 ## When this goes wrong
 
 If a route 404s, compare method and path before touching the controller — PATCH and POST to
@@ -664,6 +683,7 @@ Close the lesson first.
 4. What must a consistent error envelope preserve for a form?
 5. Why must the server allowlist fields even when React has a typed form?
 6. Why does `Request::input()` not contain a JSON request body?
+7. `json_decode('{}', true)` and `json_decode('[]', true)` decode to the same PHP value. What does that mean for a JSON-object check written against an associative decode, and how does decoding as `stdClass` first avoid the problem?
 
 <details>
 <summary>Reveal comparison answers</summary>
@@ -674,6 +694,7 @@ Close the lesson first.
 4. The same shape every time — a status, a machine-readable code, and (for validation) which field was wrong — so a form doesn't need special-case logic per endpoint to know what to show.
 5. A typed form only constrains what the *browser you wrote* sends. A crafted HTTP request, an old deployed client, or a script bypasses TypeScript entirely, so the server allowlist is the only place the rule actually holds.
 6. It reads from `$_POST`, which PHP populates only for form-encoded or multipart bodies. A JSON request body never reaches `$_POST`, so `input()` sees nothing.
+7. Both decode to the same empty PHP array, so `array_is_list([])` is vacuously `true` and a check like `!is_array($decoded) || array_is_list($decoded)` cannot tell an empty object from an empty array — it rejects both. `associative: false` sidesteps this: PHP's decoder gives `{}` a `stdClass` and `[]` a plain array, so the type itself distinguishes them with no case analysis needed.
 </details>
 
 ## Resources
@@ -715,3 +736,4 @@ Close the lesson first.
 - Curriculum authority: `CURRICULUM.md` §15 FS05.1 — practical API agreement, not REST purity
 - Laravel bridge: Laravel route responses and validation provide the production-framework comparison; DALT uses explicit route handlers and `Response::json()` here
 - Follow-up pass: 2026-08-19 — verified every quoted framework claim (`Request::input()`/`route()`, `Router`'s `{*}` fallback pattern, `abort()`/`ExceptionHandler`, `App::resolve`, the `app/Http/support/` autoload boundary) against the actual `framework/Core/*` source and fixed one snippet that dropped the `$status` argument `ExceptionHandler::errorResponse` actually passes to `Response::html()`; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal; light voice pass toward first-person-plural framing to match Parts 00–04
+- Follow-up pass: 2026-08-20 — found and fixed a real defect in `decodeJsonBody` while implementing B05 for real against live PostgreSQL: `json_decode('{}', true)` and `json_decode('[]', true)` both produce the identical empty PHP array, so the lesson's `!is_array($decoded) || array_is_list($decoded)` check rejected a genuinely valid empty JSON object as though it were an array — confirmed directly with `php -r`. This silently broke FS05.3's own "PATCH with an empty object" exercise case: it could never reach the intended `validation_failed`/"No supported fields were supplied" response, only the wrong 400 `invalid_json`. Fixed by decoding with `associative: false` and checking `instanceof stdClass` instead, which distinguishes the two cases by type rather than by inspecting an already-collapsed array. Added a Common mistakes entry and a seventh checkpoint question. Re-verified live: curl against a running DALT server backed by real PostgreSQL now returns `validation_failed` for `PATCH` with `{}` and still returns `invalid_json` for a genuine JSON array body.

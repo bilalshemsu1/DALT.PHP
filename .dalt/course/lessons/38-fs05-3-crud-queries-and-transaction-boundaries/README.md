@@ -10,7 +10,7 @@ Difficulty: Integration
 Prerequisites: FS05.2 — Relational modeling and migrations
 Project milestone: B05 — Persistent application
 Primary source dossier: POSTGRESQL_DOCS.md
-Last reviewed: 2026-08-19
+Last reviewed: 2026-08-20
 
 ## Why this matters
 
@@ -312,11 +312,11 @@ try {
 
 A misspelled column name now reports itself as the user's fault, in a message that will send
 someone hunting through the React form for a bug that is in the SQL. Catch narrowly, and only
-where you can name the cause:
+where you can name the cause. A controller file has no `namespace` declaration — `PDOException`
+is already the class PHP resolves without a `use` import, and adding one for an already-global,
+non-compound name only earns a "has no effect" warning:
 
 ```php
-use PDOException;
-
 try {
     $row = $database->query($insertSql, $params)->find();
 } catch (PDOException $exception) {
@@ -640,3 +640,4 @@ Close the lesson first.
 - Curriculum authority: `CURRICULUM.md` §15 FS05.3
 - Laravel bridge: Laravel's query builder and `DB::transaction()` wrap this same PDO behaviour; writing the boundary by hand here makes the commit and rollback points visible before a helper hides them.
 - Follow-up pass: 2026-08-19 — verified the PDO configuration claims (`ERRMODE_EXCEPTION`, `STRINGIFY_FETCHES`/`EMULATE_PREPARES` off, `findOrFail()` calling `abort()`) against the actual `framework/Core/Database.php` source, no discrepancies found; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal; light voice pass toward first-person-plural framing to match Parts 00–04
+- Follow-up pass: 2026-08-20 — implemented B05 for real against a live PostgreSQL 17 container and the actual DALT `Router`/`Database`, and found one real defect in §3's PDOException code sample: `use PDOException;` at the top of a namespace-free controller file (every controller sample in this lesson has `declare(strict_types=1);` and no `namespace` line, matching this project's actual `app/Http/controllers/` convention) triggers PHP's "The use statement with non-compound name ... has no effect" warning, which then rendered inline in the JSON response body during live testing. Removed the import and added a one-line explanation of why it was never needed. Every other claim in this lesson — `RETURNING`, the `23503`/`23505` PDO error codes, the `inTransaction()` rollback guard, the row-count-from-a-separate-session proof — was independently re-verified against real behavior: ran the exact forced-second-write-fails scenario against real `issues`/`activity` tables, confirmed row counts were unchanged from a separate `psql` session, restored it, and confirmed both counts increased together afterward. No other discrepancies found.
