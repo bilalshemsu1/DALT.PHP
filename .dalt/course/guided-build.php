@@ -86,5 +86,17 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '06',
+            'slug' => 'open-a-project',
+            'title' => 'Open a project',
+            'description' => 'Give projects nested URLs, require both workspace and project IDs to match, and establish the project\'s Issues screen.',
+            'background' => [
+                [
+                    'label' => 'How SELECT and WHERE filter rows',
+                    'href' => 'https://sqlite.org/lang_select.html',
+                ],
+            ],
+        ],
     ],
 ];
