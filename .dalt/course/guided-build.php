@@ -178,5 +178,21 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '13',
+            'slug' => 'load-project-issues-from-json',
+            'title' => 'Load project issues from JSON',
+            'description' => 'Create a nested DALT JSON endpoint, validate its response in TypeScript, and give the React issue list honest loading, failure, empty, and ready states.',
+            'background' => [
+                [
+                    'label' => 'Synchronize React with an external system',
+                    'href' => 'https://react.dev/learn/synchronizing-with-effects',
+                ],
+                [
+                    'label' => 'Use the Fetch API',
+                    'href' => 'https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch',
+                ],
+            ],
+        ],
     ],
 ];
