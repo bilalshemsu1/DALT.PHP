@@ -214,5 +214,21 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '15',
+            'slug' => 'give-react-real-locations',
+            'title' => 'Give React real locations',
+            'description' => 'Add nested client routes for the project and issue screens, load one issue through JSON, and make refresh and pasted deep URLs return the React shell.',
+            'background' => [
+                [
+                    'label' => 'Install React Router in data mode',
+                    'href' => 'https://reactrouter.com/start/data/installation',
+                ],
+                [
+                    'label' => 'Nested route configuration',
+                    'href' => 'https://reactrouter.com/start/data/routing',
+                ],
+            ],
+        ],
     ],
 ];
