@@ -120,5 +120,17 @@ return [
             'title' => 'Open an issue',
             'description' => 'Turn issue rows into links, verify the complete workspace-project-issue path, and render each issue on its own page.',
         ],
+        [
+            'id' => '09',
+            'slug' => 'change-issue-status',
+            'title' => 'Change issue status',
+            'description' => 'Close and reopen issues through an explicit protected update while keeping detail pages and project lists in sync.',
+            'background' => [
+                [
+                    'label' => 'SQLite UPDATE reference',
+                    'href' => 'https://sqlite.org/lang_update.html',
+                ],
+            ],
+        ],
     ],
 ];
