@@ -38,5 +38,21 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '03',
+            'slug' => 'persist-workspaces',
+            'title' => 'Persist workspaces',
+            'description' => 'Replace browser-session storage with a SQLite table, then write and read workspaces through DALT\'s database connection.',
+            'background' => [
+                [
+                    'label' => 'SQLite is a single-file database',
+                    'href' => 'https://www.sqlite.org/onefile.html',
+                ],
+                [
+                    'label' => 'SQLite CREATE TABLE reference',
+                    'href' => 'https://sqlite.org/lang_createtable.html',
+                ],
+            ],
+        ],
     ],
 ];
