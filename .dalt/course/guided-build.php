@@ -98,5 +98,21 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '07',
+            'slug' => 'create-an-issue',
+            'title' => 'Create an issue',
+            'description' => 'Store issues inside projects, validate a title and optional description together, and render each project\'s real issue list.',
+            'background' => [
+                [
+                    'label' => 'How SQLite stores text values',
+                    'href' => 'https://sqlite.org/datatype3.html',
+                ],
+                [
+                    'label' => 'HTML textarea reference',
+                    'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/textarea',
+                ],
+            ],
+        ],
     ],
 ];
