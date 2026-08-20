@@ -138,5 +138,21 @@ return [
             'title' => 'Edit an issue',
             'description' => 'Add a dedicated edit page, preserve attempted values through validation, and update an issue without changing its status or identity.',
         ],
+        [
+            'id' => '11',
+            'slug' => 'delete-an-issue',
+            'title' => 'Delete an issue',
+            'description' => 'Review an irreversible action, send a protected DELETE request, and remove only an issue inside its verified project.',
+            'background' => [
+                [
+                    'label' => 'What an HTTP DELETE request means',
+                    'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/DELETE',
+                ],
+                [
+                    'label' => 'SQLite DELETE reference',
+                    'href' => 'https://www.sqlite.org/lang_delete.html',
+                ],
+            ],
+        ],
     ],
 ];
