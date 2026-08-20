@@ -10,7 +10,7 @@ Difficulty: Advanced
 Prerequisites: FS07.3 — Test frontend behavior
 Project milestone: B08 — Intentional state architecture
 Primary source dossier: FSO_PART_06.md
-Last reviewed: 2026-08-19
+Last reviewed: 2026-08-20
 
 ## Why this matters
 
@@ -330,6 +330,21 @@ async function logout() {
 It does not replace server authorization; it prevents your own cache from displaying data
 the current visitor was never authorized to see.
 
+Notice that the example above navigates immediately after clearing. That ordering is not
+incidental. If the screen showing "Signed in as…" instead derives its own identity from a
+query — `useQuery({ queryKey: ['me'], queryFn: getCurrentUser })`, the natural extension of
+"identity is a remote fact too" — and logout does *not* also unmount that screen, `clear()`
+alone can leave it stuck. `clear()` deletes the underlying `Query` object a mounted
+observer is watching; the observer does not reliably reattach to the fresh one `clear()`
+would otherwise create until *something* re-renders the component. A route change is
+exactly that something — the old authenticated tree unmounts and a fresh one mounts,
+which recreates the observer from nothing. Without a navigation (or an
+`invalidateQueries`/`refetchQueries` call afterward, or an explicit re-render), the button
+can visibly do nothing: the request completes, the cache is genuinely emptied, and the
+screen never notices. This was verified directly against a real running application, not
+assumed: the symptom was a "Sign out" button that emptied the cache correctly and then sat
+there, because nothing told its own component to look again.
+
 ## Testing a screen that queries
 
 Adding a query client will break the tests you wrote in FS07.3, and this is the second time
@@ -426,6 +441,10 @@ Every render then discards the whole cache and builds a new one, which defeats t
 ### Forgetting `queryClient.clear()` on logout
 
 The next person at that browser sees the previous user's issue titles rendered from memory, before a single request has been made.
+
+### Calling `clear()` without also unmounting or refetching the screen that shows identity
+
+`clear()` deletes the `Query` object a mounted observer is watching. If nothing re-renders that component afterward — no navigation, no `invalidateQueries`, no explicit refetch — the observer does not reliably reattach on its own, and a control like "Sign out" can visibly do nothing even though the cache was genuinely emptied and the server-side logout genuinely succeeded.
 
 ### Believing a cached answer means the user is still allowed to see it
 
@@ -525,6 +544,7 @@ Close the lesson first.
 5. What security decision can TanStack Query never make for the server?
 6. What is the difference between `staleTime` and `gcTime`, in one sentence each?
 7. Why must the cache be cleared on logout even though the server still authorizes?
+8. `clear()` genuinely empties the cache, and a "Sign out" button that reads its own identity from a query can still visibly do nothing when clicked. What is missing?
 
 <details>
 <summary>Reveal comparison answers</summary>
@@ -536,6 +556,7 @@ Close the lesson first.
 5. Whether the current request is actually allowed. A cache can display data faster; only the server, asked fresh, can say who's allowed to see it right now.
 6. `staleTime` is how long a snapshot is trusted without rechecking. `gcTime` is how long an unused snapshot is kept in memory before being discarded entirely.
 7. A cleared cache is the only guarantee that the next person at that browser doesn't see the previous user's data rendered from memory before any new request has even been made.
+8. A re-render. `clear()` deletes the `Query` object the mounted observer was watching, but the observer does not reliably reattach to a fresh one on its own — something has to make the component look again, whether that is a route change (unmount and remount), an explicit `invalidateQueries`/`refetchQueries` call, or a plain state update forcing the render.
 </details>
 
 ## Resources
@@ -571,3 +592,5 @@ Consulted: 2026-08-15.
 Curriculum authority: `CURRICULUM.md` §19, FS08.1; `PROJECT_BLUEPRINT.md` §§46–50.
 
 Follow-up pass: 2026-08-19 — verified the `isPending`/`isLoading` distinction against the current TanStack Query `useQuery` reference (`isLoading` is exactly `isPending && isFetching`) and the `gcTime` default against the current defaults guide, both matched exactly; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal and a short DALT connection section; light voice pass toward first-person-plural framing to match Parts 00–07. No content rewrite needed — this lesson was already at the course's strongest tier for precision and code density.
+
+Follow-up pass: 2026-08-20 — implementing B08 for real (a query-backed current-user, an `AuthProvider` reactively rendering `<Navigate>` instead of navigating imperatively on logout) surfaced a genuine, previously-undocumented TanStack Query v5 behavior: `queryClient.clear()` deletes the `Query` object a mounted `useQuery` observer is watching, and that observer does not reliably reattach to a fresh one until *something* re-renders the component — a route change, an explicit refetch, or a plain state update. Without one of those, a "Sign out" control can genuinely empty the cache and correctly call the server, then sit there doing nothing, because nothing told the observer to look again. Verified directly against a real running application (Playwright, real PostgreSQL-backed session): confirmed the failure with `clear()` alone, confirmed `queryClient.getQueryData()` held the correct post-clear value the whole time (so the cache itself was never the problem), and confirmed a forced re-render immediately after `clear()` fixes it. The lesson's own `logout()` example was already correct — it navigates immediately after `clear()`, which triggers exactly the unmount/remount this note explains — but it did not previously say *why* that ordering matters, which matters once identity itself becomes a query, a natural extension of this lesson's own "everything remote is a query" framing. Added a clarifying paragraph after the `clear()` example, a new Common mistake entry, and an eighth checkpoint question. No other discrepancy found; every other TanStack Query claim in this lesson (the five-state render order, `isPending`/`isFetching`, `staleTime`/`gcTime`) was re-exercised live and held.
