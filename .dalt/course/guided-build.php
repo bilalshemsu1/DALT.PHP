@@ -194,5 +194,25 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '14',
+            'slug' => 'create-issues-without-reloading',
+            'title' => 'Create issues without reloading',
+            'description' => 'Post the React form to a protected DALT JSON endpoint, render server validation beside controlled fields, and add only the confirmed issue to the list.',
+            'background' => [
+                [
+                    'label' => 'React controlled inputs',
+                    'href' => 'https://react.dev/reference/react-dom/components/input',
+                ],
+                [
+                    'label' => 'HTTP 201 Created',
+                    'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/201',
+                ],
+                [
+                    'label' => 'HTTP 422 Unprocessable Content',
+                    'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/422',
+                ],
+            ],
+        ],
     ],
 ];
