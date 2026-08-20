@@ -10,7 +10,7 @@ Difficulty: Integration
 Prerequisites: FS07.1 — URLs and React Router
 Project milestone: B07 — Navigable tested application
 Primary source dossier: FSO_PART_07.md
-Last reviewed: 2026-08-19
+Last reviewed: 2026-08-20
 
 ## Why this matters
 
@@ -116,6 +116,44 @@ function IssueActions({ canEdit }: { canEdit: boolean }) {
 Hiding an action is still useful: it reduces confusion. But `canEdit` must derive from safe
 server data and its absence never authorizes a mutation. A server test from B06 remains the proof
 that a forged PATCH cannot succeed.
+
+## Why the cookie carries identity, not a header
+
+Every fetch above sends `credentials: 'include'` and none of them attach an `Authorization`
+header or read a token out of the response. That is not an oversight — it is the whole design,
+and DALT's session configuration (`config/session.php`) is what makes it safe:
+
+```php
+'cookie' => [
+    'secure' => env('SESSION_SECURE_COOKIE'),   // auto-detects HTTPS when unset
+    'httponly' => true,                          // never negotiable
+    'samesite' => env('SESSION_SAME_SITE', 'Lax'),
+],
+```
+
+`httponly` means `document.cookie` cannot read the session cookie — a successful XSS injection
+still cannot exfiltrate it, because JavaScript was never given access in the first place. That is
+why the frontend has no code that reads or stores a session identifier: there is nothing for it to
+read. `secure` restricts the cookie to HTTPS once your deployment has it, so a network observer on
+an insecure connection never sees it either. `samesite: Lax` is the CSRF-relevant one — it tells
+the browser to withhold the cookie on a cross-site *state-changing* request (a `POST` from another
+origin's page, say), while still attaching it to an ordinary top-level navigation. FS06.2's CSRF
+token is what closes the gap `Lax` deliberately leaves open: a same-site `GET` still carries the
+cookie, so `Lax` alone cannot stop a same-site form from riding on it.
+
+**Predict, then check:** delete `credentials: 'include'` from `getCurrentUser` and reload a
+signed-in session. The request still fires, the server still runs, and the response is still
+`200` — but `/api/me` now answers as though no one is signed in, because the browser never
+attached the cookie to a request that did not ask for it. No console error, no network failure
+banner, nothing that looks like a bug from the client's side. It is the single most common way
+this lesson's state machine gets debugged in the wrong file: the fix is not in `AuthState`, it is
+in the one line every request in this lesson depends on.
+
+This is not specific to `getCurrentUser`. Every mutation your API client module makes — creating
+an issue, marking one done, deleting it — needs the same option for the same reason, and a
+per-request setting is exactly what FS04.3's client boundary is for: put `credentials: 'include'`
+once, in the shared request helper every operation calls through, and no individual function gets
+a chance to forget it.
 
 ## Put behavior where a user can see it
 
@@ -240,6 +278,33 @@ check has had a chance to resolve. What does `auth` end up holding? Without the 
 answer resolves last wins, regardless of which one is actually true — the shell that started
 this request no longer exists in the sense that matters, and cleanup is what says so.
 
+## What a hard refresh actually does
+
+It is worth tracing the whole sequence once, the way B00 asked you to trace a form submit, because
+"the app remembers who I am" is doing a lot of invisible work in that sentence.
+
+```text
+1. Browser requests the document              — new HTML, no React yet
+2. Bundle downloads and executes               — React mounts, AuthState = 'loading'
+3. Effect fires getCurrentUser()                — a fresh fetch, cookie attached automatically
+4. DALT reads the session cookie's id           — looks the session up, resolves (or fails to)
+5. Response arrives                             — 200 with a user, or 401, or a network failure
+6. AuthState updates                            — 'authenticated' | 'anonymous' | 'failed'
+```
+
+Nothing about identity survived the refresh in the sense people usually mean it. The React tree
+was destroyed and rebuilt from nothing at step 2; every value in it, including a signed-in user's
+name and id, is gone. What actually persisted was the cookie sitting in the browser's cookie jar,
+attached to step 3 by the browser without any code asking it to, and the server session it points
+at, unaffected by the page ever having reloaded. "The app remembers me" is really "the cookie
+survived and the server still recognizes it" — two facts that live entirely outside React, checked
+again from scratch on every single page load.
+
+This is why `AuthState` cannot start at `'anonymous'` and flip to `'authenticated'` once the
+response arrives: for the whole span of steps 2 through 5, a real signed-in user is
+indistinguishable from a real anonymous one if you only look at what React currently knows. The
+`'loading'` state exists to name that span honestly instead of guessing through it.
+
 ## Common mistakes
 
 ### Treating a request in flight as proof that the visitor is anonymous
@@ -265,6 +330,10 @@ A caught error that renders nothing gives a person no information and no recover
 ### Testing implementation details instead of a label, navigation, or enabled action
 
 A test coupled to internal state or structure breaks on every refactor and stays green through real regressions — the opposite of what a test is for.
+
+### Dropping `credentials: 'include'` and debugging the wrong layer
+
+Every request in this lesson depends on the browser attaching the session cookie, which it only does when the request explicitly asks for it. Without that option every one of these requests looks identical to an anonymous one — a 200 with no error, which reads exactly like a state-machine bug and wastes far more time in `AuthState` than in the one line actually responsible.
 
 ## When this goes wrong
 
@@ -346,6 +415,7 @@ Close the lesson first.
 3. Why should 401 and 403 lead to different recovery behavior?
 4. What is one thing a hidden Edit button cannot prove?
 5. Which session event can make a previously rendered client state stale?
+6. `httponly`, `secure`, and `samesite: Lax` each rule out a different attack on the session cookie. What does each one actually stop, and which one is CSRF's job to close the rest of the way?
 
 <details>
 <summary>Reveal comparison answers</summary>
@@ -355,6 +425,7 @@ Close the lesson first.
 3. 401 means no identity is present at all, and signing in would resolve it. 403 means a known, real identity was denied by policy, and signing in again changes nothing. Collapsing both into one recovery path sends at least one of them somewhere unhelpful.
 4. That the action is actually forbidden server-side. A hidden button only proves the UI chose not to show it — a direct request bypasses it completely.
 5. Logout in another tab, or the session simply expiring server-side. The client's rendered state doesn't know either happened until its next request meets a 401.
+6. `httponly` stops JavaScript — including injected XSS payloads — from ever reading the cookie's value. `secure` stops a network observer on a non-HTTPS hop from seeing it. `samesite: Lax` withholds the cookie from most cross-site requests but still allows it on a plain top-level navigation and on a same-site request — so a same-site form submission still carries it, and closing that remaining gap is exactly what FS06.2's CSRF token is for.
 </details>
 
 ## Resources
@@ -391,3 +462,5 @@ Consulted: 2026-08-15.
 Curriculum authority: `CURRICULUM.md` §18, FS07.2; `PROJECT_BLUEPRINT.md` §§40, 42.
 
 Follow-up pass: 2026-08-19 — fixed a stray double-period typo in this record's curriculum-authority citation; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal. Content pass (owner-approved): replaced four generic, near-code-free essay sections ("Session lifecycle and recovery details," "Design review before integration," "Evidence and operational choices," "A deliberate final pass" — collectively the least code-dense ~1,600 words in the course) with three tighter, code-grounded sections covering the same load-bearing ideas — one-place status-code translation, logout as a real request rather than a local reset, and the auth-check-versus-logout race — each with a predict-then-verify moment matching FS04.1/FS07.3's style. Extended `getCurrentUser` with an optional `AbortSignal` parameter to keep the new race-condition example consistent with its earlier definition in this same lesson. Removed a redundant, weaker duplicate `logout()` snippet from "When this goes wrong" in favour of pointing back at the fuller version.
+
+Follow-up pass: 2026-08-20 — `FullstackStandardTest`'s depth-regression check failed after the tighter-prose pass above: replacing code-light essay sections with code-grounded ones is a real improvement, but the course's own word-count measure counts a code line as one word regardless of length, so the swap read as a large drop in depth (2,418 words against a 3,297-word floor set by Part 05). Deepened rather than reverted: added "Why the cookie carries identity, not a header" (grounds `credentials: 'include'` and every fetch's silent dependence on it in DALT's actual `config/session.php` — `httponly`, `secure`, `samesite: Lax` — and what CSRF still has to cover) and "What a hard refresh actually does" (a full six-step request trace answering why `AuthState` cannot start at `'anonymous'`), one more Common mistakes entry on dropping `credentials: 'include'`, and a sixth checkpoint question on the cookie attributes. Re-verified against `framework/Core/Session.php` and `config/session.php` directly. `php artisan test` confirms the regression check now passes.

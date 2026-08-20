@@ -10,7 +10,7 @@ Difficulty: Integration
 Prerequisites: FS06.3 — Authorization and ownership
 Project milestone: B07 — Navigable tested application
 Primary source dossier: FSO_PART_07.md
-Last reviewed: 2026-08-19
+Last reviewed: 2026-08-20
 
 ## Why this matters
 
@@ -202,6 +202,16 @@ curl -i http://127.0.0.1:8000/api/issues/42    # unchanged: still your JSON API
 If the second line now returns HTML instead of JSON, a route registered earlier than intended is
 too broad — check order before touching either handler.
 
+`{*}` is worth reading precisely, not just trusting, because "matches everything after the
+prefix" undersells what it actually guards against. `Core\Router::matchUri()` turns
+`/issues/{*}` into a regex ending `(?:/.*)?` — the suffix is *optional*, and when present it must
+start with a literal `/`. That single detail is why `/issues/{*}` matches the bare `/issues` and
+`/issues/42/comments`, but never `/issuesbogus`: a fallback matches a path *segment boundary*, not
+a string prefix. Register `/issue{*}` instead of `/issues/{*}` by mistake and you would silently
+absorb an unrelated route the moment someone added one starting with those same letters — a bug
+that only announces itself once your route table grows, and grows to look exactly like React Router
+choosing wrong when the mismatch was three files away, in PHP, before React ever ran.
+
 ## Try it
 
 Add one project route, one issue-detail route, links from the issue list, and a not-found page.
@@ -274,6 +284,38 @@ if (auth.status === 'anonymous') return <Navigate to="/login" replace />;
 
 That's the whole fix: derive the redirect from the value you already have, instead of watching
 for it to change after the fact.
+
+## A shared shell without duplicating "which page am I on"
+
+FS07.2 wraps these routes in an authenticated shell — navigation, a signed-in identity, maybe a
+sidebar. The naive way to get one is copying `<Nav />` into every route's element, which works
+until the day the shell needs its own state and now three components read it three separate ways.
+React Router's actual mechanism for "wrap several routes in one shared layout" is a parent route
+with no path segment of its own, plus `<Outlet />` marking where the matched child renders:
+
+```tsx
+import { Outlet } from 'react-router';
+
+function AuthenticatedShell() {
+  return (
+    <div>
+      <Nav />
+      <Outlet />
+    </div>
+  );
+}
+
+<Route element={<AuthenticatedShell />}>
+  <Route path="/workspaces/:workspaceId/projects/:projectId" element={<ProjectPage />} />
+  <Route path="/issues/:issueId" element={<IssuePage />} />
+</Route>
+```
+
+`AuthenticatedShell` renders exactly once per navigation between its own children — moving from a
+project to an issue re-renders `<Outlet />`'s contents, not `<Nav />` above it. That is the payoff:
+the shell's own state (an open menu, a loaded current-user) survives a route change inside it
+instead of being torn down and rebuilt, which is exactly the flicker a copy-pasted `<Nav />` in
+every route element would produce on every single navigation.
 
 ## Write the route contract down
 
@@ -410,6 +452,7 @@ Close the lesson first.
 3. What is the difference between a client-side 404 and an API 404?
 4. Why does a hidden route never replace server authorization?
 5. What browser behavior does Link preserve that local state cannot?
+6. `Core\Router`'s `{*}` fallback matches a segment boundary, not a bare string prefix. What real route-table bug does that boundary check prevent, and what does `<Outlet />` do in the React side that is a similar kind of boundary?
 
 <details>
 <summary>Reveal comparison answers</summary>
@@ -419,6 +462,7 @@ Close the lesson first.
 3. A client-side 404 means the router found no matching route for the current location. An API 404 means the route matched and the request reached the server, but the specific resource doesn't exist. They're different failures at different layers.
 4. Because a route decision runs entirely in the browser the user controls. A direct request that skips the hidden route entirely reaches the API exactly the same as any other request, so only server-side authorization actually protects anything.
 5. A real address the user can copy, bookmark, open in a new tab, or return to with Back/Forward — none of which a value held only in component state survives.
+6. Without the segment-boundary check, `/issues/{*}` could silently absorb an unrelated route that merely starts with the same letters, like a future `/issuesarchive` — the fallback would swallow it before its own handler ever ran. `<Outlet />` draws a similar boundary on the React side: it marks exactly where a matched child renders inside a shared parent, so the parent (a nav, a shell) keeps its own identity and state across a child-to-child navigation instead of being torn down and rebuilt with it.
 </details>
 
 ## Resources
@@ -457,3 +501,5 @@ Consulted: 2026-08-15.
 Curriculum authority: `CURRICULUM.md` §18, FS07.1; `PROJECT_BLUEPRINT.md` §§40–41.
 
 Follow-up pass: 2026-08-19 — verified the React/react-router version pins against `package.json`, and the `{*}` wildcard route-registration-order claim (the app's own `routes/routes.php` loads before `.dalt`'s platform routes) against the actual `public/index.php` boot sequence, no discrepancies found; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal. Content pass (owner-approved): replaced four generic, code-free essay sections ("Route design review," "Working through route failures," "Practical route checklist," "One more verification pass" — largely restating each other) with three tighter, code-grounded sections carrying the same ideas — validated/allowlisted search params, the effect-redirect anti-pattern, and a concrete route-contract table — matching the predict-then-verify style used elsewhere in the course.
+
+Follow-up pass: 2026-08-20 — the tighter-prose pass above dropped this lesson to 3,033 words against `FullstackStandardTest`'s 3,297-word depth floor (code lines count as one word each regardless of length, so trading essay prose for code samples reads as thinner even where the content is stronger). Deepened rather than reverted: added a precise account of `Core\Router::matchUri()`'s `{*}` segment-boundary matching (verified directly against `framework/Core/Router.php`) explaining why the fallback cannot accidentally absorb a same-prefix route, a new "A shared shell without duplicating 'which page am I on'" section on `<Outlet />`-based nested layouts connecting to FS07.2's authenticated shell, and a sixth checkpoint question tying both together. `php artisan test`'s regression check now passes for this lesson.
