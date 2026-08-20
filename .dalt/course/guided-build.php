@@ -70,5 +70,21 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '05',
+            'slug' => 'create-a-project',
+            'title' => 'Create a project',
+            'description' => 'Model projects inside workspaces, create them through a protected form, and render each workspace\'s real project list.',
+            'background' => [
+                [
+                    'label' => 'How SQLite creates an index',
+                    'href' => 'https://sqlite.org/lang_createindex.html',
+                ],
+                [
+                    'label' => 'How PostgreSQL enforces relationships',
+                    'href' => 'https://www.postgresql.org/docs/current/tutorial-fk.html',
+                ],
+            ],
+        ],
     ],
 ];
