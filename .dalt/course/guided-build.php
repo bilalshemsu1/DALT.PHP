@@ -114,5 +114,11 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '08',
+            'slug' => 'open-an-issue',
+            'title' => 'Open an issue',
+            'description' => 'Turn issue rows into links, verify the complete workspace-project-issue path, and render each issue on its own page.',
+        ],
     ],
 ];
