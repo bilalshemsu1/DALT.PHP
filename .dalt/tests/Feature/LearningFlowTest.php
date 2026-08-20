@@ -45,7 +45,16 @@ function p05ProjectFixture(): string
     $root = sys_get_temp_dir() . '/dalt-p05-' . bin2hex(random_bytes(6));
     mkdir($root, 0700, true);
 
-    foreach (['config', 'framework', 'public', 'resources', 'routes', 'storage', '.dalt'] as $directory) {
+    // 'app' belongs in this list alongside the other application-layer
+    // directories: it exists on every project state (app/Http/controllers/
+    // ships with the skeleton), and FS05.1 has routes/routes.php require
+    // app/Http/support/*.php unconditionally, on every request -- including
+    // the .dalt /learn/* requests this fixture exists to test, since both
+    // share one router. Omitting 'app' here meant every request through this
+    // fixture 500'd the moment a learner followed FS05.1 as written, well
+    // before Part 06: verified directly by reproducing the same copy this
+    // helper performs and confirming the exact fatal require failure.
+    foreach (['app', 'config', 'framework', 'public', 'resources', 'routes', 'storage', '.dalt'] as $directory) {
         p05CopyTree(base_path($directory), $root . '/' . $directory);
     }
     copy(base_path('.env.example'), $root . '/.env');
