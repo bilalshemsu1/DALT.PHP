@@ -1,3 +1,12 @@
 @import "tailwindcss";
 
+/* Tailwind v4 scans automatically from this stylesheet's location, and
+   with no boundary that reaches the whole repo -- including .dalt, the
+   separate optional course platform's own UI templates. Verified directly:
+   without this line, the built bundle carried classes like
+   bg-gradient-to-br, animate-spin, and backdrop-blur that .dalt/resources/
+   views/*.php use and this application never renders, roughly tripling
+   the shipped CSS size for nothing this app needs. */
+@source not "../../.dalt";
+
 /* Add your custom CSS here */
