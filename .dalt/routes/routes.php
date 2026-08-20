@@ -4,6 +4,8 @@ global $router;
 
 // Learning routes
 $router->get("/learn", "learn/index.php");
+$router->get("/learn/build", "learn/guided-project.php");
+$router->get("/learn/build/{lesson}", "learn/guided-project.php");
 $router->get("/learn/fullstack", "learn/fullstack.php");
 // One pair of routes for every Build milestone, present and future. A new
 // milestone is a manifest entry plus .dalt/course/build/<ID>-<slug>/README.md.

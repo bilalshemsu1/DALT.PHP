@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 $__learnPath = parse_url($_SERVER['REQUEST_URI'] ?? '/learn', PHP_URL_PATH) ?: '/learn';
 $__learnActive = static fn (string $path): bool => $__learnPath === $path
+    || ($path === '/learn/build' && str_starts_with($__learnPath, '/learn/build/'))
     || ($path === '/learn' && (str_starts_with($__learnPath, '/learn/lessons/') || str_starts_with($__learnPath, '/learn/challenges/') || str_starts_with($__learnPath, '/learn/fullstack')));
 ?>
 <header class="sticky top-0 z-50 border-b border-[#1e293b] bg-[#0a0d12]/95 text-gray-200 backdrop-blur">
   <div class="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-4 sm:gap-5 sm:px-6">
     <a href="/" class="flex shrink-0 items-center gap-2 group">
       <span class="inline-block h-6 w-2 rounded bg-[#93DA97] transition-all group-hover:shadow-[0_0_10px_#93DA97]"></span>
-      <span class="text-base font-bold tracking-tight text-white sm:text-lg">DALT.PHP</span>
+      <span class="text-base font-bold tracking-tight text-white sm:text-lg">DALT<span class="hidden sm:inline">.PHP</span></span>
     </a>
     <nav class="flex min-w-0 items-center gap-0 text-sm" aria-label="Learning navigation">
-      <a href="/learn" class="rounded-md px-2 py-2 font-medium transition-colors sm:px-3 <?= $__learnActive('/learn') ? 'bg-[#93DA97]/10 text-[#93DA97]' : 'text-gray-400 hover:text-white' ?>" <?= $__learnActive('/learn') ? 'aria-current="page"' : '' ?>>Dashboard</a>
+      <a href="/learn" class="rounded-md px-2 py-2 font-medium transition-colors sm:px-3 <?= $__learnActive('/learn') ? 'bg-[#93DA97]/10 text-[#93DA97]' : 'text-gray-400 hover:text-white' ?>" <?= $__learnActive('/learn') ? 'aria-current="page"' : '' ?>><span class="sm:hidden">Home</span><span class="hidden sm:inline">Dashboard</span></a>
+      <a href="/learn/build" class="rounded-md px-2 py-2 font-medium transition-colors sm:px-3 <?= $__learnActive('/learn/build') ? 'bg-sky-300/10 text-sky-300' : 'text-gray-400 hover:text-white' ?>" <?= $__learnActive('/learn/build') ? 'aria-current="page"' : '' ?>>Build</a>
       <a href="/learn/resources" class="rounded-md px-2 py-2 font-medium transition-colors sm:px-3 <?= $__learnActive('/learn/resources') ? 'bg-[#93DA97]/10 text-[#93DA97]' : 'text-gray-400 hover:text-white' ?>" <?= $__learnActive('/learn/resources') ? 'aria-current="page"' : '' ?>>Resources</a>
-      <a href="/learn/roadmap" class="rounded-md px-2 py-2 font-medium transition-colors sm:px-3 <?= $__learnActive('/learn/roadmap') ? 'bg-[#93DA97]/10 text-[#93DA97]' : 'text-gray-400 hover:text-white' ?>" <?= $__learnActive('/learn/roadmap') ? 'aria-current="page"' : '' ?>>Roadmap</a>
+      <a href="/learn/roadmap" class="hidden rounded-md px-2 py-2 font-medium transition-colors sm:inline-flex sm:px-3 <?= $__learnActive('/learn/roadmap') ? 'bg-[#93DA97]/10 text-[#93DA97]' : 'text-gray-400 hover:text-white' ?>" <?= $__learnActive('/learn/roadmap') ? 'aria-current="page"' : '' ?>>Roadmap</a>
     </nav>
   </div>
 </header>
