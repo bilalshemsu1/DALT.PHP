@@ -132,5 +132,11 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '10',
+            'slug' => 'edit-an-issue',
+            'title' => 'Edit an issue',
+            'description' => 'Add a dedicated edit page, preserve attempted values through validation, and update an issue without changing its status or identity.',
+        ],
     ],
 ];
