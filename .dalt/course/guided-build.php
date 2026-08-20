@@ -22,5 +22,21 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '02',
+            'slug' => 'create-a-workspace',
+            'title' => 'Create a workspace',
+            'description' => 'Add our first form and carry one workspace through validation, a protected POST request, the session, and a redirect.',
+            'background' => [
+                [
+                    'label' => 'How HTML forms submit',
+                    'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form',
+                ],
+                [
+                    'label' => 'Why state-changing requests need CSRF protection',
+                    'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html',
+                ],
+            ],
+        ],
     ],
 ];
