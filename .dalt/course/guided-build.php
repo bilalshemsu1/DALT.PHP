@@ -154,5 +154,29 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '12',
+            'slug' => 'move-project-screen-to-react',
+            'title' => 'Move the project screen to React',
+            'description' => 'Replace one server-rendered screen with React, TypeScript, and Tailwind while keeping DALT responsible for routes, validation, sessions, and the database.',
+            'background' => [
+                [
+                    'label' => 'Add React to an existing project',
+                    'href' => 'https://react.dev/learn/add-react-to-an-existing-project',
+                ],
+                [
+                    'label' => 'Mount a React root',
+                    'href' => 'https://react.dev/reference/react-dom/client/createRoot',
+                ],
+                [
+                    'label' => 'Use Vite with a backend',
+                    'href' => 'https://vite.dev/guide/backend-integration.html',
+                ],
+                [
+                    'label' => 'Install Tailwind with Vite',
+                    'href' => 'https://tailwindcss.com/docs/installation/using-vite',
+                ],
+            ],
+        ],
     ],
 ];
