@@ -54,5 +54,21 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '04',
+            'slug' => 'open-a-workspace',
+            'title' => 'Open a workspace',
+            'description' => 'Turn each workspace into its own URL, load the matching database row, and return 404 when that workspace does not exist.',
+            'background' => [
+                [
+                    'label' => 'How URLs identify resources',
+                    'href' => 'https://developer.mozilla.org/en-US/docs/Learn_web_development/Howto/Web_mechanics/What_is_a_URL',
+                ],
+                [
+                    'label' => 'What HTTP 404 means',
+                    'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/404',
+                ],
+            ],
+        ],
     ],
 ];
