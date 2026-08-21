@@ -242,5 +242,17 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '17',
+            'slug' => 'edit-issues-without-reloading',
+            'title' => 'Edit issues without reloading',
+            'description' => 'Move the dedicated edit URL into React, preserve attempted values through JSON validation, and return to the detail only after DALT confirms the update.',
+            'background' => [
+                [
+                    'label' => 'React Router navigation',
+                    'href' => 'https://reactrouter.com/api/hooks/useNavigate',
+                ],
+            ],
+        ],
     ],
 ];
