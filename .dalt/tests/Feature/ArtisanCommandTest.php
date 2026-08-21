@@ -81,7 +81,7 @@ test('serve validates host and port before starting a process', function (array 
 ]);
 
 test('database commands resolve relative sqlite paths from the project root', function () {
-    // Runs in a disposable project root holding only the migration this framework ships.
+    // Runs in a disposable project root holding only a private fixture migration.
     // Against the real root it would execute the learner's migrations, which B05 requires
     // to be PostgreSQL (`BIGSERIAL`, `btrim`) and which SQLite therefore refuses — turning
     // a test about *path resolution* into a test of the learner's schema. The claim under
@@ -97,9 +97,9 @@ test('database commands resolve relative sqlite paths from the project root', fu
         }
     }
     copy(base_path('artisan'), $root . '/artisan');
-    copy(
-        base_path('database/migrations/001_create_users_table.sql'),
-        $root . '/database/migrations/001_create_users_table.sql',
+    file_put_contents(
+        $root . '/database/migrations/001_create_path_probe.sql',
+        "CREATE TABLE path_probe (id INTEGER PRIMARY KEY AUTOINCREMENT);\n",
     );
 
     $relativePath = 'database/f11_cli_' . bin2hex(random_bytes(6)) . '.sqlite';
@@ -123,7 +123,7 @@ test('database commands resolve relative sqlite paths from the project root', fu
             unlink($root . '/' . $directory);
         }
         @unlink($root . '/artisan');
-        @unlink($root . '/database/migrations/001_create_users_table.sql');
+        @unlink($root . '/database/migrations/001_create_path_probe.sql');
         @rmdir($root . '/database/migrations');
         @rmdir($root . '/database');
         @rmdir($root);

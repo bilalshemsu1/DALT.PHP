@@ -177,6 +177,12 @@ Update the cleanup filename and expected progress line to
 `001_create_migration_probe.sql`. The framework test now tests ordering and execution
 without depending on the learner application's schema or database engine.
 
+Apply the same principle in `.dalt/tests/Feature/ArtisanCommandTest.php`, whose relative
+SQLite-path test has its own disposable root. Create a tiny
+`001_create_path_probe.sql` there instead of copying the users migration, and update
+its cleanup path. That test is about where a relative database file is created, not
+about our application schema.
+
 ## Run the full current server boundary
 
 Make sure the Compose database is healthy, then run:
