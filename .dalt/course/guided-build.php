@@ -392,5 +392,15 @@ return [
                 ['label' => 'React input state', 'href' => 'https://react.dev/reference/react-dom/components/input'],
             ],
         ],
+        [
+            'id' => '26',
+            'slug' => 'delete-workspaces-after-review',
+            'title' => 'Delete workspaces after review',
+            'description' => 'Review the full consequence, then remove a workspace, its projects, and their issues in one protected transaction before returning home.',
+            'background' => [
+                ['label' => 'PDO transactions', 'href' => 'https://www.php.net/manual/en/pdo.transactions.php'],
+                ['label' => 'HTTP DELETE', 'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/DELETE'],
+            ],
+        ],
     ],
 ];
