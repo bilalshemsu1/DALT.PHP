@@ -432,5 +432,15 @@ return [
                 ['label' => 'OWASP session management', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html'],
             ],
         ],
+        [
+            'id' => '30',
+            'slug' => 'log-in-and-out',
+            'title' => 'Log in and out',
+            'description' => 'Verify an existing account, return to an intended page, show session identity in the React shell, and destroy the server session on logout.',
+            'background' => [
+                ['label' => 'PHP password_verify', 'href' => 'https://www.php.net/manual/en/function.password-verify.php'],
+                ['label' => 'OWASP authentication guidance', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html'],
+            ],
+        ],
     ],
 ];
