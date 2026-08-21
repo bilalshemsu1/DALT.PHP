@@ -412,5 +412,15 @@ return [
                 ['label' => 'Controlled React inputs', 'href' => 'https://react.dev/reference/react-dom/components/input'],
             ],
         ],
+        [
+            'id' => '28',
+            'slug' => 'delete-projects-after-review',
+            'title' => 'Delete projects after review',
+            'description' => 'Review a project deletion, remove its issues in one protected transaction, preserve the workspace, and return only after server confirmation.',
+            'background' => [
+                ['label' => 'PDO transactions', 'href' => 'https://www.php.net/manual/en/pdo.transactions.php'],
+                ['label' => 'HTTP DELETE', 'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/DELETE'],
+            ],
+        ],
     ],
 ];
