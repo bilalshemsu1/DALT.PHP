@@ -254,5 +254,21 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '18',
+            'slug' => 'delete-issues-without-reloading',
+            'title' => 'Delete issues without reloading',
+            'description' => 'Review a routed destructive action, send a protected DELETE through DALT, and leave the removed issue URL only after the server confirms deletion.',
+            'background' => [
+                [
+                    'label' => 'HTTP DELETE semantics',
+                    'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/DELETE',
+                ],
+                [
+                    'label' => 'Replace browser history during navigation',
+                    'href' => 'https://reactrouter.com/api/hooks/useNavigate',
+                ],
+            ],
+        ],
     ],
 ];
