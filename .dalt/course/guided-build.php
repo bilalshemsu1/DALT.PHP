@@ -290,5 +290,25 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '20',
+            'slug' => 'test-the-dalt-issue-api',
+            'title' => 'Test the DALT issue API',
+            'description' => 'Dispatch the real issue routes against an isolated SQLite database and prove JSON contracts, CSRF, validation, ownership, and every mutation.',
+            'background' => [
+                [
+                    'label' => 'Pest hooks',
+                    'href' => 'https://pestphp.com/docs/hooks',
+                ],
+                [
+                    'label' => 'Pest expectations',
+                    'href' => 'https://pestphp.com/docs/expectations/',
+                ],
+                [
+                    'label' => 'PDO SQLite in-memory databases',
+                    'href' => 'https://www.php.net/manual/en/ref.pdo-sqlite.connection.php',
+                ],
+            ],
+        ],
     ],
 ];
