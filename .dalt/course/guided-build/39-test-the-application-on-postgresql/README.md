@@ -159,6 +159,24 @@ ownerless migration path was exercised before the constraint and by the importer
 current registration tests should prove account storage, hash verification, and
 session identity in the schema that now exists.
 
+## Keep the framework migration test independent
+
+`tests/Feature/ArtisanMigrationTest.php` also forces SQLite. It is meant to test
+DALT's migration command in a disposable project, but it still copies our
+PostgreSQL-native users migration. Replace that copy with a private SQLite fixture:
+
+```php
+file_put_contents(
+    $root . '/database/migrations/001_create_migration_probe.sql',
+    "CREATE TABLE migration_probe "
+    . "(id INTEGER PRIMARY KEY AUTOINCREMENT);\n",
+);
+```
+
+Update the cleanup filename and expected progress line to
+`001_create_migration_probe.sql`. The framework test now tests ordering and execution
+without depending on the learner application's schema or database engine.
+
 ## Run the full current server boundary
 
 Make sure the Compose database is healthy, then run:
@@ -208,6 +226,7 @@ direct SQL cannot replace that evidence.
 
 ```bash
 git add .env.example \
+  tests/Feature/ArtisanMigrationTest.php \
   tests/Support/PostgresTestDatabase.php \
   tests/Feature/AuthenticationTest.php \
   tests/Feature/IssueApiTest.php \
