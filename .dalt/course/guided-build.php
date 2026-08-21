@@ -502,5 +502,15 @@ return [
                 ['label' => 'PostgreSQL date and time types', 'href' => 'https://www.postgresql.org/docs/current/datatype-datetime.html'],
             ],
         ],
+        [
+            'id' => '37',
+            'slug' => 'let-postgresql-defend-the-data',
+            'title' => 'Let PostgreSQL defend the data',
+            'description' => 'Add named foreign keys, checks, delete behavior, and query-shaped indexes, then bypass PHP to prove invalid rows cannot exist.',
+            'background' => [
+                ['label' => 'PostgreSQL constraints', 'href' => 'https://www.postgresql.org/docs/current/ddl-constraints.html'],
+                ['label' => 'PostgreSQL multicolumn indexes', 'href' => 'https://www.postgresql.org/docs/current/indexes-multicolumn.html'],
+            ],
+        ],
     ],
 ];
