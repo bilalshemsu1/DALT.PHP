@@ -330,5 +330,25 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '22',
+            'slug' => 'create-workspaces-without-reloading',
+            'title' => 'Create workspaces without reloading',
+            'description' => 'Send the protected workspace form through JSON, preserve rejected input, and add only a server-confirmed workspace to React state without navigating away.',
+            'background' => [
+                [
+                    'label' => 'React updating arrays in state',
+                    'href' => 'https://react.dev/learn/updating-arrays-in-state',
+                ],
+                [
+                    'label' => 'HTTP 422',
+                    'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/422',
+                ],
+                [
+                    'label' => 'URLSearchParams',
+                    'href' => 'https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams',
+                ],
+            ],
+        ],
     ],
 ];
