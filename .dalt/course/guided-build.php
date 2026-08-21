@@ -442,5 +442,15 @@ return [
                 ['label' => 'OWASP authentication guidance', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html'],
             ],
         ],
+        [
+            'id' => '31',
+            'slug' => 'protect-private-routes',
+            'title' => 'Protect private routes',
+            'description' => 'Redirect guest page navigation through login, return JSON 401 for guest API calls, and recover safely when a live session expires.',
+            'background' => [
+                ['label' => 'HTTP 401 Unauthorized', 'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/401'],
+                ['label' => 'OWASP session lifecycle', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html'],
+            ],
+        ],
     ],
 ];
