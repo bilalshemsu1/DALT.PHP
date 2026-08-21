@@ -522,5 +522,15 @@ return [
                 ['label' => 'PostgreSQL identity sequence functions', 'href' => 'https://www.postgresql.org/docs/current/functions-sequence.html'],
             ],
         ],
+        [
+            'id' => '39',
+            'slug' => 'test-the-application-on-postgresql',
+            'title' => 'Test the application on PostgreSQL',
+            'description' => 'Rebuild a guarded PostgreSQL test database from every migration and prove authentication, CRUD, CSRF, and reciprocal authorization on the real engine.',
+            'background' => [
+                ['label' => 'Pest beforeEach hooks', 'href' => 'https://pestphp.com/docs/hooks'],
+                ['label' => 'PostgreSQL schemas', 'href' => 'https://www.postgresql.org/docs/current/ddl-schemas.html'],
+            ],
+        ],
     ],
 ];
