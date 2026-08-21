@@ -230,5 +230,17 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '16',
+            'slug' => 'change-issue-status-without-reloading',
+            'title' => 'Change issue status without reloading',
+            'description' => 'Send an explicit protected status transition from the routed issue screen and replace its state only with DALT\'s confirmed response.',
+            'background' => [
+                [
+                    'label' => 'React state as a snapshot',
+                    'href' => 'https://react.dev/learn/state-as-a-snapshot',
+                ],
+            ],
+        ],
     ],
 ];
