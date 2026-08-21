@@ -452,5 +452,15 @@ return [
                 ['label' => 'OWASP session lifecycle', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html'],
             ],
         ],
+        [
+            'id' => '32',
+            'slug' => 'own-every-workspace',
+            'title' => 'Own every workspace',
+            'description' => 'Migrate existing work safely, assign new workspaces from session identity, and enforce ownership through every nested project and issue path.',
+            'background' => [
+                ['label' => 'OWASP IDOR prevention', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html'],
+                ['label' => 'SQLite ALTER TABLE', 'href' => 'https://www.sqlite.org/lang_altertable.html'],
+            ],
+        ],
     ],
 ];
