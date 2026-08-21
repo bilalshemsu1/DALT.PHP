@@ -492,5 +492,15 @@ return [
                 ['label' => 'Docker Compose environment variables', 'href' => 'https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/'],
             ],
         ],
+        [
+            'id' => '36',
+            'slug' => 'port-the-schema-to-postgresql',
+            'title' => 'Port the schema to PostgreSQL',
+            'description' => 'Replace the SQLite dialect with explicit PostgreSQL identity columns and timezone-aware timestamps, then prove ordered migration history.',
+            'background' => [
+                ['label' => 'PostgreSQL identity columns', 'href' => 'https://www.postgresql.org/docs/current/ddl-identity-columns.html'],
+                ['label' => 'PostgreSQL date and time types', 'href' => 'https://www.postgresql.org/docs/current/datatype-datetime.html'],
+            ],
+        ],
     ],
 ];
