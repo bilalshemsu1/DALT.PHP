@@ -402,5 +402,15 @@ return [
                 ['label' => 'HTTP DELETE', 'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/DELETE'],
             ],
         ],
+        [
+            'id' => '27',
+            'slug' => 'edit-projects-without-reloading',
+            'title' => 'Edit projects without reloading',
+            'description' => 'Rename a workspace-owned project on a dedicated client route, preserve rejected input, and return with the confirmed name without disturbing its issues.',
+            'background' => [
+                ['label' => 'React Router location state', 'href' => 'https://reactrouter.com/api/hooks/useLocation'],
+                ['label' => 'Controlled React inputs', 'href' => 'https://react.dev/reference/react-dom/components/input'],
+            ],
+        ],
     ],
 ];
