@@ -532,5 +532,15 @@ return [
                 ['label' => 'PostgreSQL schemas', 'href' => 'https://www.postgresql.org/docs/current/ddl-schemas.html'],
             ],
         ],
+        [
+            'id' => '40',
+            'slug' => 'make-multi-row-work-atomic',
+            'title' => 'Make multi-row work atomic',
+            'description' => 'Centralize the PDO transaction lifecycle without hiding business SQL, then force a late PostgreSQL failure and prove every earlier change rolls back.',
+            'background' => [
+                ['label' => 'PDO transactions', 'href' => 'https://www.php.net/manual/en/pdo.transactions.php'],
+                ['label' => 'PostgreSQL transaction isolation', 'href' => 'https://www.postgresql.org/docs/current/transaction-iso.html'],
+            ],
+        ],
     ],
 ];
