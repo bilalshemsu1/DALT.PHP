@@ -270,5 +270,25 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '19',
+            'slug' => 'test-the-react-issue-workflow',
+            'title' => 'Test the React issue workflow',
+            'description' => 'Drive the routed UI through accessible controls while Mock Service Worker supplies realistic loading, validation, mutation, and deletion responses.',
+            'background' => [
+                [
+                    'label' => 'Testing Library guiding principle',
+                    'href' => 'https://testing-library.com/docs/react-testing-library/intro/',
+                ],
+                [
+                    'label' => 'Mock Service Worker',
+                    'href' => 'https://mswjs.io/',
+                ],
+                [
+                    'label' => 'React Router memory router',
+                    'href' => 'https://reactrouter.com/api/data-routers/createMemoryRouter',
+                ],
+            ],
+        ],
     ],
 ];
