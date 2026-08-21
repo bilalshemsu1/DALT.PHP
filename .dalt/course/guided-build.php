@@ -482,5 +482,15 @@ return [
                 ['label' => 'Official PostgreSQL image', 'href' => 'https://hub.docker.com/_/postgres'],
             ],
         ],
+        [
+            'id' => '35',
+            'slug' => 'connect-dalt-to-postgresql',
+            'title' => 'Connect DALT to PostgreSQL',
+            'description' => 'Configure DALT through environment variables, require the PDO PostgreSQL extension, and prove the real driver, database, user, and server version.',
+            'background' => [
+                ['label' => 'PHP PDO PostgreSQL driver', 'href' => 'https://www.php.net/manual/en/ref.pdo-pgsql.php'],
+                ['label' => 'Docker Compose environment variables', 'href' => 'https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/'],
+            ],
+        ],
     ],
 ];
