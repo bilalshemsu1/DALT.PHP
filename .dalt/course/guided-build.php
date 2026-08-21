@@ -350,5 +350,21 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '23',
+            'slug' => 'move-the-project-list-to-react',
+            'title' => 'Move the project list to React',
+            'description' => 'Preserve the workspace deep-link 404 while React loads its scoped project collection, real issue counts, and complete request states from JSON.',
+            'background' => [
+                [
+                    'label' => 'React synchronizing with effects',
+                    'href' => 'https://react.dev/learn/synchronizing-with-effects',
+                ],
+                [
+                    'label' => 'SQL COUNT',
+                    'href' => 'https://www.postgresql.org/docs/current/functions-aggregate.html',
+                ],
+            ],
+        ],
     ],
 ];
