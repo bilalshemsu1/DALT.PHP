@@ -310,5 +310,25 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '21',
+            'slug' => 'move-the-workspace-list-to-react',
+            'title' => 'Move the workspace list to React',
+            'description' => 'Replace the PHP-rendered home collection with a runtime-checked workspace API and a responsive React screen with loading, empty, failure, retry, and ready states.',
+            'background' => [
+                [
+                    'label' => 'Fetching data with React effects',
+                    'href' => 'https://react.dev/reference/react/useEffect#fetching-data-with-effects',
+                ],
+                [
+                    'label' => 'AbortController',
+                    'href' => 'https://developer.mozilla.org/en-US/docs/Web/API/AbortController',
+                ],
+                [
+                    'label' => 'Tailwind responsive design',
+                    'href' => 'https://tailwindcss.com/docs/responsive-design',
+                ],
+            ],
+        ],
     ],
 ];
