@@ -512,5 +512,15 @@ return [
                 ['label' => 'PostgreSQL multicolumn indexes', 'href' => 'https://www.postgresql.org/docs/current/indexes-multicolumn.html'],
             ],
         ],
+        [
+            'id' => '38',
+            'slug' => 'import-the-sqlite-data',
+            'title' => 'Import the SQLite data',
+            'description' => 'Copy the existing accounts and issue hierarchy in one PostgreSQL transaction, verify counts, repair identity sequences, and prove failure rolls back.',
+            'background' => [
+                ['label' => 'PDO transactions', 'href' => 'https://www.php.net/manual/en/pdo.transactions.php'],
+                ['label' => 'PostgreSQL identity sequence functions', 'href' => 'https://www.postgresql.org/docs/current/functions-sequence.html'],
+            ],
+        ],
     ],
 ];
