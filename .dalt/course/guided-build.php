@@ -382,5 +382,15 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '25',
+            'slug' => 'edit-workspaces-without-reloading',
+            'title' => 'Edit workspaces without reloading',
+            'description' => 'Rename a workspace through a dedicated client route, preserve rejected input, and return with the server-confirmed name while refresh reads the persisted value.',
+            'background' => [
+                ['label' => 'React Router navigation', 'href' => 'https://reactrouter.com/api/hooks/useNavigate'],
+                ['label' => 'React input state', 'href' => 'https://react.dev/reference/react-dom/components/input'],
+            ],
+        ],
     ],
 ];
