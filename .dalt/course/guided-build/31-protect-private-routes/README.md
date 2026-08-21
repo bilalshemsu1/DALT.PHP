@@ -64,10 +64,38 @@ Import the application middleware at the top of `routes/routes.php`:
 use App\Http\Middleware\ApiAuth;
 ```
 
-Add built-in `auth` to every private page shell:
+Keep `/` as a public entry:
 
 ```php
-$router->get('/', 'welcome.php')->only('auth');
+$router->get('/', 'welcome.php');
+```
+
+Update `app/Http/controllers/welcome.php` so a guest receives the login React shell
+with the framework's expected public title, while a signed-in account receives the
+workspace application:
+
+```php
+use Core\Authenticator;
+
+if ((new Authenticator())->guest()) {
+    view('auth.view.php', [
+        'mode' => 'login',
+        'documentTitle' => 'DALT.PHP',
+    ]);
+
+    return;
+}
+
+view('welcome.view.php');
+```
+
+In `auth.view.php`, accept that optional title and escape it in the document head.
+The public root can now offer login without starting a private workspace request; once
+authenticated, the same URL becomes the workspace home.
+
+Add built-in `auth` to every resource page shell:
+
+```php
 $router->get('/workspaces/{workspace}', 'workspaces/show.php')->only('auth');
 $router->get('/workspaces/{workspace}/edit', 'workspaces/show.php')->only('auth');
 $router->get('/workspaces/{workspace}/delete', 'workspaces/show.php')->only('auth');
@@ -225,6 +253,10 @@ expect($response->status())->toBe(401)
 The absence of `auth.intended` matters. We never replay an API request after login;
 only safe document navigation gets that behavior.
 
+Also prove `GET /` returns the public authentication shell with status 200 and does not
+create an intended destination. This protects the framework's public-root contract
+without making any workspace resource public.
+
 Run the complete affected boundary:
 
 ```bash
@@ -236,13 +268,14 @@ npm test
 npm run build
 ```
 
-PHP should report twenty tests and 150 assertions. React still reports sixteen tests.
+PHP should report twenty-one tests. React still reports sixteen tests.
 In a private browser window, `/workspaces/7` should go to login, then return to that
 path after valid credentials. A direct guest request to `/api/workspaces` should return
 the JSON 401 envelope, not HTML.
 
 ```bash
 git add routes/routes.php app/Http/Middleware/ApiAuth.php \
+  app/Http/controllers/welcome.php resources/views/auth.view.php \
   resources/app/api-authentication.ts resources/app/app-shell-data.ts \
   resources/app/workspace-data.ts resources/app/workspace-detail-data.ts \
   resources/app/project-page-data.ts tests/Feature/AuthenticationTest.php \
