@@ -366,5 +366,21 @@ return [
                 ],
             ],
         ],
+        [
+            'id' => '24',
+            'slug' => 'create-projects-without-reloading',
+            'title' => 'Create projects without reloading',
+            'description' => 'Create a project through a protected nested JSON endpoint, preserve rejected input, and prepend only the server-confirmed row without leaving the workspace.',
+            'background' => [
+                [
+                    'label' => 'React updating arrays in state',
+                    'href' => 'https://react.dev/learn/updating-arrays-in-state',
+                ],
+                [
+                    'label' => 'HTTP 201',
+                    'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/201',
+                ],
+            ],
+        ],
     ],
 ];
