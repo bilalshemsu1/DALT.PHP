@@ -472,5 +472,15 @@ return [
                 ['label' => 'Pest data sets', 'href' => 'https://pestphp.com/docs/datasets'],
             ],
         ],
+        [
+            'id' => '34',
+            'slug' => 'start-postgresql-with-compose',
+            'title' => 'Start PostgreSQL with Docker Compose',
+            'description' => 'Run a healthy PostgreSQL 18 development service, keep its data in a named volume, and prove persistence before DALT connects to it.',
+            'background' => [
+                ['label' => 'Docker Compose startup order', 'href' => 'https://docs.docker.com/compose/how-tos/startup-order/'],
+                ['label' => 'Official PostgreSQL image', 'href' => 'https://hub.docker.com/_/postgres'],
+            ],
+        ],
     ],
 ];
