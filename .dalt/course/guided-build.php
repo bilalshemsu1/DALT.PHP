@@ -462,5 +462,15 @@ return [
                 ['label' => 'SQLite ALTER TABLE', 'href' => 'https://www.sqlite.org/lang_altertable.html'],
             ],
         ],
+        [
+            'id' => '33',
+            'slug' => 'prove-account-isolation',
+            'title' => 'Prove account isolation',
+            'description' => 'Test reciprocal own-account success, cross-account refusal, unchanged durable state, and server-derived ownership across the full hierarchy.',
+            'background' => [
+                ['label' => 'OWASP authorization testing', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html'],
+                ['label' => 'Pest data sets', 'href' => 'https://pestphp.com/docs/datasets'],
+            ],
+        ],
     ],
 ];
