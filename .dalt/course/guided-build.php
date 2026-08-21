@@ -422,5 +422,15 @@ return [
                 ['label' => 'HTTP DELETE', 'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/DELETE'],
             ],
         ],
+        [
+            'id' => '29',
+            'slug' => 'register-an-account',
+            'title' => 'Register an account',
+            'description' => 'Create the first React authentication screen, validate a new account, store only a password hash, and begin a rotated server session.',
+            'background' => [
+                ['label' => 'PHP password_hash', 'href' => 'https://www.php.net/manual/en/function.password-hash.php'],
+                ['label' => 'OWASP session management', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html'],
+            ],
+        ],
     ],
 ];
