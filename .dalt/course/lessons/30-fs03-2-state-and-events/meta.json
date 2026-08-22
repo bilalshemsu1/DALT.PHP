@@ -1,12 +1,12 @@
 {
-  "title": "State and events",
-  "description": "Make a local issue-tracker interface respond predictably to user events.",
-  "order": 35,
+  "title": "State, snapshots, and events",
+  "description": "Respond to browser events through React state and reason about each render's snapshot.",
+  "order": 37,
   "section": "fullstack",
-  "section_order": 16,
+  "section_order": 18,
   "icon": "layers",
   "color": "purple",
   "prerequisites": [
-    "29-fs03-1-components-jsx-and-typed-props"
+    "60-fs03-3-lists-conditionals-and-keys"
   ]
 }
