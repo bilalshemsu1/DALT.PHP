@@ -562,5 +562,15 @@ return [
                 ['label' => 'PostgreSQL multicolumn indexes', 'href' => 'https://www.postgresql.org/docs/current/indexes-multicolumn.html'],
             ],
         ],
+        [
+            'id' => '43',
+            'slug' => 'authorize-owner-and-member-work',
+            'title' => 'Authorize owner and member work',
+            'description' => 'Turn membership roles into one server capability policy, let members collaborate on projects and issues, and reserve workspace administration for owners.',
+            'background' => [
+                ['label' => 'OWASP authorization guidance', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html'],
+                ['label' => 'HTTP 403 Forbidden', 'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/403'],
+            ],
+        ],
     ],
 ];
