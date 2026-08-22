@@ -27,6 +27,10 @@ export type FakeServer = IssueApi & {
   calls: string[];
   failNextWrite: (error: ApiError) => void;
   failReads: (error: ApiError | null) => void;
+  /** Hold every write open until the returned function is called. */
+  pauseWrites: () => () => void;
+  /** Hold every read open until the returned function is called. */
+  pauseReads: () => () => void;
 };
 
 export function createFakeServer(seed: Issue[] = []): FakeServer {
@@ -34,6 +38,10 @@ export function createFakeServer(seed: Issue[] = []): FakeServer {
   let nextId = seed.length + 1;
   let writeError: ApiError | null = null;
   let readError: ApiError | null = null;
+  let writeGate: Promise<void> | null = null;
+  let openWriteGate: (() => void) | null = null;
+  let readGate: Promise<void> | null = null;
+  let openReadGate: (() => void) | null = null;
   const calls: string[] = [];
 
   function find(issueId: string): Issue {
@@ -53,8 +61,31 @@ export function createFakeServer(seed: Issue[] = []): FakeServer {
     failReads: (error) => {
       readError = error;
     },
+    pauseWrites: () => {
+      writeGate = new Promise<void>((resolve) => {
+        openWriteGate = () => {
+          writeGate = null;
+          openWriteGate = null;
+          resolve();
+        };
+      });
+
+      return () => openWriteGate?.();
+    },
+    pauseReads: () => {
+      readGate = new Promise<void>((resolve) => {
+        openReadGate = () => {
+          readGate = null;
+          openReadGate = null;
+          resolve();
+        };
+      });
+
+      return () => openReadGate?.();
+    },
     async listIssues(projectId, status) {
       calls.push(`listIssues:${projectId}:${status}`);
+      if (readGate !== null) await readGate;
       if (readError !== null) {
         throw readError;
       }
@@ -63,6 +94,7 @@ export function createFakeServer(seed: Issue[] = []): FakeServer {
     },
     async getIssue(issueId) {
       calls.push(`getIssue:${issueId}`);
+      if (readGate !== null) await readGate;
       if (readError !== null) {
         throw readError;
       }
@@ -71,6 +103,7 @@ export function createFakeServer(seed: Issue[] = []): FakeServer {
     },
     async createIssue(projectId, title) {
       calls.push(`createIssue:${projectId}`);
+      if (writeGate !== null) await writeGate;
       if (writeError !== null) {
         const error = writeError;
         writeError = null;
@@ -84,6 +117,7 @@ export function createFakeServer(seed: Issue[] = []): FakeServer {
     },
     async setIssueStatus(issueId, status) {
       calls.push(`setIssueStatus:${issueId}:${status}`);
+      if (writeGate !== null) await writeGate;
       if (writeError !== null) {
         const error = writeError;
         writeError = null;
