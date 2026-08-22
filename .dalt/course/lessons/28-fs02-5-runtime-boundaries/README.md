@@ -160,9 +160,9 @@ npm run unsafe
 npm run test
 ```
 
-The typecheck succeeds. `unsafe` then fails with a JavaScript `TypeError`, proving that `as Issue` validated nothing. The test fails at the parser's explicit TODO.
+The typecheck succeeds. `unsafe` then fails with a JavaScript `TypeError`, proving that `as Issue` validated nothing. The test fails at the parser's explicit unfinished-boundary exception.
 
-Open `src/parser.ts` and replace the TODO implementation with the parser shown above. The file already contains `isIssueStatus` and `isRecord`, so add only the field checks and reconstructed return value. Then run:
+Open `src/parser.ts` and replace the seeded exception with the parser shown above. The file already contains `isIssueStatus` and `isRecord`, so add only the field checks and reconstructed return value. Then run:
 
 ```bash
 npm run typecheck
@@ -207,10 +207,11 @@ Part 02 has given us the TypeScript foundation for React: honest models, narrowe
 <details>
 <summary>Maintainer source record</summary>
 
+- Source dossier: `TYPESCRIPT_HANDBOOK.md`; `FSO_TYPESCRIPT.md`.
 - Official sources: TypeScript Handbook, *The Basics*, *Narrowing*, `unknown`, and type assertions; JavaScript `JSON.parse` behavior.
+- Versions: TypeScript 5.9.3; Node 25.
 - Consulted: 2026-08-22.
-- Toolchain: TypeScript 5.9.3 from the pinned runtime-boundaries lab.
+- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 3, FS02.6.
 - DALT files inspected: `.dalt/course/fullstack/typescript-runtime-boundaries-lab/starter/**`, its tests, and executable expectations.
 - Reused material: former FS02.5 trust-boundary, unsafe assertion, record check, status guard, parser, and fake-resistant tests.
-- Research dossiers: `TYPESCRIPT_HANDBOOK.md` and `FSO_TYPESCRIPT.md`.
 </details>

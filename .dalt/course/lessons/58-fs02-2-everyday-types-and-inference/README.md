@@ -194,10 +194,11 @@ Next we will turn these building blocks into an honest model of issues, users, o
 <details>
 <summary>Maintainer source record</summary>
 
+- Source dossier: `TYPESCRIPT_HANDBOOK.md`; `FSO_TYPESCRIPT.md`.
 - Official sources: TypeScript Handbook, *Everyday Types* and *Type Inference*.
+- Versions: TypeScript 5.9.3; Node 25.
 - Consulted: 2026-08-22.
-- Toolchain: TypeScript 5.9.3 from the existing pinned `typescript-lab`.
+- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 3, FS02.2.
 - DALT files inspected: `.dalt/course/fullstack/typescript-lab/starter/**`.
 - Extracted from: former FS02.1 inference and everyday-syntax material.
-- Research dossiers: `TYPESCRIPT_HANDBOOK.md` and `FSO_TYPESCRIPT.md`.
 </details>

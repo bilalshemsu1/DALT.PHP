@@ -189,10 +189,11 @@ Next we will use everyday types and inference to describe values without annotat
 <details>
 <summary>Maintainer source record</summary>
 
+- Source dossier: `TYPESCRIPT_HANDBOOK.md`; `FSO_TYPESCRIPT.md`.
 - Official sources: TypeScript Handbook, *The Basics*, *Everyday Types*, modules theory, and TSConfig references for `strict`, `noEmit`, and `noEmitOnError`.
+- Versions: TypeScript 5.9.3; Node 25.
 - Consulted: 2026-08-22.
-- Toolchain proved by the lab: TypeScript 5.9.3 with the pinned package lock.
+- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 3, FS02.1.
 - DALT files inspected: `.dalt/course/fullstack/typescript-lab/starter/**` and `FullstackLabExecutionTest.php`.
 - Reused material: former FS02.1 explanations and erasure experiment, narrowed to the checker/runtime boundary.
-- Research dossiers: `TYPESCRIPT_HANDBOOK.md` and `FSO_TYPESCRIPT.md`.
 </details>
