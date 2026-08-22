@@ -568,7 +568,7 @@ test('B01 requires all four Part 01 lessons, stores its own completion, and unlo
     }
 });
 
-test('FS02.1 stays gated by B01, records ordinary completion, and does not complete Part 02 or unlock later TypeScript work', function () {
+test('FS02.1 stays gated by B01, records ordinary completion, and unlocks only everyday TypeScript', function () {
     $root = p05ProjectFixture();
     try {
         file_put_contents($root . '/.dalt/progress.json', json_encode([
@@ -611,7 +611,8 @@ test('FS02.1 stays gated by B01, records ordinary completion, and does not compl
         );
         $progress = json_decode(file_get_contents($root . '/.dalt/progress.json'), true, 512, JSON_THROW_ON_ERROR);
         $journey = $client->request('GET', '/learn/fullstack');
-        $laterLesson = $client->request('GET', '/learn/lessons/fs02-2');
+        $laterLesson = $client->request('GET', '/learn/lessons/58-fs02-2-everyday-types-and-inference');
+        $modeling = $client->request('GET', '/learn/lessons/25-fs02-2-modeling-application-data');
         $b02 = $client->request('GET', '/learn/fullstack/build/b02');
         $core = $client->request('GET', '/learn/tracks/foundation');
 
@@ -626,7 +627,8 @@ test('FS02.1 stays gated by B01, records ordinary completion, and does not compl
             ->and($journey->body)->toContain('What TypeScript checks—and what it cannot')
             ->and($journey->body)->not->toContain('Part 02 complete')
             ->and($journey->body)->not->toContain('/learn/fullstack/build/b02')
-            ->and($laterLesson->statusCode)->toBe(404)
+            ->and($laterLesson->statusCode)->toBe(200)
+            ->and($modeling->statusCode)->toBe(303)
             ->and($b02->statusCode)->toBe(303)
             ->and($core->statusCode)->toBe(200)
             ->and($core->body)->toContain('Foundation')
@@ -636,7 +638,52 @@ test('FS02.1 stays gated by B01, records ordinary completion, and does not compl
     }
 });
 
-test('FS02.2 requires FS02.1, records ordinary completion, and leaves later TypeScript work and B02 unavailable', function () {
+test('FS02.2 requires FS02.1, records ordinary completion, and unlocks only application modeling', function () {
+    $root = p05ProjectFixture();
+    try {
+        $locked = (new ApplicationTestClient($root))->request('GET', '/learn/lessons/58-fs02-2-everyday-types-and-inference');
+        file_put_contents($root . '/.dalt/progress.json', json_encode([
+            'passed' => [],
+            'completed_lessons' => [
+                '20-fs00-1-browser-and-http',
+                '54-fs00-2-html-documents-and-semantics',
+                '55-fs00-3-native-forms-and-http',
+                '21-fs00-2-forms-json-and-spa',
+                '22-fs01-1-data-functions-transformations',
+                '56-fs01-2-functions-arrays-and-transformations',
+                '23-fs01-2-modules-async-and-failure',
+                '57-fs01-4-promises-fetch-and-failure',
+                '24-fs02-1-typescript-mental-model',
+            ],
+            'completed_milestones' => ['B00', 'B01'],
+            'last_visited_lesson' => '24-fs02-1-typescript-mental-model',
+        ], JSON_THROW_ON_ERROR));
+        $client = new ApplicationTestClient($root);
+        $lesson = $client->request('GET', '/learn/lessons/58-fs02-2-everyday-types-and-inference');
+        $complete = $client->request(
+            'POST', '/learn/lessons/58-fs02-2-everyday-types-and-inference/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token'],
+        );
+        $progress = json_decode(file_get_contents($root . '/.dalt/progress.json'), true, 512, JSON_THROW_ON_ERROR);
+        $modeling = $client->request('GET', '/learn/lessons/25-fs02-2-modeling-application-data');
+        $narrowing = $client->request('GET', '/learn/lessons/26-fs02-3-unions-narrowing-and-unknown');
+        $b02 = $client->request('GET', '/learn/fullstack/build/b02');
+
+        expect($locked->statusCode)->toBe(303)
+            ->and($lesson->statusCode)->toBe(200)
+            ->and($lesson->body)->toContain('Let inference carry local facts')
+            ->and($lesson->body)->toContain('Context can infer callback parameters')
+            ->and($lesson->body)->toContain('Expected result')
+            ->and($complete->statusCode)->toBe(303)
+            ->and($progress['completed_lessons'])->toContain('58-fs02-2-everyday-types-and-inference')
+            ->and($modeling->statusCode)->toBe(200)
+            ->and($narrowing->statusCode)->toBe(303)
+            ->and($b02->statusCode)->toBe(303);
+    } finally {
+        p05RemoveTree($root);
+    }
+});
+
+test('FS02.3 requires FS02.2, records ordinary completion, and leaves later TypeScript work and B02 unavailable', function () {
     $root = p05ProjectFixture();
     try {
         $beforeFs021 = new ApplicationTestClient($root);
@@ -654,9 +701,10 @@ test('FS02.2 requires FS02.1, records ordinary completion, and leaves later Type
                 '23-fs01-2-modules-async-and-failure',
                 '57-fs01-4-promises-fetch-and-failure',
                 '24-fs02-1-typescript-mental-model',
+                '58-fs02-2-everyday-types-and-inference',
             ],
             'completed_milestones' => ['B00', 'B01'],
-            'last_visited_lesson' => '24-fs02-1-typescript-mental-model',
+            'last_visited_lesson' => '58-fs02-2-everyday-types-and-inference',
         ], JSON_THROW_ON_ERROR));
         $client = new ApplicationTestClient($root);
         $journeyBeforeCompletion = $client->request('GET', '/learn/fullstack');
@@ -700,7 +748,7 @@ test('FS02.3 requires FS02.2, records ordinary completion, and unlocks only FS02
         $locked = (new ApplicationTestClient($root))->request('GET', '/learn/lessons/26-fs02-3-unions-narrowing-and-unknown');
         file_put_contents($root . '/.dalt/progress.json', json_encode([
             'passed' => [],
-            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '55-fs00-3-native-forms-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '56-fs01-2-functions-arrays-and-transformations', '23-fs01-2-modules-async-and-failure', '57-fs01-4-promises-fetch-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data'],
+            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '55-fs00-3-native-forms-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '56-fs01-2-functions-arrays-and-transformations', '23-fs01-2-modules-async-and-failure', '57-fs01-4-promises-fetch-and-failure', '24-fs02-1-typescript-mental-model', '58-fs02-2-everyday-types-and-inference', '25-fs02-2-modeling-application-data'],
             'completed_milestones' => ['B00', 'B01'],
             'last_visited_lesson' => '25-fs02-2-modeling-application-data',
         ], JSON_THROW_ON_ERROR));
@@ -741,7 +789,7 @@ test('FS02.4 requires FS02.3, records only its own completion, then unlocks FS02
         $locked = (new ApplicationTestClient($root))->request('GET', '/learn/lessons/27-fs02-4-functions-generics-and-reusable-types');
         file_put_contents($root . '/.dalt/progress.json', json_encode([
             'passed' => [],
-            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '55-fs00-3-native-forms-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '56-fs01-2-functions-arrays-and-transformations', '23-fs01-2-modules-async-and-failure', '57-fs01-4-promises-fetch-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown'],
+            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '55-fs00-3-native-forms-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '56-fs01-2-functions-arrays-and-transformations', '23-fs01-2-modules-async-and-failure', '57-fs01-4-promises-fetch-and-failure', '24-fs02-1-typescript-mental-model', '58-fs02-2-everyday-types-and-inference', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown'],
             'completed_milestones' => ['B00', 'B01'],
             'last_visited_lesson' => '26-fs02-3-unions-narrowing-and-unknown',
         ], JSON_THROW_ON_ERROR));
@@ -788,7 +836,7 @@ test('FS02.5 requires FS02.4, records only itself, and leaves B02, Part 03, and 
         $locked = (new ApplicationTestClient($root))->request('GET', '/learn/lessons/28-fs02-5-runtime-boundaries');
         file_put_contents($root . '/.dalt/progress.json', json_encode([
             'passed' => [],
-            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '55-fs00-3-native-forms-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '56-fs01-2-functions-arrays-and-transformations', '23-fs01-2-modules-async-and-failure', '57-fs01-4-promises-fetch-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types'],
+            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '55-fs00-3-native-forms-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '56-fs01-2-functions-arrays-and-transformations', '23-fs01-2-modules-async-and-failure', '57-fs01-4-promises-fetch-and-failure', '24-fs02-1-typescript-mental-model', '58-fs02-2-everyday-types-and-inference', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types'],
             'completed_milestones' => ['B00', 'B01'],
             'last_visited_lesson' => '27-fs02-4-functions-generics-and-reusable-types',
         ], JSON_THROW_ON_ERROR));
@@ -827,14 +875,14 @@ test('B02 requires all Part 02 lessons, completes Part 02 separately, and does n
     try {
         file_put_contents($root . '/.dalt/progress.json', json_encode([
             'passed' => [],
-            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '55-fs00-3-native-forms-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '56-fs01-2-functions-arrays-and-transformations', '23-fs01-2-modules-async-and-failure', '57-fs01-4-promises-fetch-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types'],
+            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '55-fs00-3-native-forms-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '56-fs01-2-functions-arrays-and-transformations', '23-fs01-2-modules-async-and-failure', '57-fs01-4-promises-fetch-and-failure', '24-fs02-1-typescript-mental-model', '58-fs02-2-everyday-types-and-inference', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types'],
             'completed_milestones' => ['B00', 'B01'], 'last_visited_lesson' => null,
         ], JSON_THROW_ON_ERROR));
         $before = new ApplicationTestClient($root);
         $locked = $before->request('GET', '/learn/fullstack/build/b02');
         file_put_contents($root . '/.dalt/progress.json', json_encode([
             'passed' => [],
-            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '55-fs00-3-native-forms-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '56-fs01-2-functions-arrays-and-transformations', '23-fs01-2-modules-async-and-failure', '57-fs01-4-promises-fetch-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types', '28-fs02-5-runtime-boundaries'],
+            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '55-fs00-3-native-forms-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '56-fs01-2-functions-arrays-and-transformations', '23-fs01-2-modules-async-and-failure', '57-fs01-4-promises-fetch-and-failure', '24-fs02-1-typescript-mental-model', '58-fs02-2-everyday-types-and-inference', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types', '28-fs02-5-runtime-boundaries'],
             'completed_milestones' => ['B00', 'B01'], 'last_visited_lesson' => null,
         ], JSON_THROW_ON_ERROR));
         $client = new ApplicationTestClient($root);
@@ -861,7 +909,7 @@ test('Part 03 React lessons unlock the B03 local issue tracker and record its se
     try {
         file_put_contents($root . '/.dalt/progress.json', json_encode([
             'passed' => [],
-            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '55-fs00-3-native-forms-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '56-fs01-2-functions-arrays-and-transformations', '23-fs01-2-modules-async-and-failure', '57-fs01-4-promises-fetch-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types', '28-fs02-5-runtime-boundaries'],
+            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '55-fs00-3-native-forms-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '56-fs01-2-functions-arrays-and-transformations', '23-fs01-2-modules-async-and-failure', '57-fs01-4-promises-fetch-and-failure', '24-fs02-1-typescript-mental-model', '58-fs02-2-everyday-types-and-inference', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types', '28-fs02-5-runtime-boundaries'],
             'completed_milestones' => ['B00', 'B01', 'B02'],
             'last_visited_lesson' => '28-fs02-5-runtime-boundaries',
         ], JSON_THROW_ON_ERROR));

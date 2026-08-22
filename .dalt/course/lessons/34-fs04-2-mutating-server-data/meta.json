@@ -1,10 +1,12 @@
 {
   "title": "Mutating server data",
   "description": "Create, update, and delete issues while keeping the screen honest about server outcomes.",
-  "order": 38,
+  "order": 39,
   "section": "fullstack",
-  "section_order": 19,
+  "section_order": 20,
   "icon": "layers",
   "color": "purple",
-  "prerequisites": ["33-fs04-1-fetching-data-and-effects"]
+  "prerequisites": [
+    "33-fs04-1-fetching-data-and-effects"
+  ]
 }

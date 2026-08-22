@@ -1,0 +1,10 @@
+{
+  "title": "Everyday types and useful inference",
+  "description": "Type ordinary values and let useful information flow through local code.",
+  "order": 29,
+  "section": "fullstack",
+  "section_order": 10,
+  "icon": "layers",
+  "color": "purple",
+  "prerequisites": ["24-fs02-1-typescript-mental-model"]
+}
