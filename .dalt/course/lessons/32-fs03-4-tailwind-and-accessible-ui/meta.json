@@ -1,6 +1,6 @@
 {
-  "title": "Tailwind and accessible application UI",
-  "description": "Use semantic HTML and Tailwind utilities to make the local issue UI responsive and usable.",
+  "title": "Responsive, semantic, and accessible application UI",
+  "description": "Preserve meaning, keyboard operation, and readable reflow while styling the React interface.",
   "order": 40,
   "section": "fullstack",
   "section_order": 21,
