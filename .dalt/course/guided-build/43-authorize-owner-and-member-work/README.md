@@ -108,8 +108,28 @@ workspace: {
 }
 ```
 
-The PHP view already serializes the workspace returned by `WorkspaceAccess`, including
-its role. Validate that runtime string exactly:
+The controller gives the PHP view the workspace returned by `WorkspaceAccess`, but
+our page data currently selects only its ID and name. Open
+`resources/views/workspaces/show.view.php`, read the role beside those values, and
+include it in the JSON boundary:
+
+```php
+$workspaceRole = (string) ($workspace['role'] ?? '');
+
+$pageData = json_encode([
+    'workspace' => [
+        'id' => $workspaceId,
+        'name' => $workspaceName,
+        'role' => $workspaceRole,
+    ],
+    'form' => [
+        'csrfToken' => csrf_token(),
+    ],
+], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR);
+```
+
+Now validate that runtime string exactly in
+`resources/app/workspace-detail-data.ts`:
 
 ```tsx
 const role = stringAt(value.workspace, 'role')
