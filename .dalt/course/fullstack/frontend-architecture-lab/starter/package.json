@@ -1,0 +1,29 @@
+{
+  "name": "dalt-fs09-frontend-architecture-lab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:hooks": "vitest run src/hooks.test.tsx"
+  },
+  "dependencies": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-router": "7.18.2"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.5",
+    "jsdom": "27.0.1",
+    "typescript": "5.9.3",
+    "vite": "8.0.12",
+    "vitest": "4.0.18"
+  }
+}

@@ -139,6 +139,16 @@ function fullstackLabExpectations(): array
             'test:store' => 'pass',
             'build' => 'pass',
         ],
+
+        // FS09.1-FS09.3 - typecheck and build must stay green while the dependency
+        // direction is wrong, because that is the lesson: the compiler has nothing to
+        // say about which module is allowed to import which.
+        'frontend-architecture-lab' => [
+            'typecheck' => 'pass',
+            'test' => 'pass',
+            'test:hooks' => 'pass',
+            'build' => 'pass',
+        ],
     ];
 }
 
