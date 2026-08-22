@@ -59,16 +59,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 function methodNotAllowed(string $allowed): never
 {
-    // 405 owes the client an Allow header (RFC 9110 15.5.6). FS05.1 tells the learner
+    // 405 owes the client an Allow header (RFC 9110 15.5.6). FS05.3 tells the learner
     // status and headers are part of the contract, so the fixture honours it.
     header('Allow: ' . $allowed);
     respond(405, ['error' => ['code' => 'method_not_allowed', 'message' => 'allowed: ' . $allowed]]);
 }
 
+/** @return array<string, mixed> */
+function jsonBody(): array
+{
+    try {
+        $decoded = json_decode(
+            (string) file_get_contents('php://input'),
+            associative: false,
+            flags: JSON_THROW_ON_ERROR,
+        );
+    } catch (JsonException) {
+        respond(400, ['error' => [
+            'code' => 'invalid_json',
+            'message' => 'request body is not valid JSON',
+        ]]);
+    }
+
+    if (!$decoded instanceof stdClass) {
+        respond(400, ['error' => [
+            'code' => 'invalid_body',
+            'message' => 'request body must be a JSON object',
+        ]]);
+    }
+
+    return (array) $decoded;
+}
+
 function issues(): array
 {
     // `projectId` is here because B02 typed `Project` as a domain entity and put
-    // `projectId` on CreateIssueInput, and FS05.2 makes projects a real table. A
+    // `projectId` on CreateIssueInput, and FS05.4 models projects relationally. A
     // fixture without it would drop the field out of the domain for one whole part
     // and bring it back in the next, so the learner's own Issue type would stop
     // matching the server through no fault of theirs.
@@ -96,10 +122,14 @@ if ($path === '/api/issues' && $method === 'GET') {
 }
 
 if ($path === '/api/issues' && $method === 'POST') {
-    $input = json_decode((string) file_get_contents('php://input'), true);
-    $title = is_array($input) ? trim((string) ($input['title'] ?? '')) : '';
+    $input = jsonBody();
+    $title = is_string($input['title'] ?? null) ? trim($input['title']) : '';
     if ($title === '') {
-        respond(422, ['error' => ['code' => 'validation_failed', 'message' => 'title is required']]);
+        respond(422, ['error' => [
+            'code' => 'validation_failed',
+            'message' => 'some fields need attention',
+            'fields' => ['title' => 'title is required'],
+        ]]);
     }
     // FS03.3 has the learner build a priority select and verify that "the new issue
     // appears with the chosen priority", and types the draft as `{title, priority}`
@@ -107,9 +137,13 @@ if ($path === '/api/issues' && $method === 'POST') {
     // ignored priority would delete that feature the moment B04 Stage 2 pointed the
     // form at the server, and the learner would go looking for the bug in their own
     // request body. Same discontinuity as the missing projectId, one field over.
-    $priority = is_array($input) ? ($input['priority'] ?? 'medium') : 'medium';
+    $priority = $input['priority'] ?? 'medium';
     if (!in_array($priority, ['low', 'medium', 'high'], true)) {
-        respond(422, ['error' => ['code' => 'validation_failed', 'message' => 'priority is invalid']]);
+        respond(422, ['error' => [
+            'code' => 'validation_failed',
+            'message' => 'some fields need attention',
+            'fields' => ['priority' => 'priority is invalid'],
+        ]]);
     }
     // projectId is server-assigned here, not read from the body. Part 04 has one
     // project and no way to choose; FS06.3 is where deriving a field on the server
@@ -128,7 +162,7 @@ if ($path === '/api/issues' && $method === 'POST') {
 
 // Match any single-segment ID, not only well-formed ones. Scoping the pattern to
 // `ISS-[0-9]+` sent /api/issues/999 down to the 405 catch-all, which contradicts
-// FS05.1: an addressable resource that does not exist is 404, whatever its ID
+// FS05.3: an addressable resource that does not exist is 404, whatever its ID
 // looks like. 405 is reserved for a real resource asked to do the wrong thing.
 if (preg_match('#^/api/issues/([^/]+)$#', (string) $path, $match) === 1) {
     $index = array_search(rawurldecode($match[1]), array_column($all, 'id'), true);
@@ -139,10 +173,14 @@ if (preg_match('#^/api/issues/([^/]+)$#', (string) $path, $match) === 1) {
         respond(200, $all[$index]);
     }
     if ($method === 'PATCH') {
-        $input = json_decode((string) file_get_contents('php://input'), true);
-        $status = is_array($input) ? ($input['status'] ?? null) : null;
+        $input = jsonBody();
+        $status = $input['status'] ?? null;
         if (!in_array($status, ['todo', 'in_progress', 'done'], true)) {
-            respond(422, ['error' => ['code' => 'validation_failed', 'message' => 'status is invalid']]);
+            respond(422, ['error' => [
+                'code' => 'validation_failed',
+                'message' => 'some fields need attention',
+                'fields' => ['status' => 'status is invalid'],
+            ]]);
         }
         $all[$index]['status'] = $status;
         file_put_contents($state, json_encode($all, JSON_THROW_ON_ERROR));

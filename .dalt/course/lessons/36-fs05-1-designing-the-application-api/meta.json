@@ -1,6 +1,6 @@
 {
-    "title": "Designing the application API",
-    "description": "Replace fixture assumptions with a small, explicit contract between the React client and DALT.",
+    "title": "JSON contracts, validation, and error responses",
+    "description": "Turn untrusted JSON into explicit success and failure responses that clients can classify reliably.",
     "order": 48,
     "section": "fullstack",
     "section_order": 29,

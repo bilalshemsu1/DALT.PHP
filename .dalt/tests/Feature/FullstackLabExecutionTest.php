@@ -497,7 +497,7 @@ test('the Part 04 fixture API executes the documented issue lifecycle', function
         expect($issues)->toHaveCount(3);
 
         // The domain must survive Part 04. B02 types `Project` and puts `projectId` on
-        // CreateIssueInput, and FS05.2 makes projects a table; a fixture without the
+        // CreateIssueInput, and FS05.4 models projects relationally; a fixture without the
         // field would drop it from the domain for one whole part, so the learner's own
         // Issue type would stop matching the server through no fault of theirs.
         expect(array_keys($issues[0]))->toBe(['id', 'projectId', 'title', 'status', 'priority']);
@@ -545,7 +545,18 @@ test('the Part 04 fixture API executes the documented issue lifecycle', function
 
         [$invalidStatus, $invalidBody] = $request('POST', '/api/issues', ['title' => '   ']);
         expect($invalidStatus)->toContain('422')
-            ->and(json_decode((string) $invalidBody, true, flags: JSON_THROW_ON_ERROR)['error']['code'])->toBe('validation_failed');
+            ->and(json_decode((string) $invalidBody, true, flags: JSON_THROW_ON_ERROR)['error']['code'])->toBe('validation_failed')
+            ->and(json_decode((string) $invalidBody, true, flags: JSON_THROW_ON_ERROR)['error']['fields']['title'])->toBe('title is required');
+
+        $malformedContext = stream_context_create(['http' => [
+            'method' => 'POST',
+            'header' => "Content-Type: application/json\r\n",
+            'content' => '{"title":',
+            'ignore_errors' => true,
+        ]]);
+        $malformedBody = file_get_contents($base . '/api/issues', false, $malformedContext);
+        expect($http_response_header[0] ?? '')->toContain('400')
+            ->and(json_decode((string) $malformedBody, true, flags: JSON_THROW_ON_ERROR)['error']['code'])->toBe('invalid_json');
 
         [$patchedStatus, $patchedBody] = $request('PATCH', '/api/issues/' . $created['id'], ['status' => 'done']);
         expect($patchedStatus)->toContain('200')
@@ -554,7 +565,7 @@ test('the Part 04 fixture API executes the documented issue lifecycle', function
         [$deletedStatus, $deletedBody] = $request('DELETE', '/api/issues/' . $created['id']);
         expect($deletedStatus)->toContain('204')->and($deletedBody)->toBe('');
 
-        // FS04.2, FS04.3, FS05.1 and B04 tell the learner ten times over that a 204
+        // FS04.2, FS04.3, FS05.3 and B04 tell the learner that a 204
         // carries no body and must not be handed to .json(). The fixture emitted
         // `null` after the status line for exactly as long as nobody ran this.
         [, $reDeletedBody] = $request('DELETE', '/api/issues/' . $created['id']);
@@ -564,7 +575,7 @@ test('the Part 04 fixture API executes the documented issue lifecycle', function
             . 'the opposite in four places.',
         );
 
-        // 404 and 405 are different facts about a request, and FS05.1 makes the learner
+        // 404 and 405 are different facts about a request, and FS05.3 makes the learner
         // implement both. A fixture that answers 405 for an unknown path teaches the
         // learner that their typo was a method problem.
         [$missingStatus, $missingBody] = $request('GET', '/api/issues/ISS-9999');
