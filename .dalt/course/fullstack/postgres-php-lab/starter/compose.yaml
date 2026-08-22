@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+    environment:
+      POSTGRES_DB: dalt_course
+      POSTGRES_USER: dalt
+      POSTGRES_PASSWORD: dalt-course-local
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - ./database:/course/database:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dalt -d dalt_course"]
+      interval: 1s
+      timeout: 3s
+      retries: 20

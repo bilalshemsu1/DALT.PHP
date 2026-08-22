@@ -1,6 +1,6 @@
 {
-    "title": "Relational modeling and migrations",
-    "description": "Make the issue tracker durable with PostgreSQL relationships and repeatable schema changes.",
+    "title": "Relational modeling with keys and relationships",
+    "description": "Give application facts one home and connect workspaces, projects, and issues with enforceable keys.",
     "order": 49,
     "section": "fullstack",
     "section_order": 30,

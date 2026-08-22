@@ -360,6 +360,52 @@ test('the FS05.1 PHP foundations lab executes both success and exception paths',
         );
 });
 
+test('the FS05.4 PostgreSQL lab proves its relationship and foreign key', function () {
+    if (getenv('DALT_SKIP_LAB_EXECUTION') === '1') {
+        $this->markTestSkipped('DALT_SKIP_LAB_EXECUTION=1.');
+    }
+
+    $source = base_path('.dalt/course/fullstack/postgres-php-lab/starter');
+    $workspace = sys_get_temp_dir() . '/dalt-postgres-' . bin2hex(random_bytes(6));
+    fullstackLabCopy($source, $workspace);
+
+    $compose = ['docker', 'compose', '-f', $workspace . '/compose.yaml'];
+    [$dockerExit] = fullstackLabRun($workspace, ['docker', 'version'], 30);
+    if ($dockerExit !== 0) {
+        fullstackLabRemove($workspace);
+        $this->markTestSkipped('Docker is unavailable; the PostgreSQL lab cannot start.');
+    }
+
+    try {
+        [$upExit, $upOutput] = fullstackLabRun($workspace, [...$compose, 'up', '-d', '--wait'], 600);
+        expect($upExit)->toBe(0, "The PostgreSQL lab did not become healthy:\n{$upOutput}");
+
+        [$schemaExit, $schemaOutput] = fullstackLabRun($workspace, [
+            ...$compose, 'exec', '-T', 'db', 'psql', '-U', 'dalt', '-d', 'dalt_course',
+            '-v', 'ON_ERROR_STOP=1', '-f', '/course/database/migrations/001_create_relations.sql',
+        ], 60);
+        expect($schemaExit)->toBe(0, "FS05.4's schema did not apply:\n{$schemaOutput}");
+
+        [$observeExit, $observeOutput] = fullstackLabRun($workspace, [
+            ...$compose, 'exec', '-T', 'db', 'psql', '-U', 'dalt', '-d', 'dalt_course',
+            '-v', 'ON_ERROR_STOP=1', '-f', '/course/database/observe-relations.sql',
+        ], 60);
+        expect($observeExit)->toBe(0, "FS05.4's relation observation failed:\n{$observeOutput}")
+            ->and($observeOutput)->toContain('DALT Course')
+            ->and($observeOutput)->toContain('Trace a request');
+
+        [$orphanExit, $orphanOutput] = fullstackLabRun($workspace, [
+            ...$compose, 'exec', '-T', 'db', 'psql', '-U', 'dalt', '-d', 'dalt_course',
+            '-v', 'ON_ERROR_STOP=1', '-c', "INSERT INTO issues (project_id, title) VALUES (999, 'Orphan');",
+        ], 60);
+        expect($orphanExit)->not->toBe(0)
+            ->and($orphanOutput)->toContain('issues_project_fk');
+    } finally {
+        fullstackLabRun($workspace, [...$compose, 'down', '-v'], 120);
+        fullstackLabRemove($workspace);
+    }
+});
+
 test('every command a milestone specification names actually exists', function () {
     // The defect this catches: B02's specification said `npm run test` three times
     // while its starter only defined `test:parser`. Structural conformance passed,
