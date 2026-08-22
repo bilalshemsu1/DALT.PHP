@@ -1,9 +1,9 @@
 {
     "title": "Query performance and PostgreSQL capabilities",
     "description": "Measure an issue-list query, read its plan, and choose PostgreSQL search and indexes from evidence.",
-    "order": 64,
+    "order": 65,
     "section": "fullstack",
-    "section_order": 45,
+    "section_order": 46,
     "icon": "database",
     "color": "purple",
     "prerequisites": [

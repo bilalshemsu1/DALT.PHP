@@ -400,6 +400,39 @@ test('the FS05.4 PostgreSQL lab proves its relationship and foreign key', functi
         ], 60);
         expect($orphanExit)->not->toBe(0)
             ->and($orphanOutput)->toContain('issues_project_fk');
+
+        fullstackLabRun($workspace, [...$compose, 'down', '-v'], 120);
+        [$freshExit, $freshOutput] = fullstackLabRun($workspace, [...$compose, 'up', '-d', '--wait'], 120);
+        expect($freshExit)->toBe(0, "FS05.5 could not start a clean database:\n{$freshOutput}");
+
+        [$migrationExit, $migrationOutput] = fullstackLabRun($workspace, [
+            'env', 'DALT_REPOSITORY_ROOT=' . base_path(), PHP_BINARY, $workspace . '/scripts/migrate.php',
+        ], 60);
+        expect($migrationExit)->toBe(0, "DALT could not apply FS05.5's migrations:\n{$migrationOutput}")
+            ->and($migrationOutput)->toContain('001_create_relations.sql')
+            ->and($migrationOutput)->toContain('002_add_constraints_and_indexes.sql')
+            ->and($migrationOutput)->toContain('Ran 2 migrations.');
+
+        [$secondExit, $secondOutput] = fullstackLabRun($workspace, [
+            'env', 'DALT_REPOSITORY_ROOT=' . base_path(), PHP_BINARY, $workspace . '/scripts/migrate.php',
+        ], 60);
+        expect($secondExit)->toBe(0)
+            ->and($secondOutput)->toContain('No migrations to run.');
+
+        [$constraintExit, $constraintOutput] = fullstackLabRun($workspace, [
+            ...$compose, 'exec', '-T', 'db', 'psql', '-U', 'dalt', '-d', 'dalt_course',
+            '-v', 'ON_ERROR_STOP=1', '-c',
+            "INSERT INTO workspaces (name, slug) VALUES ('One', 'same'), ('Two', 'same');",
+        ], 60);
+        expect($constraintExit)->not->toBe(0)
+            ->and($constraintOutput)->toContain('workspaces_slug_unique');
+
+        [$indexExit, $indexOutput] = fullstackLabRun($workspace, [
+            ...$compose, 'exec', '-T', 'db', 'psql', '-U', 'dalt', '-d', 'dalt_course',
+            '-At', '-c', "SELECT indexname FROM pg_indexes WHERE indexname = 'issues_project_id_idx';",
+        ], 60);
+        expect($indexExit)->toBe(0)
+            ->and(trim($indexOutput))->toBe('issues_project_id_idx');
     } finally {
         fullstackLabRun($workspace, [...$compose, 'down', '-v'], 120);
         fullstackLabRemove($workspace);

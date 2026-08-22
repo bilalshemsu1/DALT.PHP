@@ -1,9 +1,9 @@
 {
     "title": "Backend API behavior tests",
     "description": "Prove the issue tracker\u2019s HTTP contract, error behavior, and stored effects with deterministic tests.",
-    "order": 51,
+    "order": 52,
     "section": "fullstack",
-    "section_order": 32,
+    "section_order": 33,
     "icon": "layers",
     "color": "purple",
     "prerequisites": [
