@@ -1,9 +1,9 @@
 {
   "title": "Relational modeling and migrations",
   "description": "Make the issue tracker durable with PostgreSQL relationships and repeatable schema changes.",
-  "order": 42,
+  "order": 45,
   "section": "fullstack",
-  "section_order": 23,
+  "section_order": 26,
   "icon": "layers",
   "color": "purple",
   "prerequisites": [

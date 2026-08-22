@@ -904,7 +904,7 @@ test('B02 requires all Part 02 lessons, completes Part 02 separately, and does n
     } finally { p05RemoveTree($root); }
 });
 
-test('Part 03 React lessons unlock the B03 local issue tracker and record its self-reported completion', function () {
+test('Part 03 React lessons follow the expanded foundations sequence before B03 unlocks', function () {
     $root = p05ProjectFixture();
     try {
         file_put_contents($root . '/.dalt/progress.json', json_encode([
@@ -916,33 +916,44 @@ test('Part 03 React lessons unlock the B03 local issue tracker and record its se
 
         $client = new ApplicationTestClient($root);
         $first = $client->request('GET', '/learn/lessons/29-fs03-1-components-jsx-and-typed-props');
-        $lockedSecond = $client->request('GET', '/learn/lessons/30-fs03-2-state-and-events');
+        $lockedSecond = $client->request('GET', '/learn/lessons/59-fs03-2-props-and-composition');
         $completeFirst = $client->request('POST', '/learn/lessons/29-fs03-1-components-jsx-and-typed-props/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
-        $second = $client->request('GET', '/learn/lessons/30-fs03-2-state-and-events');
-        $completeSecond = $client->request('POST', '/learn/lessons/30-fs03-2-state-and-events/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
-        $third = $client->request('GET', '/learn/lessons/31-fs03-3-forms-and-state-design');
-        $completeThird = $client->request('POST', '/learn/lessons/31-fs03-3-forms-and-state-design/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
-        $fourth = $client->request('GET', '/learn/lessons/32-fs03-4-tailwind-and-accessible-ui');
-        $completeFourth = $client->request('POST', '/learn/lessons/32-fs03-4-tailwind-and-accessible-ui/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
+        $second = $client->request('GET', '/learn/lessons/59-fs03-2-props-and-composition');
+        $completeSecond = $client->request('POST', '/learn/lessons/59-fs03-2-props-and-composition/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
+        $third = $client->request('GET', '/learn/lessons/60-fs03-3-lists-conditionals-and-keys');
+        $completeThird = $client->request('POST', '/learn/lessons/60-fs03-3-lists-conditionals-and-keys/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
+        $fourth = $client->request('GET', '/learn/lessons/30-fs03-2-state-and-events');
+        $completeFourth = $client->request('POST', '/learn/lessons/30-fs03-2-state-and-events/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
+        $fifth = $client->request('GET', '/learn/lessons/61-fs03-5-state-structure-and-ownership');
+        $completeFifth = $client->request('POST', '/learn/lessons/61-fs03-5-state-structure-and-ownership/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
+        $sixth = $client->request('GET', '/learn/lessons/31-fs03-3-forms-and-state-design');
+        $completeSixth = $client->request('POST', '/learn/lessons/31-fs03-3-forms-and-state-design/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
+        $seventh = $client->request('GET', '/learn/lessons/32-fs03-4-tailwind-and-accessible-ui');
+        $completeSeventh = $client->request('POST', '/learn/lessons/32-fs03-4-tailwind-and-accessible-ui/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
         $build = $client->request('GET', '/learn/fullstack/build/b03');
         $completeBuild = $client->request('POST', '/learn/fullstack/build/b03/complete', input: ['self_report' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
         $progress = json_decode(file_get_contents($root . '/.dalt/progress.json'), true, 512, JSON_THROW_ON_ERROR);
         $journey = $client->request('GET', '/learn/fullstack');
 
         expect($first->statusCode)->toBe(200)
-            ->and($first->body)->toContain('A component is a function with a capital letter')
-            ->and($first->body)->toContain('Describe one project screen as a small set of components')
+            ->and($first->body)->toContain('A component is a rendering function')
             ->and($lockedSecond->statusCode)->toBe(303)
             ->and($completeFirst->statusCode)->toBe(303)
             ->and($second->statusCode)->toBe(200)
-            ->and($second->body)->toContain('Event handlers request the next state')
+            ->and($second->body)->toContain('Props are a component')
             ->and($completeSecond->statusCode)->toBe(303)
             ->and($third->statusCode)->toBe(200)
-            ->and($third->body)->toContain('Controlled inputs')
+            ->and($third->body)->toContain('A key preserves identity')
             ->and($completeThird->statusCode)->toBe(303)
             ->and($fourth->statusCode)->toBe(200)
-            ->and($fourth->body)->toContain('Semantics carry the interaction contract')
+            ->and($fourth->body)->toContain('Each render sees a snapshot')
             ->and($completeFourth->statusCode)->toBe(303)
+            ->and($fifth->body)->toContain('Each value has one owner')
+            ->and($completeFifth->statusCode)->toBe(303)
+            ->and($sixth->body)->toContain('React controls the input value')
+            ->and($completeSixth->statusCode)->toBe(303)
+            ->and($seventh->body)->toContain('Semantics carry the interaction contract')
+            ->and($completeSeventh->statusCode)->toBe(303)
             ->and($build->statusCode)->toBe(200)
             ->and($build->body)->toContain('Build B03 · Part 03')
             ->and($build->body)->toContain('resources/app/')

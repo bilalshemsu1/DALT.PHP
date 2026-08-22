@@ -1,9 +1,9 @@
 {
   "title": "CRUD, queries and transaction boundaries",
   "description": "Turn a relational schema into dependable DALT behavior with parameterized SQL and atomic writes.",
-  "order": 43,
+  "order": 46,
   "section": "fullstack",
-  "section_order": 24,
+  "section_order": 27,
   "icon": "layers",
   "color": "purple",
   "prerequisites": [
