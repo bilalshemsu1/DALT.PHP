@@ -9,7 +9,8 @@
     "test": "vitest run",
     "test:audit": "vitest run src/StateAudit.test.tsx",
     "test:queries": "vitest run src/IssueQueries.test.tsx",
-    "test:mutations": "vitest run src/IssueMutations.test.tsx"
+    "test:mutations": "vitest run src/IssueMutations.test.tsx",
+    "test:store": "vitest run src/ClientStore.test.tsx"
   },
   "dependencies": {
     "@tanstack/react-query": "5.102.0",

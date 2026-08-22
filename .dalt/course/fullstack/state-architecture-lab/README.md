@@ -5,7 +5,8 @@ This shared React + TypeScript lab grows across Part 08:
 - `StateAudit` holds every value by hand, so ownership mistakes become visible;
 - `queryKeys` and `IssueQueries` give each remote fact one address in a query cache;
 - `IssueMutations` writes through that cache, with one rollback that is genuinely measured;
-- a later lesson adds a bounded client store.
+- `filterReducer`, `workspaceStore`, and `ClientStore` compare Context and a selector store
+  by counting renders.
 
 `src/issueApi.ts` provides an in-memory stand-in for DALT. It records every call in
 `api.calls`, which is the evidence most experiments in this part depend on.
@@ -28,6 +29,7 @@ npm ci
 npm run test:audit     # 4 passed
 npm run test:queries   # 5 passed
 npm run test:mutations # 5 passed
+npm run test:store     # 4 passed
 npm run typecheck      # clean
 npm run build          # production bundle created
 ```

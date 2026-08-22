@@ -136,6 +136,7 @@ function fullstackLabExpectations(): array
             'test:audit' => 'pass',
             'test:queries' => 'pass',
             'test:mutations' => 'pass',
+            'test:store' => 'pass',
             'build' => 'pass',
         ],
     ];

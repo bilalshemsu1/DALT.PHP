@@ -1,6 +1,6 @@
 {
-    "title": "Context, reducers and Zustand",
-    "description": "Choose a bounded client-state tool without turning remote data into a global store.",
+    "title": "Context, reducers, and when a client store earns its place",
+    "description": "Choose between local state, Context, a reducer, and a store using measured cost.",
     "order": 65,
     "section": "fullstack",
     "section_order": 46,
