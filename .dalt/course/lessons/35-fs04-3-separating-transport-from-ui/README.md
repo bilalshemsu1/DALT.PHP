@@ -141,7 +141,13 @@ Keep abort support on reads. Do not catch errors inside the API module merely to
 
 **Starting state:** `App.tsx` contains the working list fetch and create mutation from FS04.3.
 
-Create `src/api/issues.ts`. Move `parseIssue` and `parseIssues` into it, add `request`, then implement `listIssues` and `createIssue` exactly as above. A compact error reader is enough:
+First create `src/vite-env.d.ts` so this starter's checker knows Vite's client environment shape:
+
+```ts
+/// <reference types="vite/client" />
+```
+
+Then create `src/api/issues.ts`. Move `parseIssue` and `parseIssues` into it, add `request`, then implement `listIssues` and `createIssue` exactly as above. A compact error reader is enough:
 
 ```ts
 function errorMessage(value: unknown, status: number): string {
@@ -201,6 +207,6 @@ The browser/server boundary is explicit; Batch 6 crosses to the server and begin
 - Versions: React 19.2.3; TypeScript 5.9.3; Vite 8.0.12.
 - Consulted: 2026-08-22.
 - Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 5, FS04.4.
-- DALT files inspected: Part 04 fixture contracts, runtime-boundary lab parser, React starter, and executable lifecycle test.
+- DALT files inspected: Part 04 fixture contracts, runtime-boundary lab parser, React starter TypeScript configuration, and executable lifecycle test.
 - Reused material: application-operation naming, shared request helper, runtime parsing, error normalization, environment configuration, and dependency direction from former FS04.3.
 </details>
