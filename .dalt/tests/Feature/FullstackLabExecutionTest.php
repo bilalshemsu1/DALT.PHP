@@ -502,13 +502,16 @@ test('every command a milestone specification names actually exists', function (
 });
 
 test('the FS06.1 behaviour-test lab passes, and its sabotages fail', function () {
-    $lab = base_path('.dalt/course/fullstack/api-behavior-tests-lab');
-    expect(is_dir($lab))->toBeTrue('FS06.1 needs a runnable lab; a lesson about tests must ship tests.');
+    $sourceLab = base_path('.dalt/course/fullstack/api-behavior-tests-lab');
+    expect(is_dir($sourceLab))->toBeTrue('FS06.1 needs a runnable lab; a lesson about tests must ship tests.');
+
+    $lab = sys_get_temp_dir() . '/dalt-api-behavior-' . bin2hex(random_bytes(6));
+    fullstackLabCopy($sourceLab, $lab);
 
     $run = static function () use ($lab): array {
         $process = proc_open(
             [
-                PHP_BINARY, base_path('vendor/bin/pest'),
+                'env', 'DALT_REPOSITORY_ROOT=' . base_path(), PHP_BINARY, base_path('vendor/bin/pest'),
                 $lab . '/tests', '--bootstrap=' . $lab . '/bootstrap.php',
             ],
             [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
@@ -522,25 +525,24 @@ test('the FS06.1 behaviour-test lab passes, and its sabotages fail', function ()
         return [proc_close($process), $output];
     };
 
-    [$status, $output] = $run();
-    expect($status)->toBe(0, "The FS06.1 lab does not pass as shipped:\n" . $output);
-    expect(str_contains($output, '10 passed'))->toBeTrue(
-        "The FS06.1 lab should run ten tests. If a test was added or removed, update the\n"
-        . "lab README's table and this expectation together.\n" . $output,
-    );
-
-    // The plausible-fake standard, applied to the lab itself. The README tells the
-    // learner to break the implementation and watch a named test fail. If a sabotage
-    // stops failing, that instruction becomes a lie and the lab teaches nothing.
-    $source = $lab . '/src/IssueApi.php';
-    $original = (string) file_get_contents($source);
-
-    $sabotages = [
-        'rollback removed' => ['$this->pdo->rollBack();', '$this->pdo->commit();'],
-        'validation bypassed' => ['if ($errors !== []) {', 'if (false) {'],
-    ];
-
     try {
+        [$status, $output] = $run();
+        expect($status)->toBe(0, "The FS06.1 lab does not pass as shipped:\n" . $output);
+        expect(str_contains($output, '10 passed'))->toBeTrue(
+            "The FS06.1 lab should run ten tests. If a test was added or removed, update the\n"
+            . "lab README's table and this expectation together.\n" . $output,
+        );
+
+        // The plausible-fake standard, applied to a clean lab copy. The canonical
+        // course artifact is never edited by its own execution test.
+        $source = $lab . '/src/IssueApi.php';
+        $original = (string) file_get_contents($source);
+
+        $sabotages = [
+            'rollback removed' => ['$this->pdo->rollBack();', '$this->pdo->commit();'],
+            'validation bypassed' => ['if ($errors !== []) {', 'if (false) {'],
+        ];
+
         foreach ($sabotages as $label => [$from, $to]) {
             file_put_contents($source, str_replace($from, $to, $original));
             [$sabotagedStatus, $sabotagedOutput] = $run();
@@ -551,12 +553,14 @@ test('the FS06.1 behaviour-test lab passes, and its sabotages fail', function ()
                 . "README says they prove.\n" . $sabotagedOutput,
             );
         }
-    } finally {
-        file_put_contents($source, $original);
-    }
 
-    [$restoredStatus] = $run();
-    expect($restoredStatus)->toBe(0, 'The lab was left broken after the sabotage check.');
+        file_put_contents($source, $original);
+
+        [$restoredStatus] = $run();
+        expect($restoredStatus)->toBe(0, 'The lab was left broken after the sabotage check.');
+    } finally {
+        fullstackLabRemove($lab);
+    }
 })->skip(
     !is_file(base_path('vendor/bin/pest')),
     'Pest is not installed; the FS06.1 lab cannot be executed.',

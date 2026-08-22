@@ -1,5 +1,5 @@
 {
-    "title": "Backend API behavior tests",
+    "title": "Test backend behavior through HTTP",
     "description": "Prove the issue tracker\u2019s HTTP contract, error behavior, and stored effects with deterministic tests.",
     "order": 53,
     "section": "fullstack",
