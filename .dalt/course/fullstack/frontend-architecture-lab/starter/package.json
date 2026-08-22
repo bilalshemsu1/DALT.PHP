@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:hooks": "vitest run src/hooks.test.tsx",
+    "test:failures": "vitest run src/failures.test.tsx",
     "check:boundaries": "node scripts/check-boundaries.mjs"
   },
   "dependencies": {

@@ -5,7 +5,12 @@ This shared React + TypeScript lab grows across Part 09:
 - `src/features/issues/` holds three custom hooks and the feature's public `index.ts`;
 - `scripts/check-boundaries.mjs` enforces the direction of dependencies between
   `shared`, `features`, and `app`;
-- a later lesson adds public configuration and error boundaries.
+- `src/app/config.ts` and `src/app/ErrorBoundary.tsx` cover public configuration and
+  contained render failures.
+
+`.env.test` and `.env.production` ship with the lab so both `vitest` and `vite build`
+have values without an untracked `.env`. They define one `VITE_`-prefixed value and one
+unprefixed value, and only the first reaches the bundle.
 
 `src/shared/formatIssueLabel.ts` starts with a deliberate wrong-direction import. It
 typechecks and builds; only the boundary check reports it.
@@ -26,6 +31,7 @@ npm ci
 
 ```bash
 npm run test:hooks        # 4 passed
+npm run test:failures     # 5 passed
 npm run typecheck         # clean
 npm run build             # production bundle created
 npm run check:boundaries  # fails until STAGE 1 is fixed

@@ -147,6 +147,7 @@ function fullstackLabExpectations(): array
             'typecheck' => 'pass',
             'test' => 'pass',
             'test:hooks' => 'pass',
+            'test:failures' => 'pass',
             'check:boundaries' => ['fail', "shared code must not depend on feature 'issues'"],
             'build' => 'pass',
         ],
