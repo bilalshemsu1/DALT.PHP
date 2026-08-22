@@ -592,5 +592,15 @@ return [
                 ['label' => 'OWASP forgot-password token guidance', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html'],
             ],
         ],
+        [
+            'id' => '46',
+            'slug' => 'accept-an-invitation-once',
+            'title' => 'Accept an invitation once',
+            'description' => 'Preserve invitation destinations through authentication, verify the token and matching email, then lock and accept membership safely under retries.',
+            'background' => [
+                ['label' => 'PostgreSQL explicit locking', 'href' => 'https://www.postgresql.org/docs/current/explicit-locking.html#LOCKING-ROWS'],
+                ['label' => 'PHP hash', 'href' => 'https://www.php.net/manual/en/function.hash.php'],
+            ],
+        ],
     ],
 ];
