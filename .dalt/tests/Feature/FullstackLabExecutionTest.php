@@ -566,7 +566,7 @@ test('the FS06.1 behaviour-test lab passes, and its sabotages fail', function ()
     'Pest is not installed; the FS06.1 lab cannot be executed.',
 );
 
-test('the Batch 8 authentication-boundaries lab proves password storage behavior', function () {
+test('the Batch 8 authentication-boundaries lab proves passwords and server sessions', function () {
     $source = base_path('.dalt/course/fullstack/auth-boundaries-lab/starter');
     $workspace = sys_get_temp_dir() . '/dalt-auth-boundaries-' . bin2hex(random_bytes(6));
     fullstackLabCopy($source, $workspace);
@@ -581,6 +581,21 @@ test('the Batch 8 authentication-boundaries lab proves password storage behavior
                 . "correct password verifies: yes\n"
                 . "wrong password verifies: no\n"
                 . "public fields: id,email\n",
+            );
+
+        [$sessionExit, $sessionOutput] = fullstackLabRun(
+            $workspace,
+            ['env', 'DALT_REPOSITORY_ROOT=' . base_path(), PHP_BINARY, 'scripts/sessions.php'],
+            30,
+        );
+
+        expect($sessionExit)->toBe(0, "FS06.3's server-session experiment failed:\n{$sessionOutput}")
+            ->and($sessionOutput)->toBe(
+                "wrong credentials accepted: no\n"
+                . "correct credentials accepted: yes\n"
+                . "session rotated on login: yes\n"
+                . "current user: alice@example.com\n"
+                . "old session authenticates after logout: no\n",
             );
     } finally {
         fullstackLabRemove($workspace);

@@ -1,9 +1,9 @@
 {
     "title": "Context, reducers and Zustand",
     "description": "Choose a bounded client-state tool without turning remote data into a global store.",
-    "order": 61,
+    "order": 62,
     "section": "fullstack",
-    "section_order": 42,
+    "section_order": 43,
     "icon": "layers",
     "color": "purple",
     "prerequisites": [
