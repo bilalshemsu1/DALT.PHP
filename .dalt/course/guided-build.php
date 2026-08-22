@@ -552,5 +552,15 @@ return [
                 ['label' => 'Using effects for network synchronization', 'href' => 'https://react.dev/reference/react/useEffect#fetching-data-with-effects'],
             ],
         ],
+        [
+            'id' => '42',
+            'slug' => 'replace-ownership-with-memberships',
+            'title' => 'Replace ownership with memberships',
+            'description' => 'Backfill every existing owner into a constrained join table, make workspace creation atomic, and use membership as the only source of workspace access.',
+            'background' => [
+                ['label' => 'PostgreSQL foreign keys', 'href' => 'https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK'],
+                ['label' => 'PostgreSQL multicolumn indexes', 'href' => 'https://www.postgresql.org/docs/current/indexes-multicolumn.html'],
+            ],
+        ],
     ],
 ];
