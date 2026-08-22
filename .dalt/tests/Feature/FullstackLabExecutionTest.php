@@ -566,7 +566,7 @@ test('the FS06.1 behaviour-test lab passes, and its sabotages fail', function ()
     'Pest is not installed; the FS06.1 lab cannot be executed.',
 );
 
-test('the Batch 8 authentication-boundaries lab proves passwords and server sessions', function () {
+test('the Batch 8 authentication-boundaries lab proves passwords, sessions, and CSRF', function () {
     $source = base_path('.dalt/course/fullstack/auth-boundaries-lab/starter');
     $workspace = sys_get_temp_dir() . '/dalt-auth-boundaries-' . bin2hex(random_bytes(6));
     fullstackLabCopy($source, $workspace);
@@ -596,6 +596,22 @@ test('the Batch 8 authentication-boundaries lab proves passwords and server sess
                 . "session rotated on login: yes\n"
                 . "current user: alice@example.com\n"
                 . "old session authenticates after logout: no\n",
+            );
+
+        [$csrfExit, $csrfOutput] = fullstackLabRun(
+            $workspace,
+            ['env', 'DALT_REPOSITORY_ROOT=' . base_path(), PHP_BINARY, 'scripts/csrf.php'],
+            30,
+        );
+
+        expect($csrfExit)->toBe(0, "FS06.4's CSRF experiment failed:\n{$csrfOutput}")
+            ->and($csrfOutput)->toBe(
+                "token characters: 64\n"
+                . "missing token status: 419\n"
+                . "writes after missing token: 0\n"
+                . "matching header status: 200\n"
+                . "writes after matching header: 1\n"
+                . "safe GET status: 200\n",
             );
     } finally {
         fullstackLabRemove($workspace);

@@ -1,12 +1,12 @@
 {
     "title": "Authorization and ownership",
     "description": "Use authenticated identity and workspace membership to make protected API behavior true even without the UI.",
-    "order": 56,
+    "order": 57,
     "section": "fullstack",
-    "section_order": 37,
+    "section_order": 38,
     "icon": "shield",
     "color": "purple",
     "prerequisites": [
-        "68-fs06-3-login-logout-and-server-sessions"
+        "69-fs06-4-csrf-and-cookie-authenticated-writes"
     ]
 }
