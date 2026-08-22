@@ -1,6 +1,6 @@
 {
-    "title": "Client state versus server state",
-    "description": "Classify state by its authority and use TanStack Query for remote data.",
+    "title": "Classify local, URL, session, and server state",
+    "description": "Sort every value a frontend holds by who owns it, before choosing a tool for it.",
     "order": 62,
     "section": "fullstack",
     "section_order": 43,

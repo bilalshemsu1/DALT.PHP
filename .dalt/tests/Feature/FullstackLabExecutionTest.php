@@ -124,6 +124,18 @@ function fullstackLabExpectations(): array
             'test:session' => 'pass',
             'build' => 'pass',
         ],
+
+        // FS08.1-FS08.4 - nothing is seeded broken here. The lab's job is to make
+        // ownership mistakes *visible while passing*: the audit suite asserts that a
+        // stored derived count reads 2 while the computed one reads 1, and that two
+        // private copies of ISS-1 disagree after a write. A red suite would say the lab
+        // is broken; a green suite saying "2" and "1" at the same time is the finding.
+        'state-architecture-lab' => [
+            'typecheck' => 'pass',
+            'test' => 'pass',
+            'test:audit' => 'pass',
+            'build' => 'pass',
+        ],
     ];
 }
 
