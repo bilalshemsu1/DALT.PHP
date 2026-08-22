@@ -742,7 +742,7 @@ test('FS02.3 requires FS02.2, records ordinary completion, and leaves later Type
     }
 });
 
-test('FS02.3 requires FS02.2, records ordinary completion, and unlocks only FS02.4', function () {
+test('FS02.4 requires FS02.3, records ordinary completion, and unlocks only typed functions', function () {
     $root = p05ProjectFixture();
     try {
         $locked = (new ApplicationTestClient($root))->request('GET', '/learn/lessons/26-fs02-3-unions-narrowing-and-unknown');
@@ -764,11 +764,11 @@ test('FS02.3 requires FS02.2, records ordinary completion, and unlocks only FS02
         $core = $client->request('GET', '/learn/tracks/foundation');
 
         expect($locked->statusCode)->toBe(303)
-            ->and($journeyBefore->body)->toContain('Continue Unions, narrowing and unknown')
+            ->and($journeyBefore->body)->toContain('Continue Unions, narrowing, and unknown')
             ->and($lesson->statusCode)->toBe(200)
             ->and($lesson->body)->toContain('href="/learn/fullstack"')
-            ->and($lesson->body)->toContain('Unknown asks for proof')
-            ->and($lesson->body)->toContain('Focused exercise — prove, model, then evolve')
+            ->and($lesson->body)->toContain('Unknown requires proof')
+            ->and($lesson->body)->toContain('Model states that cannot contradict themselves')
             ->and($complete->statusCode)->toBe(303)
             ->and($progress['completed_lessons'])->toContain('26-fs02-3-unions-narrowing-and-unknown')
             ->and($progress['completed_milestones'])->toBe(['B00', 'B01'])
@@ -777,7 +777,7 @@ test('FS02.3 requires FS02.2, records ordinary completion, and unlocks only FS02
             ->and($fs025->statusCode)->toBe(303)
             ->and($b02->statusCode)->toBe(303)
             ->and($core->body)->toContain('Foundation')
-            ->and($core->body)->not->toContain('Unions, narrowing and unknown');
+            ->and($core->body)->not->toContain('Unions, narrowing, and unknown');
     } finally {
         p05RemoveTree($root);
     }
