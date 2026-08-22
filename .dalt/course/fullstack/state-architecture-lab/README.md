@@ -3,7 +3,8 @@
 This shared React + TypeScript lab grows across Part 08:
 
 - `StateAudit` holds every value by hand, so ownership mistakes become visible;
-- later lessons add a query cache, mutations, and a bounded client store.
+- `queryKeys` and `IssueQueries` give each remote fact one address in a query cache;
+- later lessons add mutations and a bounded client store.
 
 `src/issueApi.ts` provides an in-memory stand-in for DALT. It records every call in
 `api.calls`, which is the evidence most experiments in this part depend on.
@@ -23,9 +24,10 @@ npm ci
 ## Check each completed slice
 
 ```bash
-npm run test:audit   # 4 passed
-npm run typecheck    # clean
-npm run build        # production bundle created
+npm run test:audit     # 4 passed
+npm run test:queries   # 5 passed
+npm run typecheck      # clean
+npm run build          # production bundle created
 ```
 
 ## Prove the audit tests can fail honestly

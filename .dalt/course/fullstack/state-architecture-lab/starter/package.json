@@ -7,7 +7,8 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:audit": "vitest run src/StateAudit.test.tsx"
+    "test:audit": "vitest run src/StateAudit.test.tsx",
+    "test:queries": "vitest run src/IssueQueries.test.tsx"
   },
   "dependencies": {
     "@tanstack/react-query": "5.102.0",
