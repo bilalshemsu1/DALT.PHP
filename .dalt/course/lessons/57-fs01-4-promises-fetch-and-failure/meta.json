@@ -1,0 +1,10 @@
+{
+  "title": "Promises, fetch, and failure boundaries",
+  "description": "Follow asynchronous values and distinguish network, HTTP, and parsing failures.",
+  "order": 27,
+  "section": "fullstack",
+  "section_order": 8,
+  "icon": "routing",
+  "color": "purple",
+  "prerequisites": ["23-fs01-2-modules-async-and-failure"]
+}
