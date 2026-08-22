@@ -349,6 +349,17 @@ test('the build workspace runs exactly as its milestone specification promises',
     );
 })->with('build workspaces');
 
+test('the FS05.1 PHP foundations lab executes both success and exception paths', function () {
+    $lab = base_path('.dalt/course/fullstack/php-foundations-lab/starter');
+
+    [$exit, $output] = fullstackLabRun($lab, [PHP_BINARY, 'issue-summary.php'], 30);
+
+    expect($exit)->toBe(0, "The FS05.1 PHP script did not run cleanly:\n{$output}")
+        ->and($output)->toBe(
+            "#ISS-41 [TODO] Trace a request\nRejected issue: Issue status is invalid.\n",
+        );
+});
+
 test('every command a milestone specification names actually exists', function () {
     // The defect this catches: B02's specification said `npm run test` three times
     // while its starter only defined `test:parser`. Structural conformance passed,

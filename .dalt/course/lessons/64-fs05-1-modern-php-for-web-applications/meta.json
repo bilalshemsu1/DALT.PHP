@@ -1,0 +1,12 @@
+{
+  "title": "Modern PHP values, types, arrays, functions, and exceptions",
+  "description": "Use PHP's everyday data and control-flow tools to express server-side application rules clearly.",
+  "order": 46,
+  "section": "fullstack",
+  "section_order": 27,
+  "icon": "layers",
+  "color": "purple",
+  "prerequisites": [
+    "35-fs04-3-separating-transport-from-ui"
+  ]
+}

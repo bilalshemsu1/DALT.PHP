@@ -1,12 +1,12 @@
 {
-  "title": "Authorization and ownership",
-  "description": "Use authenticated identity and workspace membership to make protected API behavior true even without the UI.",
-  "order": 51,
-  "section": "fullstack",
-  "section_order": 32,
-  "icon": "shield",
-  "color": "purple",
-  "prerequisites": [
-    "40-fs06-2-users-passwords-sessions-and-csrf"
-  ]
+    "title": "Authorization and ownership",
+    "description": "Use authenticated identity and workspace membership to make protected API behavior true even without the UI.",
+    "order": 52,
+    "section": "fullstack",
+    "section_order": 33,
+    "icon": "shield",
+    "color": "purple",
+    "prerequisites": [
+        "40-fs06-2-users-passwords-sessions-and-csrf"
+    ]
 }

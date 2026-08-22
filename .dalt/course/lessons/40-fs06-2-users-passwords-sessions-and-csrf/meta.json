@@ -1,12 +1,12 @@
 {
-  "title": "Users, passwords, sessions and CSRF",
-  "description": "Establish a cookie-backed authenticated identity without exposing credentials or trusting browser claims.",
-  "order": 50,
-  "section": "fullstack",
-  "section_order": 31,
-  "icon": "session",
-  "color": "purple",
-  "prerequisites": [
-    "39-fs06-1-backend-api-behavior-tests"
-  ]
+    "title": "Users, passwords, sessions and CSRF",
+    "description": "Establish a cookie-backed authenticated identity without exposing credentials or trusting browser claims.",
+    "order": 51,
+    "section": "fullstack",
+    "section_order": 32,
+    "icon": "session",
+    "color": "purple",
+    "prerequisites": [
+        "39-fs06-1-backend-api-behavior-tests"
+    ]
 }

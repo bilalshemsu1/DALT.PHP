@@ -1,12 +1,12 @@
 {
-  "title": "Authentication in the frontend",
-  "description": "Derive frontend authentication state from the server while keeping authorization on the backend.",
-  "order": 53,
-  "section": "fullstack",
-  "section_order": 34,
-  "icon": "shield",
-  "color": "purple",
-  "prerequisites": [
-    "42-fs07-1-urls-and-react-router"
-  ]
+    "title": "Authentication in the frontend",
+    "description": "Derive frontend authentication state from the server while keeping authorization on the backend.",
+    "order": 54,
+    "section": "fullstack",
+    "section_order": 35,
+    "icon": "shield",
+    "color": "purple",
+    "prerequisites": [
+        "42-fs07-1-urls-and-react-router"
+    ]
 }

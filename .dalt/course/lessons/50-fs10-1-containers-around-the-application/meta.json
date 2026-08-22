@@ -1,12 +1,12 @@
 {
-  "title": "Containers around the application",
-  "description": "Run the issue tracker as cooperating services without confusing host and container boundaries.",
-  "order": 60,
-  "section": "fullstack",
-  "section_order": 41,
-  "icon": "docker",
-  "color": "purple",
-  "prerequisites": [
-    "49-fs09-2-build-pipeline-configuration-and-failure-boundaries"
-  ]
+    "title": "Containers around the application",
+    "description": "Run the issue tracker as cooperating services without confusing host and container boundaries.",
+    "order": 61,
+    "section": "fullstack",
+    "section_order": 42,
+    "icon": "docker",
+    "color": "purple",
+    "prerequisites": [
+        "49-fs09-2-build-pipeline-configuration-and-failure-boundaries"
+    ]
 }
