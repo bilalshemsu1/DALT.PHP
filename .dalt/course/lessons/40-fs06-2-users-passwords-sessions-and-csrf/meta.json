@@ -3,7 +3,7 @@
   "description": "Establish a cookie-backed authenticated identity without exposing credentials or trusting browser claims.",
   "order": 40,
   "section": "fullstack",
-  "section_order": 22,
+  "section_order": 23,
   "icon": "session",
   "color": "purple",
   "prerequisites": ["39-fs06-1-backend-api-behavior-tests"]

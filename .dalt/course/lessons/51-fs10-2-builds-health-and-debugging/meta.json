@@ -3,7 +3,7 @@
   "description": "Build reliable images, distinguish running from ready, and debug a Compose system from evidence.",
   "order": 51,
   "section": "fullstack",
-  "section_order": 33,
+  "section_order": 34,
   "icon": "docker",
   "color": "purple",
   "prerequisites": ["50-fs10-1-containers-around-the-application"]

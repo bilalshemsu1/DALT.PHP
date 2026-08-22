@@ -1,0 +1,10 @@
+{
+  "title": "Native forms and the HTTP request they create",
+  "description": "Follow a browser-managed form submission from controls to redirect.",
+  "order": 55,
+  "section": "fullstack",
+  "section_order": 3,
+  "icon": "routing",
+  "color": "purple",
+  "prerequisites": ["54-fs00-2-html-documents-and-semantics"]
+}

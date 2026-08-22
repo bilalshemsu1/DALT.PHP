@@ -3,7 +3,7 @@
   "description": "Reason about the JavaScript values and transformations that later application code relies on.",
   "order": 22,
   "section": "fullstack",
-  "section_order": 4,
+  "section_order": 5,
   "icon": "layers",
   "color": "purple",
   "prerequisites": ["20-fs00-1-browser-and-http", "21-fs00-2-forms-json-and-spa"]
