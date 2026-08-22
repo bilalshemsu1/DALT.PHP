@@ -1,6 +1,6 @@
 {
-  "title": "Runtime boundaries",
-  "description": "Turn unknown runtime data into trusted application values with evidence, not assertions.",
+  "title": "Runtime boundaries and parsing external data",
+  "description": "Turn unknown external values into trusted domain data with runtime evidence.",
   "order": 33,
   "section": "fullstack",
   "section_order": 14,

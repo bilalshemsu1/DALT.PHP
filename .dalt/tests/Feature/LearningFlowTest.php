@@ -819,8 +819,8 @@ test('FS02.5 requires FS02.4, records only its own completion, then unlocks runt
             ->and($journey->body)->not->toContain('Part 02 complete')
             ->and($fs025->statusCode)->toBe(200)
             ->and($fs025->body)->toContain('href="/learn/fullstack"')
-            ->and($fs025->body)->toContain('Where TypeScript\'s knowledge stops')
-            ->and($fs025->body)->toContain('Focused exercise — establish the Issue trust boundary')
+            ->and($fs025->body)->toContain('The checker cannot see across I/O')
+            ->and($fs025->body)->toContain('A parser earns its return type')
             ->and($b02->statusCode)->toBe(303)
             ->and($core->statusCode)->toBe(200)
             ->and($core->body)->toContain('Foundation')
@@ -830,7 +830,7 @@ test('FS02.5 requires FS02.4, records only its own completion, then unlocks runt
     }
 });
 
-test('FS02.5 requires FS02.4, records only itself, and leaves B02, Part 03, and Core independent', function () {
+test('FS02.6 requires FS02.5, records only itself, and leaves B02, Part 03, and Core independent', function () {
     $root = p05ProjectFixture();
     try {
         $locked = (new ApplicationTestClient($root))->request('GET', '/learn/lessons/28-fs02-5-runtime-boundaries');
@@ -852,19 +852,19 @@ test('FS02.5 requires FS02.4, records only itself, and leaves B02, Part 03, and 
         expect($locked->statusCode)->toBe(303)
             ->and($lesson->statusCode)->toBe(200)
             ->and($lesson->body)->toContain('href="/learn/fullstack"')
-            ->and($lesson->body)->toContain('COMPILER GREEN')
-            ->and($lesson->body)->toContain('Closed-book checkpoint')
+            ->and($lesson->body)->toContain('A parser earns its return type')
+            ->and($lesson->body)->toContain('Test the boundary, not one favorite fixture')
             ->and($complete->statusCode)->toBe(303)
             ->and($progress['completed_lessons'])->toContain('28-fs02-5-runtime-boundaries')
             ->and($progress['completed_milestones'])->toBe(['B00', 'B01'])
-            ->and($journey->body)->toContain('Runtime boundaries')
+            ->and($journey->body)->toContain('Runtime boundaries and parsing external data')
             ->and($journey->body)->not->toContain('Part 02 complete')
             ->and($journey->body)->toContain('B02')
             ->and($b02->statusCode)->toBe(200)
             ->and($part03->body)->toContain('Planned material · not yet available')
             ->and($core->statusCode)->toBe(200)
             ->and($core->body)->toContain('Foundation')
-            ->and($core->body)->not->toContain('Runtime boundaries');
+            ->and($core->body)->not->toContain('Runtime boundaries and parsing external data');
     } finally {
         p05RemoveTree($root);
     }
