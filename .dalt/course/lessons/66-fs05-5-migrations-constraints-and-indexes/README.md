@@ -116,13 +116,13 @@ docker compose up -d --wait
 Run both pending migrations through DALT:
 
 ```bash
-php scripts/migrate.php
+php scripts/migrate.php --through=002
 ```
 
 The output names `001_create_relations.sql` and `002_add_constraints_and_indexes.sql`, reports success for each, and ends with `Ran 2 migrations.` Run it again:
 
 ```bash
-php scripts/migrate.php
+php scripts/migrate.php --through=002
 ```
 
 This time it prints `No migrations to run.` The filenames in the `migrations` table are the evidence that prevents replay.

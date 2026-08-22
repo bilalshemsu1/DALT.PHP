@@ -179,7 +179,7 @@ Database rows are an internal representation, not automatically our JSON contrac
 
 **Workspace:** continue in `.dalt/workspace/fs05-postgres` with both migrations applied.
 
-**Starting state:** PostgreSQL is healthy and `php scripts/migrate.php` reports no pending migrations. Run:
+**Starting state:** PostgreSQL is healthy and `php scripts/migrate.php --through=002` reports no pending migrations. Run:
 
 ```bash
 php scripts/crud.php

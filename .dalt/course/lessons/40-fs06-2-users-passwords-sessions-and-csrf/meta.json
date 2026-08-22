@@ -1,9 +1,9 @@
 {
     "title": "Users, passwords, sessions and CSRF",
     "description": "Establish a cookie-backed authenticated identity without exposing credentials or trusting browser claims.",
-    "order": 53,
+    "order": 54,
     "section": "fullstack",
-    "section_order": 34,
+    "section_order": 35,
     "icon": "session",
     "color": "purple",
     "prerequisites": [

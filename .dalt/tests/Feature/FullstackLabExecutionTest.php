@@ -360,7 +360,7 @@ test('the FS05.1 PHP foundations lab executes both success and exception paths',
         );
 });
 
-test('the FS05.4 PostgreSQL lab proves its relationship and foreign key', function () {
+test('the Batch 7 PostgreSQL lab executes each lesson against the real database', function () {
     if (getenv('DALT_SKIP_LAB_EXECUTION') === '1') {
         $this->markTestSkipped('DALT_SKIP_LAB_EXECUTION=1.');
     }
@@ -406,7 +406,7 @@ test('the FS05.4 PostgreSQL lab proves its relationship and foreign key', functi
         expect($freshExit)->toBe(0, "FS05.5 could not start a clean database:\n{$freshOutput}");
 
         [$migrationExit, $migrationOutput] = fullstackLabRun($workspace, [
-            'env', 'DALT_REPOSITORY_ROOT=' . base_path(), PHP_BINARY, $workspace . '/scripts/migrate.php',
+            'env', 'DALT_REPOSITORY_ROOT=' . base_path(), PHP_BINARY, $workspace . '/scripts/migrate.php', '--through=002',
         ], 60);
         expect($migrationExit)->toBe(0, "DALT could not apply FS05.5's migrations:\n{$migrationOutput}")
             ->and($migrationOutput)->toContain('001_create_relations.sql')
@@ -414,7 +414,7 @@ test('the FS05.4 PostgreSQL lab proves its relationship and foreign key', functi
             ->and($migrationOutput)->toContain('Ran 2 migrations.');
 
         [$secondExit, $secondOutput] = fullstackLabRun($workspace, [
-            'env', 'DALT_REPOSITORY_ROOT=' . base_path(), PHP_BINARY, $workspace . '/scripts/migrate.php',
+            'env', 'DALT_REPOSITORY_ROOT=' . base_path(), PHP_BINARY, $workspace . '/scripts/migrate.php', '--through=002',
         ], 60);
         expect($secondExit)->toBe(0)
             ->and($secondOutput)->toContain('No migrations to run.');
@@ -444,6 +444,24 @@ test('the FS05.4 PostgreSQL lab proves its relationship and foreign key', functi
                 . "updated: 1 [done]\n"
                 . "deleted: 1\n"
                 . "remaining: 0\n",
+            );
+
+        [$thirdMigrationExit, $thirdMigrationOutput] = fullstackLabRun($workspace, [
+            'env', 'DALT_REPOSITORY_ROOT=' . base_path(), PHP_BINARY, $workspace . '/scripts/migrate.php', '--through=003',
+        ], 60);
+        expect($thirdMigrationExit)->toBe(0, "FS05.7's activity migration failed:\n{$thirdMigrationOutput}")
+            ->and($thirdMigrationOutput)->toContain('003_create_issue_activity.sql')
+            ->and($thirdMigrationOutput)->toContain('Ran 1 migrations.');
+
+        [$transactionExit, $transactionOutput] = fullstackLabRun($workspace, [
+            'env', 'DALT_REPOSITORY_ROOT=' . base_path(), PHP_BINARY, $workspace . '/scripts/transaction.php',
+        ], 60);
+        expect($transactionExit)->toBe(0, "FS05.7's transaction proof failed:\n{$transactionOutput}")
+            ->and($transactionOutput)->toBe(
+                "committed issue: 1\n"
+                . "committed activity: 1\n"
+                . "failure SQLSTATE: 23514\n"
+                . "rolled back issue count: 0\n",
             );
     } finally {
         fullstackLabRun($workspace, [...$compose, 'down', '-v'], 120);
