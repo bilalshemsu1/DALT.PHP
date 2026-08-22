@@ -1,12 +1,12 @@
 {
-  "title": "Forms and state design",
-  "description": "Create issues locally with controlled inputs and a deliberate source of truth.",
-  "order": 36,
+  "title": "Controlled forms and validation feedback",
+  "description": "Connect native forms to React state, validate drafts, and report useful feedback.",
+  "order": 39,
   "section": "fullstack",
-  "section_order": 17,
+  "section_order": 20,
   "icon": "layers",
   "color": "purple",
   "prerequisites": [
-    "30-fs03-2-state-and-events"
+    "61-fs03-5-state-structure-and-ownership"
   ]
 }
