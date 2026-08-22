@@ -433,6 +433,18 @@ test('the FS05.4 PostgreSQL lab proves its relationship and foreign key', functi
         ], 60);
         expect($indexExit)->toBe(0)
             ->and(trim($indexOutput))->toBe('issues_project_id_idx');
+
+        [$crudExit, $crudOutput] = fullstackLabRun($workspace, [
+            'env', 'DALT_REPOSITORY_ROOT=' . base_path(), PHP_BINARY, $workspace . '/scripts/crud.php',
+        ], 60);
+        expect($crudExit)->toBe(0, "FS05.6's PDO CRUD sequence failed:\n{$crudOutput}")
+            ->and($crudOutput)->toBe(
+                "created: 1 Don't interpolate me [todo]\n"
+                . "listed: 1\n"
+                . "updated: 1 [done]\n"
+                . "deleted: 1\n"
+                . "remaining: 0\n",
+            );
     } finally {
         fullstackLabRun($workspace, [...$compose, 'down', '-v'], 120);
         fullstackLabRemove($workspace);

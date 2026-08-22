@@ -1,6 +1,6 @@
 {
-    "title": "CRUD, queries and transaction boundaries",
-    "description": "Turn a relational schema into dependable DALT behavior with parameterized SQL and atomic writes.",
+    "title": "PDO, prepared statements, CRUD, and RETURNING",
+    "description": "Read and mutate PostgreSQL safely through DALT while returning the rows the database actually changed.",
     "order": 51,
     "section": "fullstack",
     "section_order": 32,
