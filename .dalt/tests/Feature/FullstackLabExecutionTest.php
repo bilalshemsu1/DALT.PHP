@@ -147,6 +147,7 @@ function fullstackLabExpectations(): array
             'typecheck' => 'pass',
             'test' => 'pass',
             'test:hooks' => 'pass',
+            'check:boundaries' => ['fail', "shared code must not depend on feature 'issues'"],
             'build' => 'pass',
         ],
     ];
@@ -423,6 +424,85 @@ test('the FS07.3 API seam has one genuine fix and rejects a plausible fake', fun
         );
         expect($fakeExit)->not->toBe(0, 'A seam-only fake that breaks whitespace validation must fail.')
             ->and(str_contains($fakeOutput, 'rejects a whitespace-only title'))->toBeTrue(
+                "The plausible fake failed for the wrong reason.\n{$fakeOutput}",
+            );
+    } finally {
+        fullstackLabRemove($workspace);
+    }
+});
+
+test('the FS09.2 boundary check has one genuine fix and rejects a plausible fake', function () {
+    if (getenv('DALT_SKIP_LAB_EXECUTION') === '1') {
+        $this->markTestSkipped('DALT_SKIP_LAB_EXECUTION=1.');
+    }
+
+    // The seeded violation is architectural, so tsc and vite both stay green on it. The
+    // only thing that can tell the learner they fixed it is this script — which makes it
+    // worth proving that the script is not satisfied by the obvious non-fix: routing the
+    // same wrong-direction dependency through the feature's public index.ts.
+    $source = base_path('.dalt/course/fullstack/frontend-architecture-lab/starter');
+    $node = fullstackLabRun($source, ['node', '--version'], 30);
+    if ($node[0] !== 0) {
+        $this->markTestSkipped('node is not available on this machine.');
+    }
+
+    $workspace = sys_get_temp_dir() . '/dalt-fs092-' . bin2hex(random_bytes(6));
+
+    try {
+        fullstackLabCopy($source, $workspace);
+
+        // No install needed: the checker reads source files and uses only node builtins.
+        [$brokenExit, $brokenOutput] = fullstackLabRun($workspace, ['node', 'scripts/check-boundaries.mjs'], 60);
+        expect($brokenExit)->not->toBe(0, "The seeded FS09.2 violation is gone.\n{$brokenOutput}")
+            ->and(str_contains($brokenOutput, "shared code must not depend on feature 'issues'"))->toBeTrue(
+                "The starter failed for the wrong reason.\n{$brokenOutput}",
+            );
+
+        // The genuine fix: the labels are shared knowledge, so they move to shared and
+        // the dependency points the other way.
+        $labels = (string) file_get_contents($workspace . '/src/features/issues/issueStatusLabels.ts');
+        file_put_contents(
+            $workspace . '/src/shared/issueStatusLabels.ts',
+            str_replace("from '../../shared/types'", "from './types'", $labels, $labelCount),
+        );
+        expect($labelCount)->toBe(1, 'The FS09.2 label module no longer imports the shared types by that path.');
+        unlink($workspace . '/src/features/issues/issueStatusLabels.ts');
+
+        $formatter = $workspace . '/src/shared/formatIssueLabel.ts';
+        $fixed = str_replace(
+            "import { issueStatusLabels } from '../features/issues/issueStatusLabels';",
+            "import { issueStatusLabels } from './issueStatusLabels';",
+            (string) file_get_contents($formatter),
+            $fixedCount,
+        );
+        expect($fixedCount)->toBe(1, 'The FS09.2 learner-facing STAGE 1 import drifted.');
+        file_put_contents($formatter, $fixed);
+
+        [$fixedExit, $fixedOutput] = fullstackLabRun($workspace, ['node', 'scripts/check-boundaries.mjs'], 60);
+        expect($fixedExit)->toBe(0, "Inverting the dependency must satisfy the check.\n{$fixedOutput}");
+
+        // The plausible fake: keep the labels inside the feature, but reach them through
+        // its public surface. It reads like respecting the boundary and is still the same
+        // wrong direction.
+        file_put_contents($workspace . '/src/shared/formatIssueLabel.ts', str_replace(
+            "import { issueStatusLabels } from './issueStatusLabels';",
+            "import { issueStatusLabels } from '../features/issues';",
+            $fixed,
+        ));
+        rename($workspace . '/src/shared/issueStatusLabels.ts', $workspace . '/src/features/issues/issueStatusLabels.ts');
+        file_put_contents(
+            $workspace . '/src/features/issues/issueStatusLabels.ts',
+            str_replace("from './types'", "from '../../shared/types'", $labels),
+        );
+        file_put_contents(
+            $workspace . '/src/features/issues/index.ts',
+            file_get_contents($workspace . '/src/features/issues/index.ts')
+                . "export { issueStatusLabels } from './issueStatusLabels';\n",
+        );
+
+        [$fakeExit, $fakeOutput] = fullstackLabRun($workspace, ['node', 'scripts/check-boundaries.mjs'], 60);
+        expect($fakeExit)->not->toBe(0, "Importing a feature's index from shared is still shared depending on a feature.")
+            ->and(str_contains($fakeOutput, 'src/features/issues/index.ts'))->toBeTrue(
                 "The plausible fake failed for the wrong reason.\n{$fakeOutput}",
             );
     } finally {
