@@ -32,7 +32,7 @@ decision, and you will not be able to say what you gave up by calling it.
 
 ## Before you start
 
-You need the two Part 00 lessons finished, a browser with DevTools, and somewhere to
+You need the Part 00 lessons finished, a browser with DevTools, and somewhere to
 write. A plain text file is ideal; this is a document you will reread.
 
 The course provides a small fixture page with both kinds of form on it:

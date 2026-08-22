@@ -3,7 +3,7 @@
 
 <main class="min-h-[calc(100vh-8rem)] bg-[#0a0d12] text-gray-300" id="app" tabindex="-1">
   <div class="mx-auto max-w-3xl px-5 py-10 sm:px-6 sm:py-16">
-    <a href="/learn/lessons/21-fs00-2-forms-json-and-spa" class="inline-flex items-center text-sm font-medium text-gray-500 transition-colors hover:text-[#c4a7ff]"><span class="mr-2" aria-hidden="true">←</span>Back to FS00.2</a>
+    <a href="/learn/fullstack" class="inline-flex items-center text-sm font-medium text-gray-500 transition-colors hover:text-[#c4a7ff]"><span class="mr-2" aria-hidden="true">←</span>Back to Part 00</a>
 
     <header class="mt-10 border-b border-[#2a2038] pb-10">
       <p class="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[#c4a7ff]">Part 00 observation fixture</p>

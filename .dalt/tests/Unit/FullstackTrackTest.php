@@ -48,11 +48,11 @@ test('the Fullstack manifest describes all planned parts and only real Fullstack
     $fullstackLessons = array_values(array_filter($lessons, fn (array $lesson): bool => $lesson['section'] === 'fullstack'));
 
     expect(array_map(static fn (string|int $part): int => (int) $part, array_keys($track['parts'])))->toBe(range(0, 12))
-        ->and($track['parts']['00']['lessons'])->toBe(['20-fs00-1-browser-and-http', '21-fs00-2-forms-json-and-spa'])
+        ->and($track['parts']['00']['lessons'])->toBe(['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '21-fs00-2-forms-json-and-spa'])
         ->and($track['parts']['00']['milestones'][0])->toMatchArray([
             'id' => 'B00',
             'route' => '/learn/fullstack/build/b00',
-            'prerequisites' => ['20-fs00-1-browser-and-http', '21-fs00-2-forms-json-and-spa'],
+            'prerequisites' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '21-fs00-2-forms-json-and-spa'],
         ])
         ->and($track['parts']['01']['lessons'])->toBe(['22-fs01-1-data-functions-transformations', '23-fs01-2-modules-async-and-failure'])
         ->and($track['parts']['01']['milestones'][0])->toMatchArray([
@@ -77,7 +77,7 @@ test('the Fullstack manifest describes all planned parts and only real Fullstack
         ->and($track['parts']['11']['lessons'])->toBe(['52-fs11-1-query-performance-and-postgresql-capabilities', '53-fs11-2-transactions-concurrency-and-row-isolation'])
         ->and($track['parts']['11']['milestones'][0])->toMatchArray(['id' => 'B11', 'route' => '/learn/fullstack/build/b11', 'prerequisites' => ['52-fs11-1-query-performance-and-postgresql-capabilities', '53-fs11-2-transactions-concurrency-and-row-isolation']])
         ->and($track['parts']['12']['milestones'])->toHaveCount(7)
-        ->and(array_column($fullstackLessons, 'id'))->toBe(['20-fs00-1-browser-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '23-fs01-2-modules-async-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types', '28-fs02-5-runtime-boundaries', '29-fs03-1-components-jsx-and-typed-props', '30-fs03-2-state-and-events', '31-fs03-3-forms-and-state-design', '32-fs03-4-tailwind-and-accessible-ui', '33-fs04-1-fetching-data-and-effects', '34-fs04-2-mutating-server-data', '35-fs04-3-separating-transport-from-ui', '36-fs05-1-designing-the-application-api', '37-fs05-2-relational-modeling-and-migrations', '38-fs05-3-crud-queries-and-transaction-boundaries', '39-fs06-1-backend-api-behavior-tests', '40-fs06-2-users-passwords-sessions-and-csrf', '41-fs06-3-authorization-and-ownership', '42-fs07-1-urls-and-react-router', '43-fs07-2-authentication-in-the-frontend', '44-fs07-3-test-frontend-behavior', '45-fs08-1-client-state-versus-server-state', '46-fs08-2-mutations-invalidation-and-optimistic-ui', '47-fs08-3-context-reducers-and-zustand', '48-fs09-1-custom-hooks-and-feature-boundaries', '49-fs09-2-build-pipeline-configuration-and-failure-boundaries', '50-fs10-1-containers-around-the-application', '51-fs10-2-builds-health-and-debugging', '52-fs11-1-query-performance-and-postgresql-capabilities', '53-fs11-2-transactions-concurrency-and-row-isolation'])
+        ->and(array_column($fullstackLessons, 'id'))->toBe(['20-fs00-1-browser-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '23-fs01-2-modules-async-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types', '28-fs02-5-runtime-boundaries', '29-fs03-1-components-jsx-and-typed-props', '30-fs03-2-state-and-events', '31-fs03-3-forms-and-state-design', '32-fs03-4-tailwind-and-accessible-ui', '33-fs04-1-fetching-data-and-effects', '34-fs04-2-mutating-server-data', '35-fs04-3-separating-transport-from-ui', '36-fs05-1-designing-the-application-api', '37-fs05-2-relational-modeling-and-migrations', '38-fs05-3-crud-queries-and-transaction-boundaries', '39-fs06-1-backend-api-behavior-tests', '40-fs06-2-users-passwords-sessions-and-csrf', '41-fs06-3-authorization-and-ownership', '42-fs07-1-urls-and-react-router', '43-fs07-2-authentication-in-the-frontend', '44-fs07-3-test-frontend-behavior', '45-fs08-1-client-state-versus-server-state', '46-fs08-2-mutations-invalidation-and-optimistic-ui', '47-fs08-3-context-reducers-and-zustand', '48-fs09-1-custom-hooks-and-feature-boundaries', '49-fs09-2-build-pipeline-configuration-and-failure-boundaries', '50-fs10-1-containers-around-the-application', '51-fs10-2-builds-health-and-debugging', '52-fs11-1-query-performance-and-postgresql-capabilities', '53-fs11-2-transactions-concurrency-and-row-isolation', '54-fs00-2-html-documents-and-semantics'])
         ->and($fullstackLessons[0]['prerequisites'])->toBe([])
         ->and($fullstackLessons[1]['prerequisites'])->toBe(['20-fs00-1-browser-and-http'])
         ->and($fullstackLessons[2]['prerequisites'])->toBe(['20-fs00-1-browser-and-http', '21-fs00-2-forms-json-and-spa'])
@@ -111,7 +111,8 @@ test('the Fullstack manifest describes all planned parts and only real Fullstack
         ->and($fullstackLessons[30]['prerequisites'])->toBe(['49-fs09-2-build-pipeline-configuration-and-failure-boundaries'])
         ->and($fullstackLessons[31]['prerequisites'])->toBe(['50-fs10-1-containers-around-the-application'])
         ->and($fullstackLessons[32]['prerequisites'])->toBe(['51-fs10-2-builds-health-and-debugging'])
-        ->and($fullstackLessons[33]['prerequisites'])->toBe(['52-fs11-1-query-performance-and-postgresql-capabilities']);
+        ->and($fullstackLessons[33]['prerequisites'])->toBe(['52-fs11-1-query-performance-and-postgresql-capabilities'])
+        ->and($fullstackLessons[34]['prerequisites'])->toBe(['20-fs00-1-browser-and-http']);
 });
 
 test('the FS02.1 lab is course-owned, resettable, and keeps generated learner work out of the repository', function () {

@@ -117,6 +117,7 @@ test('learning pages expose navigation state prerequisites and no-script content
         ->and($fullstack->statusCode)->toBe(200)
         ->and($fullstack->body)->toContain('PART 00')
         ->and($fullstack->body)->toContain('Browser, server, request, response')
+        ->and($fullstack->body)->toContain('HTML documents, meaning, and browser defaults')
         ->and($fullstack->body)->toContain('What changes when JavaScript takes over a form?')
         ->and($fullstack->body)->toContain('Planned material')
         ->and($resources->statusCode)->toBe(200)
@@ -284,7 +285,7 @@ test('FS00.2 follows FS00.1 in the Fullstack journey and keeps the Fullstack bac
             '/learn/lessons/20-fs00-1-browser-and-http/complete',
             input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token'],
         );
-        $nextLesson = $client->request('GET', '/learn/lessons/21-fs00-2-forms-json-and-spa');
+        $nextLesson = $client->request('GET', '/learn/lessons/54-fs00-2-html-documents-and-semantics');
         $track = $client->request('GET', '/learn/fullstack');
 
         expect($lesson->statusCode)->toBe(200)
@@ -301,13 +302,13 @@ test('FS00.2 follows FS00.1 in the Fullstack journey and keeps the Fullstack bac
             ->and($complete->statusCode)->toBe(303)
             ->and($nextLesson->statusCode)->toBe(200)
             ->and($nextLesson->body)->toContain('href="/learn/fullstack"')
-            ->and($nextLesson->body)->toContain('What changes when JavaScript takes over a form?')
-            ->and($nextLesson->body)->toContain('30–45 minutes')
+            ->and($nextLesson->body)->toContain('HTML documents, meaning, and browser defaults')
+            ->and($nextLesson->body)->toContain('25–35 minutes')
             ->and($nextLesson->body)->not->toContain('Lesson ID: FS00.2')
-            ->and($nextLesson->body)->toContain('First, let the browser submit the form')
-            ->and($nextLesson->body)->toContain('Closed-book checkpoint')
-            ->and($track->body)->toContain('1 of 2 available lessons complete')
-            ->and($track->body)->toContain('Continue What changes when JavaScript takes over a form?');
+            ->and($nextLesson->body)->toContain('Meaning before appearance')
+            ->and($nextLesson->body)->toContain('Check your understanding')
+            ->and($track->body)->toContain('1 of 3 available lessons complete')
+            ->and($track->body)->toContain('Continue HTML documents, meaning, and browser defaults');
     } finally {
         p05RemoveTree($root);
     }
@@ -321,6 +322,10 @@ test('the Part 00 observation fixture exposes a redirecting form and a JSON endp
     $json = $client->request('POST', '/learn/fullstack/observe/forms/json');
 
     expect($fixture->statusCode)->toBe(200)
+        ->and($fixture->body)->toContain('<main')
+        ->and($fixture->body)->toContain('<header')
+        ->and($fixture->body)->toContain('<section')
+        ->and($fixture->body)->toContain('<label')
         ->and($fixture->body)->toContain('Ordinary HTML form')
         ->and($fixture->body)->toContain('JavaScript-controlled form')
         ->and($fixture->body)->toContain('event.preventDefault()')
@@ -343,6 +348,10 @@ test('B00 is gated by Part 00 lessons, self-reports completion, and completes on
         );
         $stillLocked = $client->request('GET', '/learn/fullstack/build/b00');
         $second = $client->request(
+            'POST', '/learn/lessons/54-fs00-2-html-documents-and-semantics/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token'],
+        );
+        $stillLockedAfterSecond = $client->request('GET', '/learn/fullstack/build/b00');
+        $third = $client->request(
             'POST', '/learn/lessons/21-fs00-2-forms-json-and-spa/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token'],
         );
         $build = $client->request('GET', '/learn/fullstack/build/b00');
@@ -357,6 +366,8 @@ test('B00 is gated by Part 00 lessons, self-reports completion, and completes on
             ->and($first->statusCode)->toBe(303)
             ->and($stillLocked->statusCode)->toBe(303)
             ->and($second->statusCode)->toBe(303)
+            ->and($stillLockedAfterSecond->statusCode)->toBe(303)
+            ->and($third->statusCode)->toBe(303)
             ->and($build->statusCode)->toBe(200)
             ->and($build->body)->toContain('Build B00 · Part 00')
             ->and($build->body)->toContain('Trace the system')
@@ -366,7 +377,7 @@ test('B00 is gated by Part 00 lessons, self-reports completion, and completes on
             ->and($build->body)->toContain('href="/learn/fullstack"')
             ->and($complete->statusCode)->toBe(303)
             ->and($progress['completed_milestones'])->toContain('B00')
-            ->and($progress['completed_lessons'])->toBe(['20-fs00-1-browser-and-http', '21-fs00-2-forms-json-and-spa'])
+            ->and($progress['completed_lessons'])->toBe(['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '21-fs00-2-forms-json-and-spa'])
             ->and($journey->body)->toContain('Part 00 complete')
             ->and($journey->body)->toContain('PART 01')
             ->and($journey->body)->toContain('Data, functions and transformations')
@@ -385,7 +396,7 @@ test('FS01.2 follows FS01.1, preserves Fullstack navigation, and leaves B01 and 
         $locked = $lockedClient->request('GET', '/learn/lessons/22-fs01-1-data-functions-transformations');
         file_put_contents($root . '/.dalt/progress.json', json_encode([
             'passed' => [],
-            'completed_lessons' => ['20-fs00-1-browser-and-http', '21-fs00-2-forms-json-and-spa'],
+            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '21-fs00-2-forms-json-and-spa'],
             'completed_milestones' => ['B00'],
             'last_visited_lesson' => '21-fs00-2-forms-json-and-spa',
         ], JSON_THROW_ON_ERROR));
@@ -440,6 +451,7 @@ test('B01 requires both Part 01 lessons, stores its own completion, and unlocks 
             'passed' => [],
             'completed_lessons' => [
                 '20-fs00-1-browser-and-http',
+                '54-fs00-2-html-documents-and-semantics',
                 '21-fs00-2-forms-json-and-spa',
                 '22-fs01-1-data-functions-transformations',
             ],
@@ -473,6 +485,7 @@ test('B01 requires both Part 01 lessons, stores its own completion, and unlocks 
             ->and($complete->statusCode)->toBe(303)
             ->and($progress['completed_lessons'])->toBe([
                 '20-fs00-1-browser-and-http',
+                '54-fs00-2-html-documents-and-semantics',
                 '21-fs00-2-forms-json-and-spa',
                 '22-fs01-1-data-functions-transformations',
                 '23-fs01-2-modules-async-and-failure',
@@ -504,6 +517,7 @@ test('FS02.1 stays gated by B01, records ordinary completion, and does not compl
             'passed' => [],
             'completed_lessons' => [
                 '20-fs00-1-browser-and-http',
+                '54-fs00-2-html-documents-and-semantics',
                 '21-fs00-2-forms-json-and-spa',
                 '22-fs01-1-data-functions-transformations',
                 '23-fs01-2-modules-async-and-failure',
@@ -518,6 +532,7 @@ test('FS02.1 stays gated by B01, records ordinary completion, and does not compl
             'passed' => [],
             'completed_lessons' => [
                 '20-fs00-1-browser-and-http',
+                '54-fs00-2-html-documents-and-semantics',
                 '21-fs00-2-forms-json-and-spa',
                 '22-fs01-1-data-functions-transformations',
                 '23-fs01-2-modules-async-and-failure',
@@ -567,6 +582,7 @@ test('FS02.2 requires FS02.1, records ordinary completion, and leaves later Type
             'passed' => [],
             'completed_lessons' => [
                 '20-fs00-1-browser-and-http',
+                '54-fs00-2-html-documents-and-semantics',
                 '21-fs00-2-forms-json-and-spa',
                 '22-fs01-1-data-functions-transformations',
                 '23-fs01-2-modules-async-and-failure',
@@ -617,7 +633,7 @@ test('FS02.3 requires FS02.2, records ordinary completion, and unlocks only FS02
         $locked = (new ApplicationTestClient($root))->request('GET', '/learn/lessons/26-fs02-3-unions-narrowing-and-unknown');
         file_put_contents($root . '/.dalt/progress.json', json_encode([
             'passed' => [],
-            'completed_lessons' => ['20-fs00-1-browser-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '23-fs01-2-modules-async-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data'],
+            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '23-fs01-2-modules-async-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data'],
             'completed_milestones' => ['B00', 'B01'],
             'last_visited_lesson' => '25-fs02-2-modeling-application-data',
         ], JSON_THROW_ON_ERROR));
@@ -658,7 +674,7 @@ test('FS02.4 requires FS02.3, records only its own completion, then unlocks FS02
         $locked = (new ApplicationTestClient($root))->request('GET', '/learn/lessons/27-fs02-4-functions-generics-and-reusable-types');
         file_put_contents($root . '/.dalt/progress.json', json_encode([
             'passed' => [],
-            'completed_lessons' => ['20-fs00-1-browser-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '23-fs01-2-modules-async-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown'],
+            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '23-fs01-2-modules-async-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown'],
             'completed_milestones' => ['B00', 'B01'],
             'last_visited_lesson' => '26-fs02-3-unions-narrowing-and-unknown',
         ], JSON_THROW_ON_ERROR));
@@ -705,7 +721,7 @@ test('FS02.5 requires FS02.4, records only itself, and leaves B02, Part 03, and 
         $locked = (new ApplicationTestClient($root))->request('GET', '/learn/lessons/28-fs02-5-runtime-boundaries');
         file_put_contents($root . '/.dalt/progress.json', json_encode([
             'passed' => [],
-            'completed_lessons' => ['20-fs00-1-browser-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '23-fs01-2-modules-async-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types'],
+            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '23-fs01-2-modules-async-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types'],
             'completed_milestones' => ['B00', 'B01'],
             'last_visited_lesson' => '27-fs02-4-functions-generics-and-reusable-types',
         ], JSON_THROW_ON_ERROR));
@@ -744,14 +760,14 @@ test('B02 requires all Part 02 lessons, completes Part 02 separately, and does n
     try {
         file_put_contents($root . '/.dalt/progress.json', json_encode([
             'passed' => [],
-            'completed_lessons' => ['20-fs00-1-browser-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '23-fs01-2-modules-async-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types'],
+            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '23-fs01-2-modules-async-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types'],
             'completed_milestones' => ['B00', 'B01'], 'last_visited_lesson' => null,
         ], JSON_THROW_ON_ERROR));
         $before = new ApplicationTestClient($root);
         $locked = $before->request('GET', '/learn/fullstack/build/b02');
         file_put_contents($root . '/.dalt/progress.json', json_encode([
             'passed' => [],
-            'completed_lessons' => ['20-fs00-1-browser-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '23-fs01-2-modules-async-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types', '28-fs02-5-runtime-boundaries'],
+            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '23-fs01-2-modules-async-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types', '28-fs02-5-runtime-boundaries'],
             'completed_milestones' => ['B00', 'B01'], 'last_visited_lesson' => null,
         ], JSON_THROW_ON_ERROR));
         $client = new ApplicationTestClient($root);
@@ -778,7 +794,7 @@ test('Part 03 React lessons unlock the B03 local issue tracker and record its se
     try {
         file_put_contents($root . '/.dalt/progress.json', json_encode([
             'passed' => [],
-            'completed_lessons' => ['20-fs00-1-browser-and-http', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '23-fs01-2-modules-async-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types', '28-fs02-5-runtime-boundaries'],
+            'completed_lessons' => ['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '21-fs00-2-forms-json-and-spa', '22-fs01-1-data-functions-transformations', '23-fs01-2-modules-async-and-failure', '24-fs02-1-typescript-mental-model', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types', '28-fs02-5-runtime-boundaries'],
             'completed_milestones' => ['B00', 'B01', 'B02'],
             'last_visited_lesson' => '28-fs02-5-runtime-boundaries',
         ], JSON_THROW_ON_ERROR));
