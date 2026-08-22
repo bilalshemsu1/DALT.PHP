@@ -4,7 +4,8 @@ This shared React + TypeScript lab grows across Part 07:
 
 - `RouteDemo` gives screens durable URLs;
 - `AuthSession` resolves a server session before protected navigation;
-- `ProjectPage` teaches behavior testing through an injectable API seam.
+- `ProjectPage` teaches behavior testing through an injectable API seam;
+- `BoundaryApp` joins URLs, session outcomes, and API statuses.
 
 The component exercise starts red on purpose. Work in a copy, never in the course starter.
 
@@ -24,6 +25,7 @@ npm ci
 npm run test:routing     # 4 passed
 npm run test:session     # 4 passed
 npm run test:parsers     # 4 passed
+npm run test:boundaries  # 5 passed
 npm run typecheck        # clean
 npm run build            # production bundle created
 ```
@@ -57,7 +59,7 @@ Run the focused command again:
 
 ```bash
 npm run test:components   # 6 passed
-npm test                  # 18 passed
+npm test                  # 23 passed
 ```
 
 The context's default remains the real API client, so the production entry point needs no special test wiring.

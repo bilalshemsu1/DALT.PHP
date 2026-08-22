@@ -118,6 +118,7 @@ function fullstackLabExpectations(): array
             'typecheck' => 'pass',
             'test' => ['fail', 'Failed to parse URL'],
             'test:components' => ['fail', 'Failed to parse URL'],
+            'test:boundaries' => 'pass',
             'test:parsers' => 'pass',   // the cheapest level works before the seam exists
             'test:routing' => 'pass',
             'test:session' => 'pass',

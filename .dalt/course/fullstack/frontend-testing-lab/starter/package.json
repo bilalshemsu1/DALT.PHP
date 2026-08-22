@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:components": "vitest run src/ProjectPage.test.tsx",
+    "test:boundaries": "vitest run src/BoundaryApp.test.tsx",
     "test:parsers": "vitest run src/parseIssue.test.ts",
     "test:routing": "vitest run src/RouteDemo.test.tsx",
     "test:session": "vitest run src/AuthSession.test.tsx"
