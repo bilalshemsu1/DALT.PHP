@@ -102,11 +102,17 @@ private function isApiRequest(): bool
     }
 
     $request = $container->resolve(Request::class);
+    if (!$request instanceof Request) return false;
 
-    return $request instanceof Request
-        && str_starts_with($request->path(), '/api/');
+    $uri = $request->server('REQUEST_URI');
+
+    return is_string($uri) && str_starts_with($uri, '/api/');
 }
 ```
+
+Read the raw server value before calling `Request::path()`. If a malformed request
+supplies a non-string URI, this handler is already the recovery boundary; it must
+fall back to the normal HTML 500 instead of throwing a second type error.
 
 At the start of `render`, keep detailed server failures out of every production API
 response—even when application debug output is enabled:
