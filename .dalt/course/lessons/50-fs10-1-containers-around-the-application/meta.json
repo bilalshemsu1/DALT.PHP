@@ -1,9 +1,9 @@
 {
   "title": "Containers around the application",
   "description": "Run the issue tracker as cooperating services without confusing host and container boundaries.",
-  "order": 58,
+  "order": 60,
   "section": "fullstack",
-  "section_order": 39,
+  "section_order": 41,
   "icon": "docker",
   "color": "purple",
   "prerequisites": [

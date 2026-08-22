@@ -1,9 +1,9 @@
 {
   "title": "Custom hooks and feature boundaries",
   "description": "Extract repeated behavior without hiding where state, data, and decisions belong.",
-  "order": 56,
+  "order": 58,
   "section": "fullstack",
-  "section_order": 37,
+  "section_order": 39,
   "icon": "layers",
   "color": "purple",
   "prerequisites": [

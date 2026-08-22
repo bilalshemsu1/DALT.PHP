@@ -1,9 +1,9 @@
 {
   "title": "Build pipeline, configuration and failure boundaries",
   "description": "Inspect the frontend build, keep client configuration public, and contain unexpected render failures.",
-  "order": 57,
+  "order": 59,
   "section": "fullstack",
-  "section_order": 38,
+  "section_order": 40,
   "icon": "layers",
   "color": "purple",
   "prerequisites": [

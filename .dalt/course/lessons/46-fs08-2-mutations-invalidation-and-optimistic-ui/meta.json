@@ -1,9 +1,9 @@
 {
   "title": "Mutations, invalidation and optimistic UI",
   "description": "Synchronize writes with server truth, invalidation, and one carefully chosen optimistic update.",
-  "order": 54,
+  "order": 56,
   "section": "fullstack",
-  "section_order": 35,
+  "section_order": 37,
   "icon": "lifecycle",
   "color": "purple",
   "prerequisites": [

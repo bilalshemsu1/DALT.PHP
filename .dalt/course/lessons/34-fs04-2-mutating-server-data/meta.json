@@ -1,12 +1,12 @@
 {
   "title": "Mutating server data honestly",
   "description": "Create, update, and delete only through confirmed server outcomes and scoped pending state.",
-  "order": 42,
+  "order": 44,
   "section": "fullstack",
-  "section_order": 23,
+  "section_order": 25,
   "icon": "layers",
   "color": "purple",
   "prerequisites": [
-    "33-fs04-1-fetching-data-and-effects"
+    "63-fs04-2-loading-failure-and-races"
   ]
 }

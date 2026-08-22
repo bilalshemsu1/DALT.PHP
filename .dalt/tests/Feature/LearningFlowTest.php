@@ -928,8 +928,10 @@ test('Part 03 React lessons follow the expanded foundations sequence before B03 
         $completeFifth = $client->request('POST', '/learn/lessons/61-fs03-5-state-structure-and-ownership/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
         $sixth = $client->request('GET', '/learn/lessons/31-fs03-3-forms-and-state-design');
         $completeSixth = $client->request('POST', '/learn/lessons/31-fs03-3-forms-and-state-design/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
-        $seventh = $client->request('GET', '/learn/lessons/32-fs03-4-tailwind-and-accessible-ui');
-        $completeSeventh = $client->request('POST', '/learn/lessons/32-fs03-4-tailwind-and-accessible-ui/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
+        $seventh = $client->request('GET', '/learn/lessons/62-fs03-7-css-and-tailwind-v4');
+        $completeSeventh = $client->request('POST', '/learn/lessons/62-fs03-7-css-and-tailwind-v4/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
+        $eighth = $client->request('GET', '/learn/lessons/32-fs03-4-tailwind-and-accessible-ui');
+        $completeEighth = $client->request('POST', '/learn/lessons/32-fs03-4-tailwind-and-accessible-ui/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
         $build = $client->request('GET', '/learn/fullstack/build/b03');
         $completeBuild = $client->request('POST', '/learn/fullstack/build/b03/complete', input: ['self_report' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
         $progress = json_decode(file_get_contents($root . '/.dalt/progress.json'), true, 512, JSON_THROW_ON_ERROR);
@@ -952,8 +954,10 @@ test('Part 03 React lessons follow the expanded foundations sequence before B03 
             ->and($completeFifth->statusCode)->toBe(303)
             ->and($sixth->body)->toContain('React controls the input value')
             ->and($completeSixth->statusCode)->toBe(303)
-            ->and($seventh->body)->toContain('Semantics carry the interaction contract')
+            ->and($seventh->body)->toContain('Tailwind is still CSS')
             ->and($completeSeventh->statusCode)->toBe(303)
+            ->and($eighth->body)->toContain('Semantics carry the interaction contract')
+            ->and($completeEighth->statusCode)->toBe(303)
             ->and($build->statusCode)->toBe(200)
             ->and($build->body)->toContain('Build B03 · Part 03')
             ->and($build->body)->toContain('resources/app/')
@@ -981,6 +985,50 @@ test('the FS01.4 observation fixture exposes deterministic success, HTTP, and in
         ->and($missing->body)->toBe('{"error":"Issue preview not found."}')
         ->and($invalidJson->statusCode)->toBe(200)
         ->and($invalidJson->body)->toBe('This course fixture intentionally is not JSON.');
+});
+
+test('Part 04 follows Effects, request races, mutations, and typed API boundaries before B04', function () {
+    $root = p05ProjectFixture();
+    try {
+        file_put_contents($root . '/.dalt/progress.json', json_encode([
+            'passed' => [],
+            'completed_lessons' => [
+                '20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '55-fs00-3-native-forms-and-http', '21-fs00-2-forms-json-and-spa',
+                '22-fs01-1-data-functions-transformations', '56-fs01-2-functions-arrays-and-transformations', '23-fs01-2-modules-async-and-failure', '57-fs01-4-promises-fetch-and-failure',
+                '24-fs02-1-typescript-mental-model', '58-fs02-2-everyday-types-and-inference', '25-fs02-2-modeling-application-data', '26-fs02-3-unions-narrowing-and-unknown', '27-fs02-4-functions-generics-and-reusable-types', '28-fs02-5-runtime-boundaries',
+                '29-fs03-1-components-jsx-and-typed-props', '59-fs03-2-props-and-composition', '60-fs03-3-lists-conditionals-and-keys', '30-fs03-2-state-and-events', '61-fs03-5-state-structure-and-ownership', '31-fs03-3-forms-and-state-design', '62-fs03-7-css-and-tailwind-v4', '32-fs03-4-tailwind-and-accessible-ui',
+            ],
+            'completed_milestones' => ['B00', 'B01', 'B02', 'B03'],
+            'last_visited_lesson' => '32-fs03-4-tailwind-and-accessible-ui',
+        ], JSON_THROW_ON_ERROR));
+
+        $client = new ApplicationTestClient($root);
+        $first = $client->request('GET', '/learn/lessons/33-fs04-1-fetching-data-and-effects');
+        $lockedSecond = $client->request('GET', '/learn/lessons/63-fs04-2-loading-failure-and-races');
+        $completeFirst = $client->request('POST', '/learn/lessons/33-fs04-1-fetching-data-and-effects/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
+        $second = $client->request('GET', '/learn/lessons/63-fs04-2-loading-failure-and-races');
+        $completeSecond = $client->request('POST', '/learn/lessons/63-fs04-2-loading-failure-and-races/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
+        $third = $client->request('GET', '/learn/lessons/34-fs04-2-mutating-server-data');
+        $completeThird = $client->request('POST', '/learn/lessons/34-fs04-2-mutating-server-data/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
+        $fourth = $client->request('GET', '/learn/lessons/35-fs04-3-separating-transport-from-ui');
+        $completeFourth = $client->request('POST', '/learn/lessons/35-fs04-3-separating-transport-from-ui/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token']);
+        $build = $client->request('GET', '/learn/fullstack/build/b04');
+
+        expect($first->statusCode)->toBe(200)
+            ->and($first->body)->toContain('An Effect synchronizes an external system')
+            ->and($lockedSecond->statusCode)->toBe(303)
+            ->and($completeFirst->statusCode)->toBe(303)
+            ->and($second->body)->toContain('Cleanup ends ownership of a request')
+            ->and($completeSecond->statusCode)->toBe(303)
+            ->and($third->body)->toContain('The response, not the draft, is server truth')
+            ->and($completeThird->statusCode)->toBe(303)
+            ->and($fourth->body)->toContain('One transport helper owns shared mechanics')
+            ->and($completeFourth->statusCode)->toBe(303)
+            ->and($build->statusCode)->toBe(200)
+            ->and($build->body)->toContain('Build B04 · Part 04');
+    } finally {
+        p05RemoveTree($root);
+    }
 });
 
 test('lesson completion persists independently from verification and drives resume', function () {
