@@ -1,6 +1,6 @@
 {
-  "title": "Separating transport from UI",
-  "description": "Make a small typed API client so components express application intent rather than HTTP mechanics.",
+  "title": "Typed API functions and UI boundaries",
+  "description": "Hide HTTP mechanics behind parsed application operations while React owns presentation policy.",
   "order": 43,
   "section": "fullstack",
   "section_order": 24,
