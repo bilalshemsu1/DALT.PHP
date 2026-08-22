@@ -566,6 +566,27 @@ test('the FS06.1 behaviour-test lab passes, and its sabotages fail', function ()
     'Pest is not installed; the FS06.1 lab cannot be executed.',
 );
 
+test('the Batch 8 authentication-boundaries lab proves password storage behavior', function () {
+    $source = base_path('.dalt/course/fullstack/auth-boundaries-lab/starter');
+    $workspace = sys_get_temp_dir() . '/dalt-auth-boundaries-' . bin2hex(random_bytes(6));
+    fullstackLabCopy($source, $workspace);
+
+    try {
+        [$exit, $output] = fullstackLabRun($workspace, [PHP_BINARY, 'scripts/passwords.php'], 30);
+
+        expect($exit)->toBe(0, "FS06.2's password experiment failed:\n{$output}")
+            ->and($output)->toBe(
+                "stored plaintext: no\n"
+                . "same password, same hash: no\n"
+                . "correct password verifies: yes\n"
+                . "wrong password verifies: no\n"
+                . "public fields: id,email\n",
+            );
+    } finally {
+        fullstackLabRemove($workspace);
+    }
+});
+
 test('the Part 04 fixture API executes the documented issue lifecycle', function () {
     $fixture = base_path('.dalt/course/fullstack/react-server-fixture/fixture-api.php');
     expect(is_file($fixture))->toBeTrue('Part 04 needs its resettable fixture API.');

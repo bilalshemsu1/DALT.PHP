@@ -1,539 +1,192 @@
-# FS06.2 — Users, passwords, sessions and CSRF
+# FS06.2 — Users and password hashing
 
-Lesson ID: FS06.2  
-Title: Users, passwords, sessions and CSRF  
-Part: 06 — Testing, users and authentication  
-Order: 2  
-Status: Published  
-Estimated effort: 120–150 minutes  
-Difficulty: Integration  
-Prerequisites: FS06.1 — Backend API behavior tests  
-Project milestone: B06 — Multi-user protected system  
-Primary source dossier: `FSO_PART_04.md`  
-Last reviewed: 2026-08-19
+Lesson ID: FS06.2
+Lesson format: Concise theory
+Part: 06 — Testing, users, and authorization
+Status: Published
+Estimated effort: 30–40 minutes
+Difficulty: Foundation
+Prerequisites: FS06.1
+Last reviewed: 2026-08-22
 
-## Why this matters
+We will store users without storing recoverable passwords or exposing password hashes through the API.
 
-Until now every request to our API was anonymous and equal. Adding users changes what a request
-*is*: it arrives carrying a claim about who is making it, and the server has to decide whether
-to believe that claim. Getting this wrong isn't like getting a filter wrong. A weak password
-store leaks credentials that people reuse elsewhere; a session that never rotates lets an
-attacker choose a victim's identifier; a mutation with no CSRF proof lets any website on the
-internet act as our logged-in user.
+> **Helpful background:** [Test backend behavior through HTTP](/learn/lessons/39-fs06-1-backend-api-behavior-tests)
 
-The reassuring part is that none of the mechanisms are complicated, and PHP supplies most of
-them. The dangerous part is that every one of them fails silently when done wrong. A login form
-that stores plaintext passwords works perfectly. A CSRF check we forgot to apply produces no
-error. Nothing on screen distinguishes a secure implementation from an insecure one, which is
-exactly why this lesson insists we observe each mechanism working rather than assume it.
+## What we will learn
 
-## Before you start
+- model a user row and protect login identity with database uniqueness;
+- hash submitted passwords with PHP's password API and verify them later;
+- keep the database representation separate from public user JSON.
 
-Complete FS06.1, and read the framework's existing implementation rather than inventing your own:
+## Store a verifier, not the password
 
-```sh
-less framework/Core/Authenticator.php        # attempt, login, user, id, check, logout
-less framework/Core/Session.php              # regenerate, put, get, forget, destroy
-less framework/Core/Middleware/Csrf.php      # the actual token comparison
-less framework/Core/functions.php            # csrf_token(), csrf_field(), authorize()
+A password is evidence the user presents. We need to answer “does this submission match?” without keeping a value we can decrypt and recover.
+
+PHP provides a deliberately paired API:
+
+```php
+$hash = password_hash($password, PASSWORD_DEFAULT);
+
+$matches = password_verify($submittedPassword, $hash);
 ```
 
-DALT already gives you a working authenticator over a `users` table with `id`, `email`, and
-`password` columns. Your job in this lesson is not to reimplement it — it is to understand what
-each part guarantees, expose it as JSON endpoints your React client can use, and prove the
-guarantees hold.
+`password_hash()` uses a password-specific one-way algorithm and generates a random salt for us. The result contains the algorithm, salt, and cost information needed by `password_verify()`.
 
-Going deeper in DALT Core — optional:
+We do not generate a salt ourselves, encrypt the password, or use a fast general-purpose function such as `sha256`. Password hashing is intentionally expensive so guesses cost an attacker time.
 
-- [Authentication](/learn/lessons/04-authentication) and [middleware](/learn/lessons/03-middleware) are optional reference; they are not gates for this track.
+Random salt means the same password produces different stored strings:
 
-## By the end
+```php
+$first = password_hash('same password', PASSWORD_DEFAULT);
+$second = password_hash('same password', PASSWORD_DEFAULT);
 
-You should be able to:
+var_dump($first === $second); // false
+```
 
-- store password verifiers rather than passwords, and explain the difference;
-- establish and destroy identity through the session, with rotation at login;
-- describe what an HttpOnly session cookie does and does not protect;
-- explain why cookie authentication requires CSRF proof, and implement it for JSON;
-- return 401 and 419 as distinct, documented outcomes;
-- prove each of these with a test rather than by inspection.
+That is why login cannot hash the submission again and compare two strings. The new call would use a new salt. We fetch the user by email, then let `password_verify()` interpret the stored hash.
 
-## Predict before reading
+## Give the hash room to evolve
 
-Write answers down before reading on.
-
-1. Two users choose the same password. Should their stored values match?
-2. Why is `SELECT * FROM users WHERE email = ? AND password = ?` wrong even with a hash?
-3. If a hostile site submits a form to your API, whose cookies does the browser attach?
-4. Why does rotating the session ID at login matter if the old session was anonymous?
-
-## Mental model
-
-~~~text
-password → password_hash → users.password
-login request → password_verify → rotate session ID → server session { user }
-browser ← opaque HttpOnly cookie ────────────────────────────────┘
-unsafe request → cookie identity + CSRF token → allowed mutation
-logout → destroy server session + expire cookie → old cookie is useless
-~~~
-
-The password is evidence presented once; it is not a reusable database value. The cookie is a
-lookup key, not an identity document — it says "session 7f3a", and the server decides what that
-session means. The session record on the server holds the authenticated identity. And the CSRF
-token proves a request was deliberately made *by your application*, rather than by a cross-site
-form that happens to travel with the browser's cookie.
-
-Those last two are the pair people conflate. Authentication answers "who is this?"; CSRF answers
-"did they mean to do this?" A request can be perfectly authenticated and still be something the
-user never intended.
-
-## 1. Store verifiers, not secrets
-
-Add a `users` migration. The column width matters more than it looks:
+The users table stores the hash in a column large enough for future algorithms:
 
 ```sql
 CREATE TABLE users (
-  id BIGSERIAL PRIMARY KEY,
-  email VARCHAR(255) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT users_email_unique UNIQUE (email)
 );
 ```
 
-`VARCHAR(255)`, not `VARCHAR(60)`. Today's `PASSWORD_DEFAULT` produces a 60-character bcrypt
-hash, so 60 appears to work — and then PHP's default algorithm changes, the hash gets longer,
-and PostgreSQL silently refuses or truncates. A truncated hash never verifies, so every user is
-locked out at once, and the cause is a column width nobody has looked at in two years. The PHP
-manual recommends 255 for exactly this reason.
+PHP's `PASSWORD_DEFAULT` is allowed to change over time, so its output length can change. The PHP manual recommends a column that can grow beyond 60 bytes and names 255 bytes as a good choice.
 
-Hash on the way in, and verify on the way out:
+The unique constraint is the final protection for login identity. An application may check whether an email is available to return a friendly message, but two registrations can race between that check and their inserts. PostgreSQL decides which write wins.
+
+Choose and document one email identity rule. A small application can normalize before storage:
 
 ```php
-// Registration, or whatever your documented user-creation path is.
-$hash = password_hash($password, PASSWORD_DEFAULT);
+$email = mb_strtolower(trim($input['email']));
+$hash = password_hash($input['password'], PASSWORD_DEFAULT);
 
 $database->query(
     'INSERT INTO users (email, password) VALUES (?, ?)',
-    [mb_strtolower(trim($email)), $hash],
+    [$email, $hash],
 );
 ```
 
-```php
-// Login. This is what Authenticator::hasValidCredentials already does.
-return is_string($hash) && password_verify($password, $hash);
-```
+Normalization belongs before both lookup and insertion. Otherwise registration stores `Alice@example.com` while login searches for `alice@example.com` and the same person sees two identities.
 
-Prediction 1's answer is no — and prediction 2 follows from it. `password_hash` generates a
-random salt per call and embeds it in the output, so two users with the password `hunter2` have
-completely different stored strings:
+The current DALT registration scaffold limits passwords to 8–72 bytes because the current default is bcrypt and bcrypt considers only the first 72 bytes. `strlen()` measures bytes; `mb_strlen()` measures characters. We should state that limit honestly rather than silently treating two long passwords with the same first 72 bytes as equivalent.
 
-```text
-$2y$12$LQv3c1yqBWVHxkd0LHAkCO...   ← same password
-$2y$12$e0MYzXyjpJS7Pd0RVvHwHe...   ← different salt, different hash
-```
+## Registration has two validation layers
 
-That is what makes `WHERE email = ? AND password = ?` wrong even when you remember to hash: you
-cannot hash the submitted password and compare strings, because the salts differ. You must fetch
-the stored hash and let `password_verify` extract the salt and cost from it. Comparing hashes
-with `==` is also how timing leaks happen; `password_verify` compares in constant time.
-
-One thing `password_hash` gives you for free is worth knowing about: the cost factor is embedded
-in the output, so `password_needs_rehash($hash, PASSWORD_DEFAULT)` can tell you at login time
-that a stored hash was made with weaker settings. Re-hashing there — while you legitimately hold
-the plaintext for one moment — is how a system upgrades its password storage without asking
-anyone to reset anything. You do not need it today; know it exists.
-
-Never return the `password` column from a response, log it, put it in an exception message, or
-accept a client-supplied hash as though it were a password. The FS05.1 mapper is what enforces
-the first of those — a `userResource()` that names `id` and `email` cannot leak a hash even if
-someone writes `SELECT *`.
-
-Finally, keep the database uniqueness constraint on `email` even though your handler checks
-availability first. Two concurrent registrations can both pass the handler check and both
-proceed; only the constraint stops the second one. And normalize the email before storing it, or
-`Alice@example.com` and `alice@example.com` become two accounts.
-
-Give unknown-user and wrong-password the same public failure:
+The handler validates values the user can fix: an email-shaped string, a documented password length, and any required name fields. PostgreSQL enforces invariants that must survive concurrency, especially unique email.
 
 ```php
-if (!$auth->attempt($email, $password)) {
-    return Response::json(['error' => [
-        'code' => 'invalid_credentials',
-        'message' => 'Those credentials do not match our records.',
-    ]], 401);
+if (!Validator::email($email)) {
+    $errors['email'] = 'Enter a valid email address.';
+}
+
+if (!is_string($password) || strlen($password) < 8 || strlen($password) > 72) {
+    $errors['password'] = 'Use between 8 and 72 bytes.';
 }
 ```
 
-Distinguishing them turns login into an account-discovery endpoint. Your tests may know which
-case occurred; the response need not say.
+Never log the password, include it in an exception message, place it in a URL, or accept a client-supplied hash as though it were a password. The plaintext should exist only as briefly as the request needs it.
 
-## 2. Establish and destroy identity deliberately
+`password_needs_rehash()` can later tell us that an existing hash uses an older policy. A successful login is a possible time to replace it because the user has just supplied the correct plaintext. We do not need to build that upgrade path in this lesson, but the 255-byte column leaves room for it.
 
-Three endpoints are enough: `POST /api/login`, `POST /api/logout`, and `GET /api/me`.
+## Database rows are not API resources
 
-```php
-// POST /api/login
-$auth = App::resolve(Authenticator::class);
-
-if (!$auth->attempt($email, $password)) {
-    return Response::json(['error' => [
-        'code' => 'invalid_credentials',
-        'message' => 'Those credentials do not match our records.',
-    ]], 401);
-}
-
-return Response::json(['data' => ['id' => (string) $auth->id(), 'email' => $email]]);
-```
+The database needs the password hash. The browser never does.
 
 ```php
-// GET /api/me — the endpoint the React client calls on load to find out who it is.
-$user = $auth->user();
-
-return $user === null
-    ? Response::json(['error' => ['code' => 'unauthenticated', 'message' => 'Not signed in.']], 401)
-    : Response::json(['data' => ['id' => (string) $user['id'], 'email' => $user['email']]]);
-```
-
-Read `Authenticator::login()` and notice the ordering, because it is the answer to prediction 4:
-
-```php
-// framework/Core/Authenticator.php
-Session::regenerate();
-Session::put(self::USER_KEY, $identity);
-```
-
-Rotation happens *before* the identity is recorded, so the old session never holds authenticated
-state. This defends against **session fixation**: an attacker who can persuade a victim to start
-browsing with a session id the attacker already knows — through a link, a subdomain, or an
-injected cookie — would otherwise still know that id after the victim logs in, and would inherit
-the login. Rotating means the id the attacker planted is discarded at exactly the moment it
-would become valuable. The anonymous session's harmlessness is the point: it is only worth
-stealing after the login, and after the login it no longer exists.
-
-Logout must destroy server state, not just client state:
-
-```php
-$auth->logout();   // Session::destroy()
-```
-
-Deleting a React variable is not logout. Neither is deleting the cookie client-side: the session
-record still exists on the server, and anyone holding the old cookie value can still use it.
-
-Cookie flags express transport boundaries and are worth stating precisely, because each is
-narrower than people assume:
-
-| Flag | Protects against | Does not protect against |
-|---|---|---|
-| `HttpOnly` | JavaScript reading the cookie, so an XSS cannot exfiltrate it | XSS acting *as* the user in the page |
-| `Secure` | The cookie travelling over plain HTTP | Anything once HTTPS is established |
-| `SameSite=Lax` | Most cross-site sends, including hostile form POSTs | Same-site attacks, and it is not a CSRF token |
-
-They complement CSRF protection, HTTPS, and careful output escaping; they replace none of them.
-Session lifetime is an expiry policy, not a promise that a server-side file vanishes at a
-precise minute.
-
-## 3. CSRF follows cookie authentication
-
-A browser attaches cookies for the destination origin automatically, whoever caused the request.
-That is prediction 3's answer, and it is the entire vulnerability: a form on `evil.example` that
-posts to your API travels with your user's session cookie, and your server sees a perfectly
-authenticated request. Same-origin policy may stop the attacker reading the response, but the
-state change has already happened — and for `DELETE /api/issues/42`, not reading the response
-costs them nothing.
-
-The defence is an unpredictable token tied to the session, required on every unsafe method. Read
-what DALT's middleware actually does:
-
-```php
-// framework/Core/Middleware/Csrf.php
-private const SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
-
-$sessionToken = $_SESSION['_csrf'] ?? null;
-$requestToken = $request->input('_token') ?? $request->server('HTTP_X_CSRF_TOKEN');
-
-if (!is_string($sessionToken) || $sessionToken === ''
-    || !is_string($requestToken) || $requestToken === ''
-    || !hash_equals($sessionToken, $requestToken)) {
-    return Response::text('CSRF token mismatch', 419);
+function userResource(array $row): array
+{
+    return [
+        'id' => (string) $row['id'],
+        'email' => $row['email'],
+    ];
 }
 ```
 
-Three details in that block are load-bearing for your JSON API.
+Naming public fields is safer than removing `password` after `SELECT *`. If a future migration adds recovery or security columns, an allowlist does not publish them accidentally.
 
-Safe methods are skipped, because GET must not change state — if one of your GET routes does
-change state, CSRF is not the bug to fix first.
-
-`$request->input('_token')` reads `$_POST`, so an HTML form supplies `_token` via `csrf_field()`.
-A JSON client has no `$_POST`, and must therefore use the `X-CSRF-Token` header — which is why
-the middleware checks `HTTP_X_CSRF_TOKEN` as well. Your React client needs the token from
-somewhere: either rendered into the application page, or served by a deliberate bootstrap
-endpoint such as `GET /api/csrf-token`, which is safe to expose because it is scoped to the
-caller's own session.
-
-And `hash_equals` is a constant-time comparison. `===` on secrets leaks length and prefix
-information through timing.
-
-Attach it per route, and notice what is protected and what is not:
+A behavior test should prove all sides of the boundary:
 
 ```php
-// routes/routes.php
-$router->post('/api/issues', 'api/issues/store.php')->only('csrf');
-$router->patch('/api/issues/{id}', 'api/issues/update.php')->only('csrf');
-$router->delete('/api/issues/{id}', 'api/issues/destroy.php')->only('csrf');
+expect($row['password'])->not->toBe($submittedPassword);
+expect(password_verify($submittedPassword, $row['password']))->toBeTrue();
+expect(password_verify('wrong', $row['password']))->toBeFalse();
+expect(array_keys(userResource($row)))->toBe(['id', 'email']);
 ```
 
-One thing to decide before your client hits it: a failed check returns
-`Response::text('CSRF token mismatch', 419)` — **plain text**, not your JSON envelope. That is
-the same content-type mismatch you met with `abort()` in FS05.1, and FS04.3's parser will fall
-back to a generic message. Either accept it and document 419 as a non-JSON outcome, or wrap the
-middleware for your API routes so it emits the envelope. Choose deliberately; do not discover it
-in Part 07.
-
-CSRF does not authenticate a request, and authentication does not prove intent. A missing token
-must fail before the mutation runs, which is why the middleware sits in front of the handler
-rather than inside it.
-
-## 4. Prove each mechanism
-
-None of this is visible on screen, so tests are the only honest evidence. Each of these has a
-plausible fake it rules out:
-
-```php
-test('the stored password is not the submitted password', function () {
-    $user = createUser('alice@example.com', 'correct horse battery staple');
-
-    expect($user['password'])->not->toBe('correct horse battery staple');
-    expect(password_verify('correct horse battery staple', $user['password']))->toBeTrue();
-    expect(password_verify('wrong password', $user['password']))->toBeFalse();
-});
-
-test('two users with the same password store different hashes', function () {
-    // Catches a hand-rolled unsalted hash, which passes the test above.
-    expect(createUser('a@example.com', 'same')['password'])
-        ->not->toBe(createUser('b@example.com', 'same')['password']);
-});
-
-test('an unsafe request without a CSRF token is refused and changes nothing', function () {
-    $before = countRows('issues');
-
-    $response = api('POST', '/api/issues', ['title' => 'No token']);
-
-    expect($response->statusCode)->toBe(419);
-    expect(countRows('issues'))->toBe($before);   // the assertion people omit
-});
-
-test('the same request with a valid token succeeds', function () {
-    // Without this, a route that rejects everything would pass the test above.
-    $response = api('POST', '/api/issues', ['title' => 'With token'], token: csrfToken());
-
-    expect($response->statusCode)->toBe(201);
-});
-```
-
-The last pair matters as much as any of them. A broken route that 419s unconditionally satisfies
-the negative test perfectly. Only the positive test distinguishes "CSRF is enforced" from
-"mutations are broken", and this is the shape of every security test you will write: prove the
-door is locked, then prove your key opens it.
-
-Also confirm that logout invalidates the server session — send an authenticated `GET /api/me`,
-log out, and send the same request again expecting 401. Test the behaviour available to your
-harness rather than printing a live session id.
+A second user with the same password should have a different hash. That assertion defeats the plausible fake of a deterministic, unsalted general-purpose hash.
 
 ## Try it
 
-Create one user and inspect the row directly: the stored value must not be the submitted
-password, and it must start with an algorithm marker such as `$2y$`. Create a second user with
-the identical password and confirm the two rows differ.
+**Workspace:** copy the bounded Batch 8 lab:
 
-Then, with the browser DevTools Application panel open, log in and look at the session cookie —
-check that it is marked HttpOnly, and try to read `document.cookie` in the console to confirm it
-is absent. Note the cookie value, log out, and confirm the old value no longer authenticates.
+```bash
+mkdir -p .dalt/workspace
+cp -r .dalt/course/fullstack/auth-boundaries-lab/starter \
+  .dalt/workspace/fs06-auth-boundaries
+```
 
-Finally, send a mutation with curl and no token, read the 419, then repeat it with a valid
-`X-CSRF-Token` header and watch it succeed.
+**Starting state:** do not edit the copy. Run:
 
-## Common mistakes
+```bash
+php .dalt/workspace/fs06-auth-boundaries/scripts/passwords.php
+```
 
-### Sizing the password column at 60 characters because today's hash fits
+The exact output is:
 
-`PASSWORD_DEFAULT` produces a 60-character bcrypt hash today. The moment PHP's default algorithm changes to a longer one, PostgreSQL silently truncates every new hash, and every affected user is locked out at once by a column width nobody has looked at in years.
+```text
+stored plaintext: no
+same password, same hash: no
+correct password verifies: yes
+wrong password verifies: no
+public fields: id,email
+```
 
-### Hashing the submitted password and comparing strings instead of using `password_verify`
+Run it again. The conclusions remain the same even though the hidden hash values are newly generated.
 
-`password_hash` embeds a random salt per call, so the same password hashes differently every time. Comparing a freshly hashed submission against a stored hash will almost never match, even for the correct password.
+**Expected result:** the submitted password is never stored, equal passwords receive unequal hashes, only the correct password verifies, and the public shape omits the hash.
 
-### Comparing tokens or hashes with `===` rather than `hash_equals`
+**Reset:** keep the workspace for FS06.3, or delete `.dalt/workspace/fs06-auth-boundaries`.
 
-`===` on secrets leaks length and prefix information through timing. `hash_equals` compares in constant time specifically to close that channel.
+## What to notice
 
-### Telling the client whether the email or the password was wrong
+Hashing and verification are a pair. Salt explains why equal passwords do not produce equal stored values. The public resource mapper creates a second boundary: authentication may read the hash on the server, but no response publishes it.
 
-Distinguishing "no such email" from "wrong password" turns a login endpoint into an account-discovery tool. Give both cases the same public message.
+## Check your understanding
 
-### Dropping the unique constraint on email because the handler already checks
+1. Why can we not hash a login submission and compare strings?
+2. Why is the password column 255 characters rather than 60?
+3. What does the unique constraint protect that a prior lookup cannot?
+4. Why should a public user resource name fields explicitly?
 
-Two concurrent registrations can both pass the handler's availability check before either commits. Only the database constraint stops the second one from actually being written.
+<details><summary>Check your answers</summary>
 
-### Storing identity before rotating the session
-
-If `Session::put` runs before `Session::regenerate()`, an attacker who planted a session id before login inherits the authenticated session the moment the victim logs in — the exact fixation attack rotation exists to close.
-
-### Treating a deleted React variable, or a client-side cookie delete, as logout
-
-The session record still exists on the server. Anyone holding the old cookie value can still use it until the server-side session is actually destroyed.
-
-### Believing `SameSite=Lax` or `HttpOnly` replaces a CSRF token
-
-Each cookie flag protects a narrower thing than people assume — `HttpOnly` stops JavaScript reading the cookie, not XSS acting as the user; `SameSite=Lax` stops most cross-site sends, not all of them. They complement a CSRF token. None of them is one.
-
-### Applying CSRF middleware to some mutations and forgetting one
-
-A single unprotected mutation route is a single working exploit. The protection has to be applied to every unsafe route, not most of them.
-
-### Testing that a tokenless request is refused, without testing that a valid one succeeds
-
-A route that rejects every request unconditionally passes the negative test perfectly. Only the positive test proves the mechanism actually works rather than the route being broken.
-
-## When this goes wrong
-
-Trace one request in order: cookie sent, session found, identity present, CSRF compared, handler
-reached. Log safe identifiers and decision names in development — never a password, a hash, or a
-raw session id.
-
-A 419 when you expected 401 means the request never reached authentication; CSRF runs first.
-A 401 on a request you believe is logged in usually means the cookie was not sent at all, which
-in a browser is a `credentials` or origin problem rather than an authentication one — remember
-that `localhost` and `127.0.0.1` are different origins and do not share cookies. If login
-succeeds but the next request is anonymous, check that the session cookie's path and domain
-cover it, and that you are not regenerating the session on every request.
-
-If `password_verify` always returns false for a user you just created, print the stored hash
-length. A value shorter than 60 characters means the column truncated it.
-
-## Exercise
-
-### Goal
-
-Give the API real identity, and prove the protections around it.
-
-### Starting state
-
-FS06.1 has behaviour tests over a persistent issue API.
-
-### Requirements
-
-- Add a `users` migration with a normalized unique email and a 255-character password column.
-- Implement `POST /api/login`, `POST /api/logout`, and `GET /api/me` returning the documented envelopes, with 401 for anonymous or failed authentication.
-- Apply CSRF middleware to every issue mutation, and decide how a 419 is represented to a JSON client.
-- Store only hashes — never a plaintext password, anywhere: not in a column, a log, or an exception message.
-
-### Constraints
-
-- Login failure must not reveal whether the email or the password was wrong.
-- No token or hash comparison may use `===`. `hash_equals` only.
-- Do not skip CSRF on any mutation "temporarily" — apply it to all of them before moving on.
-
-### Verification
-
-**Mode: tool-run — Pest behavior tests, plus browser and curl evidence for cookie flags.** The platform does not grade this; your tests and your recorded observations are the evidence.
-
-Tests covering: a stored hash that is not the password; two identical passwords producing different hashes; a wrong password rejected with the same message as an unknown email; `GET /api/me` returning 401 anonymously and the user when signed in; a mutation without a token returning 419 with no database change; the same mutation with a token succeeding; and logout making the previous session unusable.
-
-### Hints
-
-<details>
-<summary>Hint 1 — order of implementation</summary>
-
-Get login and `/api/me` working before adding CSRF, so you're debugging one mechanism at a time rather than two interacting ones.
+1. Each hash uses a new random salt; `password_verify()` reads the salt and policy from the stored result.
+2. `PASSWORD_DEFAULT` may change to an algorithm with longer output.
+3. It resolves concurrent registrations that both observed the email as available.
+4. An allowlist prevents the password hash and future internal columns from leaking accidentally.
 </details>
 
-<details>
-<summary>Hint 2 — the CSRF test pair</summary>
+## Next
 
-Write the negative CSRF test and the positive one together. Neither is meaningful alone — a route that rejects everything passes the negative test perfectly.
+We can now verify a password safely; next we will turn that successful check into a rotated server-side session.
+
+<details><summary>Maintainer source record</summary>
+
+- Source dossier: `FSO_PART_04.md`.
+- Official sources: PHP 8.4 manuals for `password_hash()`, `password_verify()`, and `password_needs_rehash()`; OWASP Password Storage Cheat Sheet.
+- Versions: PHP 8.4.1 with `PASSWORD_DEFAULT` using bcrypt; PostgreSQL 18 syntax for the schema example.
+- Consulted: 2026-08-22.
+- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 8, FS06.2.
+- DALT files inspected: `framework/Core/Authenticator.php`, `framework/Core/Validator.php`, the authentication scaffold registration path, and `AuthScaffoldTest.php`.
+- Reused material: 255-byte storage, PHP password APIs, unique normalized email, safe public representation, and same-password/different-hash proof from the former FS06.2.
 </details>
-
-<details>
-<summary>Hint 3 — proving logout for real</summary>
-
-Test logout by sending an authenticated request, logging out, then sending the same request again and expecting 401 — not by inspecting a variable in your own test code.
-</details>
-
-<details>
-<summary>Reference explanation — read after an honest attempt</summary>
-
-The working shape is §1's `password_hash`/`password_verify` pair with a uniform failure message, §2's login/logout/me endpoints built on `Authenticator`'s existing rotation-then-store ordering, and §3's CSRF middleware applied per-route with a documented 419 representation. The proof isn't that the happy path works — it's the paired tests in §4: stored value isn't the password, two identical passwords differ, a tokenless mutation changes nothing, and the same mutation with a token succeeds.
-</details>
-
-## In the project
-
-B06 turns the issue tracker from a shared demo into a system with real users. FS06.3 adds the
-question this lesson deliberately leaves out: now that the server knows *who* is asking, what are
-they allowed to do? Part 07 puts an authenticated shell and routing on top, and Part 11 revisits
-the database side with row-level security.
-
-Expect some FS06.1 tests to fail after this lesson. Anonymous mutations should stop succeeding —
-that's the contract recording a purposeful change, and updating those tests deliberately is part
-of the work, not an interruption to it.
-
-## Closed-book checkpoint
-
-Close the lesson first.
-
-1. Why do two users with the same password have different stored values?
-2. Why can you not hash a submitted password and compare it to the stored string?
-3. What attack does rotating the session id at login prevent, and how?
-4. Why does an authenticated request still need CSRF proof?
-5. How does a JSON client supply a CSRF token when it has no `$_POST`?
-6. What does `HttpOnly` protect against, and what does it not?
-
-<details>
-<summary>Reveal comparison answers</summary>
-
-1. `password_hash` generates a random salt per call and embeds it in the output, so the same password produces a completely different stored string each time it's hashed.
-2. The salts differ between the submission and the stored hash, so a freshly computed hash of the submitted password will not match the stored one even when the password is correct. `password_verify` extracts the stored salt and cost to check correctly.
-3. Session fixation — an attacker who gets a victim to browse with a session id the attacker already knows would otherwise inherit that session's authenticated state after the victim logs in. Rotating the id at login discards the planted id at exactly the moment it would become valuable.
-4. Because a browser attaches cookies for the destination origin automatically, regardless of which site caused the request. A perfectly authenticated request can still be one the user never intended to make — CSRF proves intent, not identity.
-5. Through a request header, typically `X-CSRF-Token`, since a JSON body has no `$_POST` for `_token` to arrive in.
-6. `HttpOnly` stops JavaScript from reading the cookie, so XSS can't exfiltrate it directly. It does not stop XSS from acting *as* the user within the page, since the browser still attaches the cookie to requests the malicious script makes.
-</details>
-
-## Resources
-
-### Read
-
-- [PHP: `password_hash`](https://www.php.net/manual/en/function.password-hash.php)
-- [PHP: `password_verify`](https://www.php.net/manual/en/function.password-verify.php)
-- [OWASP: Cross-Site Request Forgery Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
-
-### Go deeper
-
-- [OWASP: Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
-- [OWASP: Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
-- [MDN: `Set-Cookie` and SameSite](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie)
-
-## You are done when
-
-- [ ] The `users` table has a normalized unique email and a 255-character password column.
-- [ ] A stored value is never the submitted password, and two identical passwords differ.
-- [ ] Login uses `password_verify`, and failure reveals nothing about which field was wrong.
-- [ ] The session id rotates before identity is recorded.
-- [ ] Logout destroys the server session, and the old cookie no longer authenticates.
-- [ ] `GET /api/me` returns 401 anonymously and the safe user when signed in.
-- [ ] Every unsafe issue route requires CSRF proof, and I checked that none was missed.
-- [ ] I decided and documented how a 419 appears to a JSON client.
-- [ ] Tests prove both that a tokenless mutation fails and that a valid one succeeds.
-- [ ] `php artisan test` passes, including the FS06.1 tests I updated on purpose.
-
----
-
-## Maintainer source record
-
-- Source dossier: `docs/dalt-fullstack/sources/FSO_PART_04.md`
-- Official sources: PHP `password_hash` and `password_verify` manual pages; OWASP CSRF, Password Storage and Session Management cheat sheets; MDN `Set-Cookie` reference
-- Versions: PHP 8.4; PostgreSQL as configured by the learner
-- Consulted: 2026-08-14
-- DALT files inspected: `framework/Core/Authenticator.php`; `framework/Core/Session.php`; `framework/Core/Middleware/Csrf.php`; `framework/Core/Middleware/Middleware.php`; `framework/Core/functions.php`
-- Curriculum authority: `CURRICULUM.md` §17 FS06.2
-- Laravel bridge: Laravel's `Auth`, session guard and `VerifyCsrfToken` middleware perform these same steps; DALT's versions are short enough to read end to end, which is why this lesson reads them instead of describing them.
-- Follow-up pass: 2026-08-19 — verified every quoted framework claim (`Authenticator::login()`'s regenerate-before-put ordering, `Middleware/Csrf.php`'s token comparison, `Router::only()`'s last-added-route semantics, `Response::text()`) against the actual `framework/Core/*` source word for word, no discrepancies found; restructured Exercise into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal; light voice pass toward first-person-plural framing to match Parts 00–05

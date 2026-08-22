@@ -1,6 +1,6 @@
 {
-    "title": "Users, passwords, sessions and CSRF",
-    "description": "Establish a cookie-backed authenticated identity without exposing credentials or trusting browser claims.",
+    "title": "Users and password hashing",
+    "description": "Store verifiable password hashes, protect unique login identity, and publish only safe user fields.",
     "order": 54,
     "section": "fullstack",
     "section_order": 35,
