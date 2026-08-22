@@ -1,7 +1,7 @@
 {
   "title": "Authentication in the frontend",
   "description": "Derive frontend authentication state from the server while keeping authorization on the backend.",
-  "order": 43,
+  "order": 45,
   "section": "fullstack",
   "section_order": 26,
   "icon": "shield",

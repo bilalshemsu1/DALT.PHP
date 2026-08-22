@@ -1,7 +1,7 @@
 {
   "title": "Fetching data and effects",
   "description": "Load remote issues deliberately, including loading, empty, HTTP, and network states.",
-  "order": 33,
+  "order": 35,
   "section": "fullstack",
   "section_order": 16,
   "icon": "layers",

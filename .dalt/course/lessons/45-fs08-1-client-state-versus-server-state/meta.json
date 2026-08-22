@@ -1,7 +1,7 @@
 {
   "title": "Client state versus server state",
   "description": "Classify state by its authority and use TanStack Query for remote data.",
-  "order": 45,
+  "order": 47,
   "section": "fullstack",
   "section_order": 28,
   "icon": "database",

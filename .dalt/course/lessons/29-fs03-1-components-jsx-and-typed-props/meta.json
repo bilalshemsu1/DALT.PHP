@@ -1,7 +1,7 @@
 {
   "title": "Components, JSX and typed props",
   "description": "Describe an issue-tracker interface as typed React components and local data.",
-  "order": 29,
+  "order": 31,
   "section": "fullstack",
   "section_order": 12,
   "icon": "layers",

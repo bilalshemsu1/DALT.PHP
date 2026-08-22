@@ -1,7 +1,7 @@
 {
   "title": "Authorization and ownership",
   "description": "Use authenticated identity and workspace membership to make protected API behavior true even without the UI.",
-  "order": 41,
+  "order": 43,
   "section": "fullstack",
   "section_order": 24,
   "icon": "shield",

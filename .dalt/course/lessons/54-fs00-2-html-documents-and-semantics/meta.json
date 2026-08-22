@@ -1,7 +1,7 @@
 {
   "title": "HTML documents, meaning, and browser defaults",
   "description": "Read HTML as a meaningful document rather than a collection of boxes.",
-  "order": 54,
+  "order": 21,
   "section": "fullstack",
   "section_order": 2,
   "icon": "layers",

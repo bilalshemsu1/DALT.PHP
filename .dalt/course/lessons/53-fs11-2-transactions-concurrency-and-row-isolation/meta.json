@@ -1,7 +1,7 @@
 {
   "title": "Transactions, concurrency and row isolation",
   "description": "Keep multi-step issue changes correct under concurrent requests and enforce tenant isolation with meaningful RLS evidence.",
-  "order": 53,
+  "order": 55,
   "section": "fullstack",
   "section_order": 36,
   "icon": "shield",

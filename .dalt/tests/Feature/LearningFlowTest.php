@@ -119,7 +119,7 @@ test('learning pages expose navigation state prerequisites and no-script content
         ->and($fullstack->body)->toContain('Browser, server, request, response')
         ->and($fullstack->body)->toContain('HTML documents, meaning, and browser defaults')
         ->and($fullstack->body)->toContain('Native forms and the HTTP request they create')
-        ->and($fullstack->body)->toContain('What changes when JavaScript takes over a form?')
+        ->and($fullstack->body)->toContain('JavaScript enhancement, JSON, and the SPA model')
         ->and($fullstack->body)->toContain('Planned material')
         ->and($resources->statusCode)->toBe(200)
         ->and($resources->body)->toContain('All resources')
@@ -276,7 +276,7 @@ test('Core and Fullstack continuation and progress stay independently scoped', f
     }
 });
 
-test('FS00.2 follows FS00.1 in the Fullstack journey and keeps the Fullstack back navigation', function () {
+test('the four Part 00 theory lessons follow one another and keep Fullstack navigation', function () {
     $root = p05ProjectFixture();
     try {
         $client = new ApplicationTestClient($root);
@@ -291,6 +291,10 @@ test('FS00.2 follows FS00.1 in the Fullstack journey and keeps the Fullstack bac
             'POST', '/learn/lessons/54-fs00-2-html-documents-and-semantics/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token'],
         );
         $nativeLesson = $client->request('GET', '/learn/lessons/55-fs00-3-native-forms-and-http');
+        $completeNative = $client->request(
+            'POST', '/learn/lessons/55-fs00-3-native-forms-and-http/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token'],
+        );
+        $spaLesson = $client->request('GET', '/learn/lessons/21-fs00-2-forms-json-and-spa');
         $track = $client->request('GET', '/learn/fullstack');
 
         expect($lesson->statusCode)->toBe(200)
@@ -317,8 +321,14 @@ test('FS00.2 follows FS00.1 in the Fullstack journey and keeps the Fullstack bac
             ->and($nativeLesson->body)->toContain('Native forms and the HTTP request they create')
             ->and($nativeLesson->body)->toContain('POST, redirect, GET')
             ->and($nativeLesson->body)->toContain('Expected result:')
-            ->and($track->body)->toContain('2 of 4 available lessons complete')
-            ->and($track->body)->toContain('Continue Native forms and the HTTP request they create');
+            ->and($completeNative->statusCode)->toBe(303)
+            ->and($spaLesson->statusCode)->toBe(200)
+            ->and($spaLesson->body)->toContain('JavaScript enhancement, JSON, and the SPA model')
+            ->and($spaLesson->body)->toContain('Values, JSON text, and HTTP are different layers')
+            ->and($spaLesson->body)->toContain('What “single-page application” means')
+            ->and($spaLesson->body)->toContain('Check your understanding')
+            ->and($track->body)->toContain('3 of 4 available lessons complete')
+            ->and($track->body)->toContain('Continue JavaScript enhancement, JSON, and the SPA model');
     } finally {
         p05RemoveTree($root);
     }

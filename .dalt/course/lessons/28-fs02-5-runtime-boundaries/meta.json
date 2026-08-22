@@ -1,7 +1,7 @@
 {
   "title": "Runtime boundaries",
   "description": "Turn unknown runtime data into trusted application values with evidence, not assertions.",
-  "order": 28,
+  "order": 30,
   "section": "fullstack",
   "section_order": 11,
   "icon": "shield",
