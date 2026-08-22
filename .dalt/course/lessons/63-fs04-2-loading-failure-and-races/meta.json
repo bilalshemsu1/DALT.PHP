@@ -1,0 +1,10 @@
+{
+  "title": "Loading, failure, cleanup, and request races",
+  "description": "Model every request outcome and prevent obsolete responses from replacing current data.",
+  "order": 43,
+  "section": "fullstack",
+  "section_order": 24,
+  "icon": "layers",
+  "color": "purple",
+  "prerequisites": ["33-fs04-1-fetching-data-and-effects"]
+}
