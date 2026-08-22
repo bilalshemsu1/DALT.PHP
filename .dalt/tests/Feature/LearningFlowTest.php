@@ -551,7 +551,7 @@ test('B01 requires all four Part 01 lessons, stores its own completion, and unlo
             ->and($progress['completed_milestones'])->toBe(['B00', 'B01'])
             ->and($journey->body)->toContain('Part 01 complete')
             ->and($journey->body)->toContain('PART 02')
-            ->and($journey->body)->toContain('The TypeScript mental model')
+            ->and($journey->body)->toContain('What TypeScript checks—and what it cannot')
             ->and($journey->body)->toContain('/learn/lessons/24-fs02-1-typescript-mental-model')
             ->and($journey->body)->not->toContain('/learn/fullstack/build/b02')
             ->and($completedBuild->statusCode)->toBe(200)
@@ -559,9 +559,9 @@ test('B01 requires all four Part 01 lessons, stores its own completion, and unlo
             ->and($completedBuild->body)->toContain('Back to the journey')
             ->and($partTwoLesson->statusCode)->toBe(200)
             ->and($partTwoLesson->body)->toContain('href="/learn/fullstack"')
-            ->and($partTwoLesson->body)->toContain('What survives into JavaScript?')
-            ->and($partTwoLesson->body)->toContain('Mode: self-reported practice')
-            ->and($partTwoLesson->body)->toContain('Closed-book checkpoint')
+            ->and($partTwoLesson->body)->toContain('Two moments, two kinds of evidence')
+            ->and($partTwoLesson->body)->toContain('Expected result')
+            ->and($partTwoLesson->body)->toContain('Check your understanding')
             ->and($core->statusCode)->toBe(200);
     } finally {
         p05RemoveTree($root);
@@ -617,20 +617,20 @@ test('FS02.1 stays gated by B01, records ordinary completion, and does not compl
 
         expect($locked->statusCode)->toBe(303)
             ->and($lesson->statusCode)->toBe(200)
-            ->and($lesson->body)->toContain('TypeScript did not make JavaScript runtime magical')
+            ->and($lesson->body)->toContain('Two moments, two kinds of evidence')
             ->and($lesson->body)->toContain('import type')
             ->and($lesson->body)->toContain('strict')
             ->and($complete->statusCode)->toBe(303)
             ->and($progress['completed_lessons'])->toContain('24-fs02-1-typescript-mental-model')
             ->and($progress['completed_milestones'])->toBe(['B00', 'B01'])
-            ->and($journey->body)->toContain('The TypeScript mental model')
+            ->and($journey->body)->toContain('What TypeScript checks—and what it cannot')
             ->and($journey->body)->not->toContain('Part 02 complete')
             ->and($journey->body)->not->toContain('/learn/fullstack/build/b02')
             ->and($laterLesson->statusCode)->toBe(404)
             ->and($b02->statusCode)->toBe(303)
             ->and($core->statusCode)->toBe(200)
             ->and($core->body)->toContain('Foundation')
-            ->and($core->body)->not->toContain('The TypeScript mental model');
+            ->and($core->body)->not->toContain('What TypeScript checks—and what it cannot');
     } finally {
         p05RemoveTree($root);
     }

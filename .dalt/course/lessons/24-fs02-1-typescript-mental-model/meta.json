@@ -1,10 +1,10 @@
 {
-  "title": "The TypeScript mental model",
-  "description": "Use compiler evidence to distinguish static TypeScript reasoning from JavaScript runtime behavior.",
+  "title": "What TypeScript checks—and what it cannot",
+  "description": "Separate TypeScript's source checks from the JavaScript values that run.",
   "order": 28,
   "section": "fullstack",
   "section_order": 9,
   "icon": "layers",
   "color": "purple",
-  "prerequisites": ["23-fs01-2-modules-async-and-failure"]
+  "prerequisites": ["57-fs01-4-promises-fetch-and-failure"]
 }

@@ -86,7 +86,7 @@ test('the Fullstack manifest describes all planned parts and only real Fullstack
         ->and($fullstackLessons[5]['prerequisites'])->toBe(['22-fs01-1-data-functions-transformations'])
         ->and($fullstackLessons[6]['prerequisites'])->toBe(['56-fs01-2-functions-arrays-and-transformations'])
         ->and($fullstackLessons[7]['prerequisites'])->toBe(['23-fs01-2-modules-async-and-failure'])
-        ->and($fullstackLessons[8]['prerequisites'])->toBe(['23-fs01-2-modules-async-and-failure'])
+        ->and($fullstackLessons[8]['prerequisites'])->toBe(['57-fs01-4-promises-fetch-and-failure'])
         ->and($fullstackLessons[9]['prerequisites'])->toBe(['24-fs02-1-typescript-mental-model'])
         ->and($fullstackLessons[10]['prerequisites'])->toBe(['25-fs02-2-modeling-application-data'])
         ->and($fullstackLessons[11]['prerequisites'])->toBe(['26-fs02-3-unions-narrowing-and-unknown'])
