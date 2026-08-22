@@ -14,7 +14,7 @@ function issueSummary(array $issue): string
     return sprintf(
         '#%s [%s] %s',
         $issue['id'],
-        strtoupper($issue['status']),
+        $issue['status'],
         $issue['title'],
     );
 }

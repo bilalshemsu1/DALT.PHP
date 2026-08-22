@@ -356,7 +356,7 @@ test('the FS05.1 PHP foundations lab executes both success and exception paths',
 
     expect($exit)->toBe(0, "The FS05.1 PHP script did not run cleanly:\n{$output}")
         ->and($output)->toBe(
-            "#ISS-41 [TODO] Trace a request\nRejected issue: Issue status is invalid.\n",
+            "#ISS-41 [todo] Trace a request\nRejected issue: Issue status is invalid.\n",
         );
 });
 

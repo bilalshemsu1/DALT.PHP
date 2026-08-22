@@ -133,7 +133,7 @@ Returning an array is convenient for an ordinary 200 JSON result. Use an explici
 
 ## Try it
 
-**Workspace:** none. This is a read-only observation of the working DALT skeleton.
+**Workspace:** No workspace copy is needed. This is a read-only observation of the working DALT skeleton.
 
 **Starting state:** run from the repository root with no challenge active. In one terminal, start the application:
 

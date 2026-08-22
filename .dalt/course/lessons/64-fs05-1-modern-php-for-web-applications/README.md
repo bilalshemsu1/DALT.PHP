@@ -137,7 +137,7 @@ php issue-summary.php
 The exact output is:
 
 ```text
-#ISS-41 [TODO] Trace a request
+#ISS-41 [todo] Trace a request
 Rejected issue: Issue status is invalid.
 ```
 
