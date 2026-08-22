@@ -582,5 +582,15 @@ return [
                 ['label' => 'Accessible names and descriptions', 'href' => 'https://www.w3.org/WAI/ARIA/apg/practices/names-and-descriptions/'],
             ],
         ],
+        [
+            'id' => '45',
+            'slug' => 'create-secure-invitation-links',
+            'title' => 'Create secure invitation links',
+            'description' => 'Let owners create expiring copyable invitations while storing only token hashes, preventing duplicate pending invites, and keeping invitation management owner-only.',
+            'background' => [
+                ['label' => 'PHP random_bytes', 'href' => 'https://www.php.net/manual/en/function.random-bytes.php'],
+                ['label' => 'OWASP forgot-password token guidance', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html'],
+            ],
+        ],
     ],
 ];
