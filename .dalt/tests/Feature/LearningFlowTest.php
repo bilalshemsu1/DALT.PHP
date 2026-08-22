@@ -406,7 +406,7 @@ test('B00 is gated by Part 00 lessons, self-reports completion, and completes on
             ->and($progress['completed_lessons'])->toBe(['20-fs00-1-browser-and-http', '54-fs00-2-html-documents-and-semantics', '55-fs00-3-native-forms-and-http', '21-fs00-2-forms-json-and-spa'])
             ->and($journey->body)->toContain('Part 00 complete')
             ->and($journey->body)->toContain('PART 01')
-            ->and($journey->body)->toContain('Data, functions and transformations')
+            ->and($journey->body)->toContain('Values, references, and immutable updates')
             ->and($journey->body)->toContain('/learn/lessons/22-fs01-1-data-functions-transformations')
             ->and($journey->body)->toContain('B01')
             ->and($core->statusCode)->toBe(200);
@@ -441,16 +441,17 @@ test('FS01.2 follows FS01.1, preserves Fullstack navigation, and leaves B01 and 
         $core = $client->request('GET', '/learn/tracks/foundation');
 
         expect($locked->statusCode)->toBe(303)
-            ->and($journey->body)->toContain('Continue Data, functions and transformations')
+            ->and($journey->body)->toContain('Continue Values, references, and immutable updates')
             ->and($journey->body)->toContain('Part 00 complete')
             ->and($journey->body)->toContain('/learn/lessons/22-fs01-1-data-functions-transformations')
             ->and($journey->body)->toContain('B01')
             ->and($journey->body)->toContain('Planned material · not yet available')
             ->and($lesson->statusCode)->toBe(200)
             ->and($lesson->body)->toContain('href="/learn/fullstack"')
-            ->and($lesson->body)->toContain('Mode: self-reported practice')
-            ->and($lesson->body)->toContain('Predict before reading')
-            ->and($lesson->body)->toContain('Closed-book checkpoint')
+            ->and($lesson->body)->toContain('Values, references, and immutable updates')
+            ->and($lesson->body)->toContain('Copy the changed path')
+            ->and($lesson->body)->toContain('Expected result:')
+            ->and($lesson->body)->toContain('Check your understanding')
             ->and($lockedNext->statusCode)->toBe(303)
             ->and($complete->statusCode)->toBe(303)
             ->and($nextLesson->statusCode)->toBe(200)
@@ -464,7 +465,7 @@ test('FS01.2 follows FS01.1, preserves Fullstack navigation, and leaves B01 and 
             ->and($afterCompletion->body)->toContain('Planned material · not yet available')
             ->and($b01StillLocked->statusCode)->toBe(303)
             ->and($core->body)->toContain('Foundation')
-            ->and($core->body)->not->toContain('Data, functions and transformations');
+            ->and($core->body)->not->toContain('Values, references, and immutable updates');
     } finally {
         p05RemoveTree($root);
     }
