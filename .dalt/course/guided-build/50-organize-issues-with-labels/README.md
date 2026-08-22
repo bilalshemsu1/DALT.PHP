@@ -55,6 +55,8 @@ orphaned join rows, not the issue on the other side. Run `php artisan migrate`.
 Register collection, creation, and deletion routes in `routes/routes.php`:
 
 ```php
+$router->get('/workspaces/{workspace}/labels', 'workspaces/show.php')
+    ->only('auth');
 $router->get('/api/workspaces/{workspace}/labels', 'api/labels/index.php')
     ->only(ApiAuth::class);
 $router->post('/api/workspaces/{workspace}/labels', 'api/labels/store.php')
@@ -62,6 +64,10 @@ $router->post('/api/workspaces/{workspace}/labels', 'api/labels/store.php')
 $router->delete('/api/workspaces/{workspace}/labels/{label}', 'api/labels/destroy.php')
     ->only([ApiAuth::class, 'csrf']);
 ```
+
+The first route serves the existing workspace React shell for a refreshed or pasted
+labels URL. The client router still owns the in-app `labels` screen; both halves are
+needed for a durable SPA deep link.
 
 Any member can list labels because collaborators need them in issue editing. Creation
 and deletion call `WorkspaceAccess::MANAGE_MEMBERS`, our existing owner-only
