@@ -1,6 +1,6 @@
 {
-    "title": "Authorization and ownership",
-    "description": "Use authenticated identity and workspace membership to make protected API behavior true even without the UI.",
+    "title": "Membership, roles, ownership, and authorization",
+    "description": "Derive resource permissions from server identity, workspace membership, roles, and ownership.",
     "order": 57,
     "section": "fullstack",
     "section_order": 38,

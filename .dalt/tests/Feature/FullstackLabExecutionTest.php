@@ -566,7 +566,7 @@ test('the FS06.1 behaviour-test lab passes, and its sabotages fail', function ()
     'Pest is not installed; the FS06.1 lab cannot be executed.',
 );
 
-test('the Batch 8 authentication-boundaries lab proves passwords, sessions, and CSRF', function () {
+test('the Batch 8 authentication-boundaries lab proves passwords, sessions, CSRF, and authorization', function () {
     $source = base_path('.dalt/course/fullstack/auth-boundaries-lab/starter');
     $workspace = sys_get_temp_dir() . '/dalt-auth-boundaries-' . bin2hex(random_bytes(6));
     fullstackLabCopy($source, $workspace);
@@ -612,6 +612,24 @@ test('the Batch 8 authentication-boundaries lab proves passwords, sessions, and 
                 . "matching header status: 200\n"
                 . "writes after matching header: 1\n"
                 . "safe GET status: 200\n",
+            );
+
+        [$authorizationExit, $authorizationOutput] = fullstackLabRun(
+            $workspace,
+            ['env', 'DALT_REPOSITORY_ROOT=' . base_path(), PHP_BINARY, 'scripts/authorization.php'],
+            30,
+        );
+
+        expect($authorizationExit)->toBe(0, "FS06.5's authorization experiment failed:\n{$authorizationOutput}")
+            ->and($authorizationOutput)->toBe(
+                "anonymous edit: 401\n"
+                . "non-member edit: 403\n"
+                . "member non-creator edit: 403\n"
+                . "denied title unchanged: yes\n"
+                . "creator edit: 200\n"
+                . "former creator edit: 403\n"
+                . "owner edit: 200\n"
+                . "forged creator stored as: alice@example.com\n",
             );
     } finally {
         fullstackLabRemove($workspace);
