@@ -41,7 +41,7 @@ describe('ProjectPage', () => {
       listIssues: async () => { throw new IssueApiError('Could not reach the server', 'network'); },
     }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not reach the server');
+    expect(await screen.findByRole('alert')).toHaveTextContent(/^Could not reach the server$/);
     expect(screen.queryByText(/no issues yet/i)).not.toBeInTheDocument();
   });
 

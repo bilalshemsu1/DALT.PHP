@@ -18,7 +18,7 @@ declare(strict_types=1);
  * themselves: the seeded failure fails, a genuine fix passes, and a lab that merely
  * happens to be broken does not read as either.
  *
- * Cost: roughly a minute, dominated by six `npm ci` runs. `DALT_SKIP_LAB_EXECUTION=1`
+ * Cost: roughly a minute, dominated by the `npm ci` runs. `DALT_SKIP_LAB_EXECUTION=1`
  * skips the file for tight inner loops — never in a run whose result you intend to report.
  */
 
@@ -105,7 +105,7 @@ function fullstackLabExpectations(): array
         ],
 
         // FS07.3 — ProjectPage imports the API client directly instead of reading the
-        // ApiContext seam, so the five component tests wrap it in a provider holding a
+        // ApiContext seam, so the six component tests wrap it in a provider holding a
         // fake and the component ignores all of it and calls fetch. jsdom cannot resolve
         // a relative URL, which surfaces as "Failed to parse URL" — the honest error a
         // learner gets when the seam is missing, not a synthetic one.
@@ -117,6 +117,7 @@ function fullstackLabExpectations(): array
         'frontend-testing-lab' => [
             'typecheck' => 'pass',
             'test' => ['fail', 'Failed to parse URL'],
+            'test:components' => ['fail', 'Failed to parse URL'],
             'test:parsers' => 'pass',   // the cheapest level works before the seam exists
             'test:routing' => 'pass',
             'test:session' => 'pass',
@@ -341,6 +342,67 @@ test('the lab runs exactly as its lesson promises', function (string $lab) {
         fullstackLabExpectations()[$lab],
     );
 })->with('fullstack labs');
+
+test('the FS07.3 API seam has one genuine fix and rejects a plausible fake', function () {
+    if (getenv('DALT_SKIP_LAB_EXECUTION') === '1') {
+        $this->markTestSkipped('DALT_SKIP_LAB_EXECUTION=1.');
+    }
+
+    $source = base_path('.dalt/course/fullstack/frontend-testing-lab/starter');
+    $npm = fullstackLabRun($source, ['npm', '--version'], 30);
+    if ($npm[0] !== 0) {
+        $this->markTestSkipped('npm is not available on this machine.');
+    }
+
+    $workspace = sys_get_temp_dir() . '/dalt-fs073-' . bin2hex(random_bytes(6));
+
+    try {
+        fullstackLabCopy($source, $workspace);
+        [$installExit, $installOutput] = fullstackLabRun(
+            $workspace,
+            ['npm', 'ci', '--prefer-offline', '--no-audit', '--no-fund'],
+            600,
+        );
+        if ($installExit !== 0) {
+            $this->markTestSkipped("`npm ci` failed for the FS07.3 proof.\n" . $installOutput);
+        }
+
+        $projectPage = $workspace . '/src/ProjectPage.tsx';
+        $broken = (string) file_get_contents($projectPage);
+        $fixed = str_replace(
+            ["import { issueApi } from './issueApi';", 'const api = issueApi;'],
+            ["import { useIssueApi } from './ApiContext';", 'const api = useIssueApi();'],
+            $broken,
+            $replacementCount,
+        );
+
+        expect($replacementCount)->toBe(2, 'The two learner-facing FS07.3 seam markers drifted.');
+        file_put_contents($projectPage, $fixed);
+
+        [$fixedExit, $fixedOutput] = fullstackLabRun(
+            $workspace,
+            ['npm', 'run', '--silent', 'test:components'],
+            300,
+        );
+        expect($fixedExit)->toBe(0, "The genuine API seam fix must pass all component tests.\n{$fixedOutput}");
+
+        $fake = str_replace("draft.title.trim() === ''", "draft.title === ''", $fixed, $fakeCount);
+        expect($fakeCount)->toBe(1, 'The plausible fake mutation no longer reaches title validation.');
+        file_put_contents($projectPage, $fake);
+
+        [$fakeExit, $fakeOutput] = fullstackLabRun(
+            $workspace,
+            ['npm', 'run', '--silent', 'test:components'],
+            300,
+        );
+        expect($fakeExit)->not->toBe(0, 'A seam-only fake that breaks whitespace validation must fail.')
+            ->and(str_contains($fakeOutput, 'rejects a whitespace-only title'))->toBeTrue(
+                "The plausible fake failed for the wrong reason.\n{$fakeOutput}",
+            );
+    } finally {
+        fullstackLabRemove($workspace);
+    }
+});
 
 test('the build workspace runs exactly as its milestone specification promises', function (string $workspace) {
     fullstackAssertWorkspace(

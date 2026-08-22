@@ -1,95 +1,80 @@
-# FS07.3 lab — Frontend testing
+# Part 07 lab — Routed and tested frontend
 
-A small React + TypeScript issue screen with a test suite that is **deliberately failing on
-the first run**. The failure is the lesson: five component tests cannot reach the component
-they are testing, because the component imports its API client instead of receiving it.
+This shared React + TypeScript lab grows across Part 07:
 
-Fixing that one import is the technique FS04.3 and B04 both deferred to Part 07.
+- `RouteDemo` gives screens durable URLs;
+- `AuthSession` resolves a server session before protected navigation;
+- `ProjectPage` teaches behavior testing through an injectable API seam.
+
+The component exercise starts red on purpose. Work in a copy, never in the course starter.
 
 ## Set up
 
-Copy the starter into your gitignored workspace. Never edit it in place — the copy is what
-makes the exercise repeatable.
-
-```sh
-mkdir -p .dalt/workspace/fs07-frontend-testing
-cp -R .dalt/course/fullstack/frontend-testing-lab/starter/. .dalt/workspace/fs07-frontend-testing/
+```bash
+mkdir -p .dalt/workspace
+cp -R .dalt/course/fullstack/frontend-testing-lab/starter \
+  .dalt/workspace/fs07-frontend-testing
 cd .dalt/workspace/fs07-frontend-testing
-npm install
+npm ci
 ```
 
-## What you should see
+## Check each completed slice
 
-```sh
-npm run typecheck     # clean — the defect is not a type error
-npm run test:parsers  # 4 passed — the cheapest level already works
-npm run test          # 5 passed, 5 failed — this is the exercise
+```bash
+npm run test:routing     # 4 passed
+npm run test:session     # 4 passed
+npm run test:parsers     # 4 passed
+npm run typecheck        # clean
+npm run build            # production bundle created
 ```
 
-Read the failure before changing anything:
+## The FS07.3 defect
+
+Run the component tests:
+
+```bash
+npm run test:components
+```
+
+All six fail with an error containing:
 
 ```text
-Could not reach the server: TypeError: Failed to parse URL from /api/projects/PRJ-1/issues
+Failed to parse URL
 ```
 
-That message is worth sitting with. The test wrapped `ProjectPage` in an `ApiProvider`
-holding a fake that returns one issue and never touches the network. The component tried
-the network anyway. **A provider only reaches a component that asks for it.**
+The tests wrap `ProjectPage` in an `ApiProvider` whose typed fake never touches the network. The component ignores it because `src/ProjectPage.tsx` imports the real `issueApi` directly. TypeScript remains green because both clients satisfy the same interface.
 
-Note also what `npm run typecheck` says: nothing. The defect is a wiring mistake, not a
-type mistake, and the compiler has no opinion about which of two values of the same type
-you chose. This is the same shape as the trap in B03 Stage 4.
+Replace the two lines marked `STAGE 1`:
 
-## Stage 1 — Introduce the seam
+```tsx
+import { useIssueApi } from './ApiContext';
 
-In `src/ProjectPage.tsx`, replace the direct import with the context hook. Two lines, both
-marked `STAGE 1`. Then run `npm run test` again: 10 passed.
+// inside ProjectPage
+const api = useIssueApi();
+```
 
-Nothing else in the file changes, and `main.tsx` keeps working untouched — the context's
-default value is the real client, so production wiring needs no provider.
+Run the focused command again:
 
-## Stage 2 — Watch each test fail on purpose
+```bash
+npm run test:components   # 6 passed
+npm test                  # 18 passed
+```
 
-A test you have never seen fail is a test you have no evidence about. Break each behaviour,
-confirm the expected test goes red, then put it back:
+The context's default remains the real API client, so the production entry point needs no special test wiring.
+
+## Prove the tests can fail honestly
+
+Break one behavior at a time, run `npm run test:components`, and restore it:
 
 ```text
-IssueList: return null for the empty case      → "shows the empty state" fails
-ProjectPage: drop the trim() check             → "rejects a whitespace-only title" fails
-CreateIssueForm: clear title on failure        → "keeps the draft on screen" fails
-ProjectPage: swap the failed branch for []     → "distinguishes a failed request" fails
-CreateIssueForm: <button> becomes <div>        → every test using getByRole fails
+IssueList returns null for an empty list       → empty-state test fails
+ProjectPage checks title without trim()        → whitespace-title test fails
+CreateIssueForm clears a rejected draft        → preserved-draft test fails
+IssueList changes <li> to <div>                 → listitem query fails
 ```
 
-The last one is the argument for role queries in one line. A `getByTestId` suite stays
-green while the button stops being a button for anyone using a keyboard or screen reader.
-
-## Stage 3 — Add the two the lab does not ship
-
-The suite covers the list, the empty state, a failed load, client-side validation, a
-successful create and a rejected create. Add:
-
-1. **A route test.** Render `MemoryRouter` with real route definitions, click a link to an
-   issue, and assert the detail heading appears. You will need a small `IssuePage`.
-2. **An authorization-sensitive control.** A `canDelete={false}` viewer must not see a
-   Delete button — and remember the ordering rule: wait for a positive signal first, then
-   assert the absence. Asserting it immediately after `render` passes for the wrong reason.
-
-## What is worth stealing
-
-`src/ProjectPage.test.tsx` shows the pattern to carry into your own project:
-
-- `fakeApi(overrides)` — one typed factory, each test overriding only what it cares about.
-- The fake is annotated `IssueApi`, so it cannot drift from what the real client returns.
-- Unused operations **throw** rather than returning `undefined`, so an unexpected call
-  names itself instead of failing somewhere confusing.
-- `vi.fn()` only where the call itself is the contract — that `createIssue` receives the
-  chosen `priority` and does not invent an `id`.
+Each failure should name a missing visible result. The course test also applies a plausible fake automatically: it wires the seam correctly but breaks whitespace validation, and requires the behavior suite to reject it.
 
 ## Reset
 
-```sh
-cd .. && rm -rf fs07-frontend-testing
-```
-
-Then copy the starter again. The lab is disposable on purpose; your issue tracker is not.
+Delete the workspace copy and repeat setup whenever you want the original red exercise again. Keep a working copy for FS07.4.
