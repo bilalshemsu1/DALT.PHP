@@ -783,7 +783,7 @@ test('FS02.4 requires FS02.3, records ordinary completion, and unlocks only type
     }
 });
 
-test('FS02.4 requires FS02.3, records only its own completion, then unlocks FS02.5 while B02 stays unavailable', function () {
+test('FS02.5 requires FS02.4, records only its own completion, then unlocks runtime boundaries', function () {
     $root = p05ProjectFixture();
     try {
         $locked = (new ApplicationTestClient($root))->request('GET', '/learn/lessons/27-fs02-4-functions-generics-and-reusable-types');
@@ -804,17 +804,17 @@ test('FS02.4 requires FS02.3, records only its own completion, then unlocks FS02
         $core = $client->request('GET', '/learn/tracks/foundation');
 
         expect($locked->statusCode)->toBe(303)
-            ->and($journeyBefore->body)->toContain('Continue Functions, generics and reusable types')
+            ->and($journeyBefore->body)->toContain('Continue Typed functions, generics, and reusable relationships')
             ->and($journeyBefore->body)->toContain('/learn/lessons/27-fs02-4-functions-generics-and-reusable-types')
             ->and($lesson->statusCode)->toBe(200)
             ->and($lesson->body)->toContain('href="/learn/fullstack"')
-            ->and($lesson->body)->toContain('A function is a contract')
-            ->and($lesson->body)->toContain('Focused exercise — evolve typed issue utilities')
-            ->and($lesson->body)->toContain('Closed-book checkpoint')
+            ->and($lesson->body)->toContain('A function contract has two directions')
+            ->and($lesson->body)->toContain('A generic preserves a relationship')
+            ->and($lesson->body)->toContain('Check your understanding')
             ->and($complete->statusCode)->toBe(303)
             ->and($progress['completed_lessons'])->toContain('27-fs02-4-functions-generics-and-reusable-types')
             ->and($progress['completed_milestones'])->toBe(['B00', 'B01'])
-            ->and($journey->body)->toContain('Functions, generics and reusable types')
+            ->and($journey->body)->toContain('Typed functions, generics, and reusable relationships')
             ->and($journey->body)->toContain('Runtime boundaries')
             ->and($journey->body)->not->toContain('Part 02 complete')
             ->and($fs025->statusCode)->toBe(200)
@@ -824,7 +824,7 @@ test('FS02.4 requires FS02.3, records only its own completion, then unlocks FS02
             ->and($b02->statusCode)->toBe(303)
             ->and($core->statusCode)->toBe(200)
             ->and($core->body)->toContain('Foundation')
-            ->and($core->body)->not->toContain('Functions, generics and reusable types');
+            ->and($core->body)->not->toContain('Typed functions, generics, and reusable relationships');
     } finally {
         p05RemoveTree($root);
     }

@@ -1,6 +1,6 @@
 {
-  "title": "Functions, generics and reusable types",
-  "description": "Preserve useful type relationships through functions and related application models.",
+  "title": "Typed functions, generics, and reusable relationships",
+  "description": "Design function contracts and preserve useful relationships across reusable code.",
   "order": 32,
   "section": "fullstack",
   "section_order": 13,
