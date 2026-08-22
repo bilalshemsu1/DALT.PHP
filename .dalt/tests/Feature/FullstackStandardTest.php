@@ -9,11 +9,11 @@ use Core\FullstackTrack;
 /**
  * The authoring standard, enforced.
  *
- * LESSON_STANDARD.md 97 and .dalt/course/build/README.md describe what a Fullstack
- * lesson and a Build milestone must contain. Those documents were followed exactly
- * for Part 00, loosely for Part 01, and barely at all for Parts 02 and 03 — nine of
- * thirteen lessons shipped with no Maintainer source record, and Part 03 shipped at
- * half the depth of the material before it. Nothing noticed, because nothing checked.
+ * Two lesson formats coexist while owner amendment C is rolled through Parts 00–11.
+ * Historical lessons retain the old §97 checks until their batch starts. A lesson
+ * declaring `Lesson format: Concise theory` follows the smaller contract in
+ * docs/dalt-fullstack-theory/PIPELINE.md instead. Build milestones keep their own
+ * historical standard.
  *
  * This file is the check. A standard that lives only in a document degrades across
  * thirty-two lessons; a standard that fails the suite does not.
@@ -35,6 +35,60 @@ function fullstackLessonIds(): array
 function fullstackLessonBody(string $id): string
 {
     return (string) file_get_contents(base_path(".dalt/course/lessons/{$id}/README.md"));
+}
+
+function fullstackIsConciseLesson(string $id): bool
+{
+    return str_contains(fullstackLessonBody($id), 'Lesson format: Concise theory');
+}
+
+/** @return list<string> */
+function fullstackLegacyLessonIds(): array
+{
+    return array_values(array_filter(
+        fullstackLessonIds(),
+        static fn (string $id): bool => !fullstackIsConciseLesson($id),
+    ));
+}
+
+/** @return list<string> */
+function fullstackConciseLessonIds(): array
+{
+    return array_values(array_filter(fullstackLessonIds(), fullstackIsConciseLesson(...)));
+}
+
+function fullstackVisibleProseWords(string $id): int
+{
+    $visible = [];
+    $insideFence = false;
+    $insideDetails = false;
+    $teachingStarted = false;
+
+    foreach (explode("\n", fullstackLessonBody($id)) as $line) {
+        if (!$teachingStarted) {
+            $teachingStarted = str_starts_with($line, '## ');
+            if (!$teachingStarted) {
+                continue;
+            }
+        }
+        if (trim($line) === '<details>') {
+            $insideDetails = true;
+            continue;
+        }
+        if (trim($line) === '</details>') {
+            $insideDetails = false;
+            continue;
+        }
+        if (preg_match('/^\s*(```|~~~)/', $line) === 1) {
+            $insideFence = !$insideFence;
+            continue;
+        }
+        if (!$insideFence && !$insideDetails) {
+            $visible[] = $line;
+        }
+    }
+
+    return str_word_count(strip_tags(implode("\n", $visible)));
 }
 
 /**
@@ -238,6 +292,8 @@ function fullstackCodeDensity(string $id): array
 }
 
 dataset('fullstack lessons', array_map(static fn (string $id): array => [$id], fullstackLessonIds()));
+dataset('legacy fullstack lessons', array_map(static fn (string $id): array => [$id], fullstackLegacyLessonIds()));
+dataset('concise fullstack lessons', array_map(static fn (string $id): array => [$id], fullstackConciseLessonIds()));
 dataset('fullstack parts', array_map(static fn (string $part): array => [$part], fullstackParts()));
 dataset('build milestones', array_map(static fn (string $id): array => [$id], array_keys(BuildMilestone::all())));
 
@@ -278,7 +334,7 @@ test('the lesson contains every mandatory section', function (string $id) {
             . 'do not skip it silently, which is how nine lessons lost their source record.',
         );
     }
-})->with('fullstack lessons');
+})->with('legacy fullstack lessons');
 
 test('every mandatory section says something', function (string $id) {
     // Presence was checked above; this checks content. All three Part 08 lessons shipped
@@ -297,7 +353,40 @@ test('every mandatory section says something', function (string $id) {
             . 'Write it, or amend the standard and FULLSTACK_LESSON_SECTIONS together.',
         );
     }
-})->with('fullstack lessons');
+})->with('legacy fullstack lessons');
+
+test('a concise lesson keeps the small learner-facing contract', function (string $id) {
+    $sections = fullstackSections($id);
+
+    foreach (['## What we will learn', '## Try it', '## What to notice', '## Check your understanding', '## Next'] as $heading) {
+        expect(array_key_exists($heading, $sections))->toBeTrue(
+            "{$id} is missing '{$heading}'. The concise contract is small, but each remaining section has a job.",
+        );
+        expect(strlen($sections[$heading]))->toBeGreaterThan(
+            40,
+            "{$id} has an empty or near-empty '{$heading}' section.",
+        );
+    }
+
+    $body = fullstackLessonBody($id);
+    foreach (['**Workspace:**', '**Expected result:**', '**Reset:**'] as $label) {
+        expect(str_contains($body, $label))->toBeTrue(
+            "{$id}'s experiment is missing '{$label}'. A disposable experiment must say where it runs, what appears, and how it resets.",
+        );
+    }
+    expect(str_contains($body, '.dalt/workspace/') || str_contains($body, 'No workspace copy is needed'))->toBeTrue(
+        "{$id}'s experiment names neither a disposable workspace nor an honest browser-only exception.",
+    );
+})->with('concise fullstack lessons');
+
+test('a concise lesson stays concise', function (string $id) {
+    $words = fullstackVisibleProseWords($id);
+
+    expect($words)->toBeLessThanOrEqual(
+        1800,
+        "{$id} has {$words} learner-visible prose words. Split the lesson or record a specific exception in the theory worklog.",
+    );
+})->with('concise fullstack lessons');
 
 test('the lesson is not padded with generated filler', function (string $id) {
     // Part 08 was written 1,350 lines over the depth floor by `// state-boundary review N`
@@ -403,7 +492,15 @@ test('every package the lesson installs names an exact version', function (strin
 
 test('the lesson records its provenance', function (string $id) {
     $body = fullstackLessonBody($id);
-    $record = substr($body, (int) strpos($body, '## Maintainer source record'));
+    $marker = fullstackIsConciseLesson($id)
+        ? '<summary>Maintainer source record</summary>'
+        : '## Maintainer source record';
+    $position = strpos($body, $marker);
+
+    expect($position)->not->toBeFalse(
+        "{$id} has no maintainer source record. Concise lessons collapse it; historical lessons use the old heading.",
+    );
+    $record = substr($body, (int) $position);
 
     foreach (['Source dossier:', 'Official sources:', 'Versions:', 'Consulted:', 'Curriculum authority:'] as $field) {
         expect(str_contains($record, $field))->toBeTrue(
@@ -423,7 +520,7 @@ test('the lesson states its exercise verification mode', function (string $id) {
         "{$id} has no '**Mode: ...**' declaration on its exercise. Amendment B allows manual and "
         . 'self-reported evidence precisely on condition that the lesson says which is in use.',
     );
-})->with('fullstack lessons');
+})->with('legacy fullstack lessons');
 
 test('the lesson is deep enough to be worth its place', function (string $id) {
     $words = fullstackLessonWords($id);
@@ -435,9 +532,9 @@ test('the lesson is deep enough to be worth its place', function (string $id) {
         1200,
         "{$id} is {$words} words. That is stub territory.",
     );
-})->with('fullstack lessons');
+})->with('legacy fullstack lessons');
 
-test('the part does not regress in depth against the part before it', function (string $part) {
+test('an unrevised part does not regress in depth against earlier unrevised parts', function (string $part) {
     // AGENTS.md 3: "A lesson on harder material may not be shorter than the lessons
     // before it." That rule lived only in a document, and a flat 1,200-word floor
     // certified Parts 04-06 at roughly half of Part 03 on strictly harder material —
@@ -449,7 +546,16 @@ test('the part does not regress in depth against the part before it', function (
     // A ratchet against every earlier part, not just the one immediately before. If it
     // only compared with the predecessor, deepening Part 04 alone would lower the bar
     // for Part 05 back to whatever Part 04 happened to land on.
-    $earlier = fullstackPartsBefore($part);
+    $earlier = array_values(array_filter(
+        fullstackPartsBefore($part),
+        static fn (string $candidate): bool => fullstackConciseLessonIds() === []
+            || array_filter(fullstackLessonsIn($candidate), fullstackIsConciseLesson(...)) === [],
+    ));
+    if (array_filter(fullstackLessonsIn($part), fullstackIsConciseLesson(...)) !== []) {
+        expect(true)->toBeTrue();
+
+        return;
+    }
     if ($earlier === []) {
         expect(true)->toBeTrue();
 
@@ -501,7 +607,7 @@ test('the lesson shows code, not descriptions of code', function (string $id) {
         "{$id} has {$lines} lines of code across {$blocks} blocks. That is a lesson made of "
         . 'fragments; show enough for the learner to see the shape of the thing.',
     );
-})->with('fullstack lessons');
+})->with('legacy fullstack lessons');
 
 test('the lesson has no unfinished authoring markers', function (string $id) {
     $body = fullstackLessonBody($id);
@@ -535,6 +641,8 @@ test('the lesson never presents a Core lesson as required', function (string $id
     $lesson = CourseLoader::getLesson($id);
     $fullstackIds = fullstackLessonIds();
 
+    expect($lesson)->not->toBeNull();
+
     // CURRICULUM.md 50 Amendment A. The prerequisites field can express a cross-track
     // dependency and is deliberately never used for one; the machinery makes the
     // wrong thing easy, which is the only reason this is worth asserting.
@@ -547,16 +655,18 @@ test('the lesson never presents a Core lesson as required', function (string $id
 
     $body = fullstackLessonBody($id);
 
-    // Every Fullstack lesson must carry the block, even to say "None" — its absence is
-    // how a Core reference quietly reappears as an unlabelled requirement.
-    expect(preg_match('/^Going deeper.*DALT Core.*$/mi', $body, $match))->toBe(
-        1,
-        "{$id} has no 'Going deeper in DALT Core — optional' block. LESSON_STANDARD.md 8 requires it; "
-        . "'None.' is a valid body.",
-    );
-    expect(str_contains(strtolower($match[0]), 'optional'))->toBeTrue(
-        "{$id}'s Core block does not say 'optional' in its heading.",
-    );
+    if (!fullstackIsConciseLesson($id)) {
+        // Historical lessons carry the explicit block. Concise lessons use the small
+        // prerequisite/link surface and omit it when there is no useful reference.
+        expect(preg_match('/^Going deeper.*DALT Core.*$/mi', $body, $match))->toBe(
+            1,
+            "{$id} has no 'Going deeper in DALT Core — optional' block. LESSON_STANDARD.md 8 requires it; "
+            . "'None.' is a valid body.",
+        );
+        expect(str_contains(strtolower($match[0]), 'optional'))->toBeTrue(
+            "{$id}'s Core block does not say 'optional' in its heading.",
+        );
+    }
 })->with('fullstack lessons');
 
 test('the build specification contains every mandatory section', function (string $id) {

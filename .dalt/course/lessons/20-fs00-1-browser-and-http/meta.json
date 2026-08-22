@@ -1,6 +1,6 @@
 {
-  "title": "What happens when you open a web page?",
-  "description": "Follow a real page request from the address bar to the screen.",
+  "title": "Browser, server, request, response",
+  "description": "Read the HTTP exchange behind one page visit.",
   "order": 20,
   "section": "fullstack",
   "section_order": 1,
