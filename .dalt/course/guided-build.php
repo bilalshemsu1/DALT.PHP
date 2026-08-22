@@ -602,5 +602,15 @@ return [
                 ['label' => 'PHP hash', 'href' => 'https://www.php.net/manual/en/function.hash.php'],
             ],
         ],
+        [
+            'id' => '47',
+            'slug' => 'manage-members-without-losing-an-owner',
+            'title' => 'Manage members without losing an owner',
+            'description' => 'Promote, demote, remove, leave, and revoke safely by locking membership state and rejecting every operation that would orphan a workspace.',
+            'background' => [
+                ['label' => 'PostgreSQL row-level locks', 'href' => 'https://www.postgresql.org/docs/current/explicit-locking.html#LOCKING-ROWS'],
+                ['label' => 'OWASP authorization testing', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Testing_Automation_Cheat_Sheet.html'],
+            ],
+        ],
     ],
 ];
