@@ -1,0 +1,10 @@
+{
+  "title": "State structure and ownership",
+  "description": "Keep state minimal and place each value in the component that coordinates its consumers.",
+  "order": 38,
+  "section": "fullstack",
+  "section_order": 19,
+  "icon": "layers",
+  "color": "purple",
+  "prerequisites": ["30-fs03-2-state-and-events"]
+}
