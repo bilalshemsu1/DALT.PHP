@@ -119,6 +119,7 @@ function fullstackLabExpectations(): array
             'test' => ['fail', 'Failed to parse URL'],
             'test:parsers' => 'pass',   // the cheapest level works before the seam exists
             'test:routing' => 'pass',
+            'test:session' => 'pass',
             'build' => 'pass',
         ],
     ];

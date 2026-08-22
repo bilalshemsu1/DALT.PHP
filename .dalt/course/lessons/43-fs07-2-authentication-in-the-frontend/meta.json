@@ -1,6 +1,6 @@
 {
-    "title": "Authentication in the frontend",
-    "description": "Derive frontend authentication state from the server while keeping authorization on the backend.",
+    "title": "Current-user state and protected navigation",
+    "description": "Resolve the server session into honest React state before protecting navigation.",
     "order": 59,
     "section": "fullstack",
     "section_order": 40,
