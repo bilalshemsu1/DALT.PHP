@@ -1,6 +1,6 @@
 {
-    "title": "URLs and React Router",
-    "description": "Use durable URLs, route parameters, links, and not-found states to make an application navigable.",
+    "title": "URLs, nested routes, and React Router",
+    "description": "Turn durable browser addresses into nested, validated React screens.",
     "order": 58,
     "section": "fullstack",
     "section_order": 39,
