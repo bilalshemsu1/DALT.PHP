@@ -542,5 +542,15 @@ return [
                 ['label' => 'PostgreSQL transaction isolation', 'href' => 'https://www.postgresql.org/docs/current/transaction-iso.html'],
             ],
         ],
+        [
+            'id' => '41',
+            'slug' => 'restore-the-react-session',
+            'title' => 'Restore the React session',
+            'description' => 'Load the signed-in user and CSRF token from DALT, model every request state in one React provider, and remove duplicated identity from page bootstrap data.',
+            'background' => [
+                ['label' => 'React context', 'href' => 'https://react.dev/learn/passing-data-deeply-with-context'],
+                ['label' => 'Using effects for network synchronization', 'href' => 'https://react.dev/reference/react/useEffect#fetching-data-with-effects'],
+            ],
+        ],
     ],
 ];
