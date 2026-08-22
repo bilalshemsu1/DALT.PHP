@@ -1,6 +1,6 @@
 {
-  "title": "Fetching data and effects",
-  "description": "Load remote issues deliberately, including loading, empty, HTTP, and network states.",
+  "title": "Fetching data and synchronizing with Effects",
+  "description": "Load trusted server data after rendering and understand why the synchronization is an Effect.",
   "order": 41,
   "section": "fullstack",
   "section_order": 22,
