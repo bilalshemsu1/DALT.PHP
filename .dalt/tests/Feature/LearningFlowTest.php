@@ -437,6 +437,10 @@ test('FS01.2 follows FS01.1, preserves Fullstack navigation, and leaves B01 and 
         );
         $nextLesson = $client->request('GET', '/learn/lessons/56-fs01-2-functions-arrays-and-transformations');
         $afterCompletion = $client->request('GET', '/learn/fullstack');
+        $completeTransformations = $client->request(
+            'POST', '/learn/lessons/56-fs01-2-functions-arrays-and-transformations/complete', input: ['continue' => '1'], server: ['HTTP_X_CSRF_TOKEN' => 'known-token'], session: ['_csrf' => 'known-token'],
+        );
+        $moduleLesson = $client->request('GET', '/learn/lessons/23-fs01-2-modules-async-and-failure');
         $b01StillLocked = $client->request('GET', '/learn/fullstack/build/b01');
         $core = $client->request('GET', '/learn/tracks/foundation');
 
@@ -462,6 +466,12 @@ test('FS01.2 follows FS01.1, preserves Fullstack navigation, and leaves B01 and 
             ->and($nextLesson->body)->toContain('<details>')
             ->and($afterCompletion->body)->toContain('Continue Functions, arrays, and data transformations')
             ->and($afterCompletion->body)->toContain('/learn/lessons/56-fs01-2-functions-arrays-and-transformations')
+            ->and($completeTransformations->statusCode)->toBe(303)
+            ->and($moduleLesson->statusCode)->toBe(200)
+            ->and($moduleLesson->body)->toContain('Modules and browser tooling')
+            ->and($moduleLesson->body)->toContain('Read errors from the first useful frame')
+            ->and($moduleLesson->body)->toContain('node .dalt/workspace/fs01-modules/run-preview.mjs')
+            ->and($moduleLesson->body)->toContain('Expected result:')
             ->and($afterCompletion->body)->toContain('B01')
             ->and($afterCompletion->body)->toContain('Planned material · not yet available')
             ->and($b01StillLocked->statusCode)->toBe(303)

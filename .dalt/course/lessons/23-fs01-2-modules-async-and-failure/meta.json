@@ -1,10 +1,10 @@
 {
-  "title": "Modules, async JavaScript and failure",
-  "description": "Trace future values, fetch responses, and the different places an operation can fail.",
+  "title": "Modules and browser tooling",
+  "description": "Create explicit module boundaries and trace loading and runtime failures.",
   "order": 26,
   "section": "fullstack",
   "section_order": 7,
   "icon": "layers",
   "color": "purple",
-  "prerequisites": ["22-fs01-1-data-functions-transformations"]
+  "prerequisites": ["56-fs01-2-functions-arrays-and-transformations"]
 }
