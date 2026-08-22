@@ -572,5 +572,15 @@ return [
                 ['label' => 'HTTP 403 Forbidden', 'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/403'],
             ],
         ],
+        [
+            'id' => '44',
+            'slug' => 'show-the-member-directory',
+            'title' => 'Show the member directory',
+            'description' => 'Add a member-safe JSON collection and React screen with public fields, accessible role labels, complete request states, and shared workspace navigation.',
+            'background' => [
+                ['label' => 'React conditional rendering', 'href' => 'https://react.dev/learn/conditional-rendering'],
+                ['label' => 'Accessible names and descriptions', 'href' => 'https://www.w3.org/WAI/ARIA/apg/practices/names-and-descriptions/'],
+            ],
+        ],
     ],
 ];
