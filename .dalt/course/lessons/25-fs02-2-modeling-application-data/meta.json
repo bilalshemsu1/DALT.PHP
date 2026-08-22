@@ -1,6 +1,6 @@
 {
   "title": "Modeling application data",
-  "description": "Turn application decisions into honest object shapes and finite valid states.",
+  "description": "Model required, optional, nullable, readonly, and finite application states.",
   "order": 30,
   "section": "fullstack",
   "section_order": 11,
