@@ -1,0 +1,12 @@
+{
+    "title": "Layers, build cache, and multi-stage images",
+    "description": "Order a Dockerfile around what changes, and ship only what the runtime needs.",
+    "order": 71,
+    "section": "fullstack",
+    "section_order": 52,
+    "icon": "docker",
+    "color": "purple",
+    "prerequisites": [
+        "73-fs10-2-dockerfiles-and-build-context"
+    ]
+}

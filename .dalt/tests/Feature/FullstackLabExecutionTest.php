@@ -723,6 +723,59 @@ test('the Batch 11 Docker lab runs each lesson against real Docker', function ()
 
         rename($workspace . '/dockerignore.disabled', $workspace . '/.dockerignore');
         fullstackLabRun($workspace, ['docker', 'image', 'rm', '-f', $firstTag, $noIgnoreTag], 120);
+
+        // FS10.3 - the multi-stage image must actually be able to reach PostgreSQL and
+        // must actually be smaller than the single-stage one. Both are claims the lesson
+        // prints numbers for, so both are measured here.
+        $singleTag = 'dalt-lab-test-single:' . bin2hex(random_bytes(4));
+        $multiTag = 'dalt-lab-test-multi:' . bin2hex(random_bytes(4));
+
+        [$singleExit, $singleOutput] = fullstackLabRun($workspace, [
+            'docker', 'build', '-f', 'Dockerfile.single', '-t', $singleTag, '.',
+        ], 900);
+        expect($singleExit)->toBe(0, "FS10.3's single-stage image did not build:\n{$singleOutput}");
+
+        [$multiExit, $multiOutput] = fullstackLabRun($workspace, [
+            'docker', 'build', '-t', $multiTag, '.',
+        ], 900);
+        expect($multiExit)->toBe(0, "FS10.3's multi-stage image did not build:\n{$multiOutput}");
+
+        [, $driverOutput] = fullstackLabRun($workspace, [
+            'docker', 'run', '--rm', $multiTag, 'php', '-r', 'echo implode(",", PDO::getAvailableDrivers());',
+        ], 120);
+        expect($driverOutput)->toContain('pgsql');
+
+        // FS10.3 also promises the runtime stage runs as a non-root user.
+        [, $idOutput] = fullstackLabRun($workspace, ['docker', 'run', '--rm', $multiTag, 'id', '-u'], 120);
+        expect(trim($idOutput))->toBe('10001');
+
+        $sizeOf = static function (string $tag) use ($workspace): int {
+            [, $bytes] = fullstackLabRun($workspace, ['docker', 'image', 'inspect', $tag, '--format', '{{.Size}}'], 60);
+
+            return (int) trim($bytes);
+        };
+        expect($sizeOf($multiTag))->toBeLessThan(
+            $sizeOf($singleTag),
+            'The multi-stage image is not smaller than the single-stage one, so FS10.3 has no argument.',
+        );
+
+        // The second build of an unchanged context must reuse the expensive layers.
+        [, $cachedOutput] = fullstackLabRun($workspace, [
+            'docker', 'build', '--progress=plain', '-t', $multiTag, '.',
+        ], 900);
+        expect($cachedOutput)->toContain('CACHED');
+
+        // A file .dockerignore excludes is not a build input, so touching it changes nothing.
+        file_put_contents($workspace . '/notes/todo.txt', "more scratch\n", FILE_APPEND);
+        [, $ignoredOutput] = fullstackLabRun($workspace, [
+            'docker', 'build', '--progress=plain', '-t', $multiTag, '.',
+        ], 900);
+        expect(substr_count($ignoredOutput, 'CACHED'))->toBe(
+            substr_count($cachedOutput, 'CACHED'),
+            "Touching an ignored file changed the build, so .dockerignore is not filtering the context.\n{$ignoredOutput}",
+        );
+
+        fullstackLabRun($workspace, ['docker', 'image', 'rm', '-f', $singleTag, $multiTag], 120);
     } finally {
         fullstackLabRun($workspace, ['docker', 'rm', '-f', $container], 60);
         fullstackLabRemove($workspace);
