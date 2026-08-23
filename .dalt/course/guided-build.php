@@ -772,5 +772,15 @@ return [
                 ['label' => 'Dockerfile HEALTHCHECK', 'href' => 'https://docs.docker.com/reference/dockerfile/#healthcheck'],
             ],
         ],
+        [
+            'id' => '65',
+            'slug' => 'run-migrations-as-a-deployment-step',
+            'title' => 'Run migrations as a deployment step',
+            'description' => 'Apply the schema from a one-shot job that holds an advisory lock, is safe to repeat, blocks the release when it fails, and keeps demonstration data out of production.',
+            'background' => [
+                ['label' => 'PostgreSQL advisory locks', 'href' => 'https://www.postgresql.org/docs/18/explicit-locking.html#ADVISORY-LOCKS'],
+                ['label' => 'PostgreSQL backup and restore', 'href' => 'https://www.postgresql.org/docs/18/backup-dump.html'],
+            ],
+        ],
     ],
 ];
