@@ -1087,6 +1087,40 @@ test('the Batch 12 PostgreSQL lab executes each lesson against the real database
             ->and($race)->toContain('SQLSTATE 23514')
             ->and($race)->toContain('SQLSTATE 25P02')
             ->and($race)->toContain('After rollback the connection works again: yes.');
+
+        // FS11.6 - run as the restricted role, on a database whose owner would bypass
+        // every policy. The two deliberate errors are part of the evidence: a refused
+        // cross-tenant insert, and the bare cast the NULLIF exists to avoid.
+        [, $rls] = fullstackLabRun(
+            $workspace,
+            [...$compose, ...$psql(['-f', '/course/sql/fs11-6-row-level-security.sql'])],
+            300,
+        );
+
+        $rlsSections = preg_split('/^--- \d+\. /m', $rls);
+        expect($rlsSections)->toHaveCount(9, "FS11.6's experiment no longer prints eight labelled sections.");
+
+        expect($rlsSections[3])->toContain('100000')->and($rlsSections[3])->toContain('visible_from_workspace_2');
+        expect($rlsSections[4])->toContain('INSERT 0 1');
+
+        // psql writes these to stderr, which interleaves with stdout unpredictably, so
+        // they are matched against the whole transcript rather than one section of it.
+        expect($rls)->toContain('new row violates row-level security policy')
+            ->and($rls)->toContain('invalid input syntax for type bigint');
+
+        // The counts are asserted separately, because "the query ran" and "the query
+        // returned zero rows of another tenant" are different claims.
+        foreach ([
+            'visible_from_workspace_2' => $rlsSections[5 - 2],
+            'distinct_workspaces_visible' => $rlsSections[3],
+            'rows_updated_in_other_tenant' => $rlsSections[6],
+            'visible_without_context' => $rlsSections[7],
+        ] as $label => $section) {
+            expect(preg_match('/' . preg_quote($label, '/') . '\s*\n-+\s*\n\s*(\d+)\s*\n/', $section, $match))
+                ->toBe(1, "FS11.6 no longer reports {$label}.\n{$section}");
+            $expected = $label === 'distinct_workspaces_visible' ? '1' : '0';
+            expect($match[1])->toBe($expected, "FS11.6's {$label} is {$match[1]}, not {$expected}. Tenant isolation is not holding.");
+        }
     } finally {
         fullstackLabRun($workspace, [...$compose, 'down', '-v'], 300);
         fullstackLabRemove($workspace);

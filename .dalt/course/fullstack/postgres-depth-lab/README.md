@@ -43,6 +43,16 @@ FS11.5 runs from the host instead, because it needs two independent connections:
 DALT_REPOSITORY_ROOT=/path/to/DALT.PHP php scripts/concurrency.php
 ```
 
+FS11.6 needs only the schema and seed, so it can run against a freshly set-up database:
+
+```bash
+docker compose exec -T db psql -U dalt -d dalt_depth -v ON_ERROR_STOP=1 \
+  -f /course/sql/fs11-6-row-level-security.sql
+```
+
+It prints two deliberate errors — a refused cross-tenant insert and a bare `''::bigint`
+cast. Both are the evidence, not a broken script.
+
 They build on each other: FS11.2 starts from the index FS11.1 created, so run them in
 sequence against a freshly seeded database.
 
