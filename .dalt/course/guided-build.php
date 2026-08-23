@@ -732,5 +732,15 @@ return [
                 ['label' => 'Playwright test isolation', 'href' => 'https://playwright.dev/docs/browser-contexts'],
             ],
         ],
+        [
+            'id' => '61',
+            'slug' => 'define-production-configuration-and-secrets',
+            'title' => 'Define production configuration and secrets',
+            'description' => 'Separate checked-in defaults from deployment-supplied secrets, refuse to serve a misconfigured production boot, keep the reason out of the response, and scan for secrets that reached somewhere public.',
+            'background' => [
+                ['label' => 'OWASP secrets management', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html'],
+                ['label' => 'MDN Set-Cookie Secure', 'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#secure'],
+            ],
+        ],
     ],
 ];
