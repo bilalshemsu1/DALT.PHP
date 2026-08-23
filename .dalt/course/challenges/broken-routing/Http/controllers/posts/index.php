@@ -27,8 +27,8 @@ $posts = [
 </head>
 <body>
     <div class="nav">
-        <a href="/">← Home</a> | 
-        <a href="/posts">All Posts</a> | 
+        <a href="/">← Home</a> |
+        <a href="/posts">All Posts</a> |
         <a href="/posts/create">Create Post</a>
     </div>
 
@@ -38,7 +38,7 @@ $posts = [
         <div class="post">
             <h2><?= htmlspecialchars($post['title']) ?></h2>
             <p><?= htmlspecialchars($post['body']) ?></p>
-            <a href="/posts/<?= $post['id'] ?>">View Post</a> | 
+            <a href="/posts/<?= $post['id'] ?>">View Post</a> |
             <a href="/posts/<?= $post['id'] ?>/edit">Edit Post</a>
         </div>
     <?php endforeach; ?>

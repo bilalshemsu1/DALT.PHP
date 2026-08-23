@@ -54,7 +54,7 @@
     "isDynamicEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-T0SEqMbc.js",
+    "file": "assets/app-CCvAiH-T.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -64,7 +64,7 @@
       "resources/js/components/UnlockButton.vue"
     ],
     "css": [
-      "assets/app-Ck9URFgR.css"
+      "assets/app-8N_qfj9P.css"
     ],
     "assets": [
       "assets/inter-cyrillic-ext-wght-normal-BOeWTOD4.woff2",

@@ -210,8 +210,8 @@ This is why your `.env` has `DB_HOST=db` and your `nginx/default.conf` has `fast
 | Use case | Source code, config files | Database data |
 | Real-time sync | Yes | N/A |
 
-For source code: use a bind mount so edits appear instantly without rebuilding.  
-For Postgres data: use a named volume so data persists between restarts.
+- For source code: use a bind mount so edits appear instantly without rebuilding.
+- For Postgres data: use a named volume so data persists between restarts.
 
 ## Daily Compose Commands
 

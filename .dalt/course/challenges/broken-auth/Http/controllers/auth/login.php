@@ -35,13 +35,13 @@
 
     <form method="POST" action="/auth/login">
         <?= csrf_field() ?>
-        
+
         <label>Email:</label>
         <input type="email" name="email" value="test@example.com" required>
-        
+
         <label>Password:</label>
         <input type="password" name="password" value="password123" required>
-        
+
         <button type="submit">Login</button>
     </form>
 

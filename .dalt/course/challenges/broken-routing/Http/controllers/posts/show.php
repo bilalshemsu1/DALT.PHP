@@ -40,8 +40,8 @@ if (!$post) {
 </head>
 <body>
     <div class="nav">
-        <a href="/">← Home</a> | 
-        <a href="/posts">All Posts</a> | 
+        <a href="/">← Home</a> |
+        <a href="/posts">All Posts</a> |
         <a href="/posts/<?= $post['id'] ?>/edit">Edit</a>
     </div>
 

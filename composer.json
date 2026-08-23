@@ -79,7 +79,6 @@
     "archive": {
         "exclude": [
             "/.agents",
-            "/.codex",
             "/.dalt/active_challenge.txt",
             "/.dalt/baseline",
             "/.dalt/challenge-backup",
@@ -112,6 +111,6 @@
             "*.tmp"
         ]
     },
-    "minimum-stability": "beta",
+    "minimum-stability": "stable",
     "prefer-stable": true
 }

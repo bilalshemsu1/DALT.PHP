@@ -23,8 +23,8 @@
         <h4 class="text-sm font-semibold uppercase tracking-wider text-gray-200 mb-3">Guides</h4>
         <nav class="space-y-2 text-sm" aria-label="Guide links">
           <a href="https://dalt.ibnuafdel.com/docs" target="_blank" rel="noopener noreferrer" class="block text-gray-400 hover:text-[#93DA97] transition-colors">Documentation</a>
-          <a href="https://dalt.ibnuafdel.com/docs/guides/building-a-blog" target="_blank" rel="noopener noreferrer" class="block text-gray-400 hover:text-[#93DA97] transition-colors">Build a Blog</a>
-          <a href="https://dalt.ibnuafdel.com/docs/guides/building-an-api" target="_blank" rel="noopener noreferrer" class="block text-gray-400 hover:text-[#93DA97] transition-colors">Build an API</a>
+          <a href="https://dalt.ibnuafdel.com/docs/start/installation" target="_blank" rel="noopener noreferrer" class="block text-gray-400 hover:text-[#93DA97] transition-colors">Installation</a>
+          <a href="https://dalt.ibnuafdel.com/docs/reference/framework" target="_blank" rel="noopener noreferrer" class="block text-gray-400 hover:text-[#93DA97] transition-colors">Framework reference</a>
         </nav>
       </section>
 

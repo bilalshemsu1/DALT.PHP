@@ -6,4 +6,4 @@
   <p class="mt-4">Something went wrong. Please try again later.</p>
 </main>
 
-<?php require base_path('.dalt/resources/views/layouts/footer.php') ?> 
+<?php require base_path('.dalt/resources/views/layouts/footer.php') ?>

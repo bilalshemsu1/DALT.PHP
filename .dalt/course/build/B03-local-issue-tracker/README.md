@@ -124,10 +124,31 @@ export function App() {
 npm run build
 ```
 
-Open `public/build/.vite/manifest.json`. You should see one entry keyed
-`"resources/app/main.tsx"`, naming a hashed `.js` file and a hashed `.css` file. That
-manifest is how the PHP side finds your bundle in Stage 2 — not a build artifact you
-can ignore, the actual indirection everything downstream depends on.
+**Check it yourself:** open `public/build/.vite/manifest.json` and read the key, not
+just the file list. Exactly one entry, keyed `"resources/app/main.tsx"`, with a `file`
+naming a hashed `.js` and a `css` array naming a hashed `.css`:
+
+```json
+{
+  "resources/app/main.tsx": {
+    "file": "assets/main-CvaoQnny.js",
+    "name": "main",
+    "src": "resources/app/main.tsx",
+    "isEntry": true,
+    "css": [
+      "assets/main-Do1vYMz1.css"
+    ]
+  }
+}
+```
+
+Your hashes will differ; the key must not. Creating the two `.tsx` files without
+editing `vite.config.mjs` still builds — it just rebuilds the old entry, and the key
+stays `"resources/js/app.js"`. That is the failure this check exists to catch, because
+Stage 2 looks the bundle up by that exact key and would find nothing.
+
+That manifest is how the PHP side finds your bundle in Stage 2 — not a build artifact
+you can ignore, the actual indirection everything downstream depends on.
 
 > Note what you did *not* have to do: install React, configure JSX, add a test runner,
 > or set up Tailwind. That work was done when the root manifest was wired. The cost is

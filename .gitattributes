@@ -2,7 +2,6 @@
 /.git export-ignore
 /.github export-ignore
 /.agents export-ignore
-/.codex export-ignore
 /docs export-ignore
 /tests export-ignore
 /.editorconfig export-ignore

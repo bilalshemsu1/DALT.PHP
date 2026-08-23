@@ -42,16 +42,16 @@ $oldMessage = old('message');
 
     <form method="POST" action="/contact/submit">
         <?= csrf_field() ?>
-        
+
         <label>Name:</label>
         <input type="text" name="name" value="<?= htmlspecialchars($oldName) ?>">
-        
+
         <label>Email:</label>
         <input type="email" name="email" value="<?= htmlspecialchars($oldEmail) ?>">
-        
+
         <label>Message:</label>
         <textarea name="message" rows="5"><?= htmlspecialchars($oldMessage) ?></textarea>
-        
+
         <button type="submit">Submit</button>
     </form>
 

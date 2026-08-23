@@ -160,4 +160,3 @@ Close the lessons. Draw the path of an issue-list request from browser host port
 ## What this unlocks
 
 Part 11 has a repeatable PostgreSQL environment with real application data and a known connection path. You can now study query plans, indexes, search, concurrency, and tenant isolation without assuming every learner’s personal machine behaves the same way.
-

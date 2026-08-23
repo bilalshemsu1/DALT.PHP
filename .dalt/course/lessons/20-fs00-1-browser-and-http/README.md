@@ -1,12 +1,12 @@
 # FS00.1 — Browser, server, request, response
 
-Lesson ID: FS00.1  
-Lesson format: Concise theory  
-Part: 00 — Web foundations  
-Status: Published  
-Estimated effort: 25–35 minutes  
-Difficulty: Foundation  
-Prerequisites: None  
+Lesson ID: FS00.1
+Lesson format: Concise theory
+Part: 00 — Web foundations
+Status: Published
+Estimated effort: 25–35 minutes
+Difficulty: Foundation
+Prerequisites: None
 Last reviewed: 2026-08-22
 
 ## What we will learn

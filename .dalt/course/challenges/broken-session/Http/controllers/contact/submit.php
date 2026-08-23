@@ -20,7 +20,7 @@ if (!empty($errors)) {
     // Flash errors and old input
     \Core\Session::flash('errors', $errors);
     \Core\Session::flash('old', $_POST);
-    
+
     return redirect('/contact');
 }
 

@@ -148,10 +148,10 @@ CREATE TABLE event_logs (
 Create the child tables (partitions) for specific date ranges:
 
 ```sql
-CREATE TABLE event_logs_2024_01 PARTITION OF event_logs 
+CREATE TABLE event_logs_2024_01 PARTITION OF event_logs
 FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');
 
-CREATE TABLE event_logs_2024_02 PARTITION OF event_logs 
+CREATE TABLE event_logs_2024_02 PARTITION OF event_logs
 FOR VALUES FROM ('2024-02-01') TO ('2024-03-01');
 ```
 

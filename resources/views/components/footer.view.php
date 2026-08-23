@@ -20,15 +20,15 @@
             <section class="footer-group" aria-label="Resources">
                 <h4>Resources</h4>
                 <a class="footer-link" href="https://dalt.ibnuafdel.com/docs" target="_blank" rel="noopener noreferrer">Documentation</a>
-                <a class="footer-link" href="https://dalt.ibnuafdel.com/docs/guides/building-a-blog" target="_blank" rel="noopener noreferrer">Build a Blog</a>
-                <a class="footer-link" href="https://dalt.ibnuafdel.com/docs/guides/building-an-api" target="_blank" rel="noopener noreferrer">Build an API</a>
+                <a class="footer-link" href="https://dalt.ibnuafdel.com/docs/start/installation" target="_blank" rel="noopener noreferrer">Installation</a>
+                <a class="footer-link" href="https://dalt.ibnuafdel.com/docs/reference/framework" target="_blank" rel="noopener noreferrer">Framework reference</a>
             </section>
 
             <section class="footer-group" aria-label="Community">
                 <h4>Community</h4>
-                <a class="footer-link" href="https://github.com/ibnu-Afdel/dALT.PHP" target="_blank" rel="noopener noreferrer">GitHub</a>
+                <a class="footer-link" href="https://github.com/Ibnu-Afdel/DALT.PHP" target="_blank" rel="noopener noreferrer">GitHub</a>
                 <a class="footer-link" href="https://t.me/daltphp" target="_blank" rel="noopener noreferrer">Telegram</a>
-                <a class="footer-link" href="https://dalt.ibnuafdel.com/docs" target="_blank" rel="noopener noreferrer">Release Notes</a>
+                <a class="footer-link" href="https://github.com/Ibnu-Afdel/DALT.PHP/releases" target="_blank" rel="noopener noreferrer">Release Notes</a>
             </section>
         </div>
 

@@ -7,4 +7,4 @@ if ($path !== '/' && is_file($file)) {
     return false;
 }
 // Otherwise, use the front controller
-require __DIR__ . '/index.php'; 
+require __DIR__ . '/index.php';

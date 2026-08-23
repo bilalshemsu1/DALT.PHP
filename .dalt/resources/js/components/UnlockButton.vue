@@ -7,8 +7,8 @@
         </svg>
         <span class="text-sm">{{ message }}</span>
       </div>
-      <button 
-        @click="tryUnlock" 
+      <button
+        @click="tryUnlock"
         class="w-full bg-red-900/20 text-red-400 hover:bg-red-900/40 px-4 py-2 rounded-lg text-sm transition-all duration-200"
       >
         Try to unlock?

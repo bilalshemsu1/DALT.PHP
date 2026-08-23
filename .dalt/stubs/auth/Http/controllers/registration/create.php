@@ -1,3 +1,3 @@
 <?php
 
-view('auth/register.view.php'); 
+view('auth/register.view.php');

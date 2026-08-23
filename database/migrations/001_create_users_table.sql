@@ -1,6 +1,6 @@
 -- Migration: Create users table
 -- Created: 2024-03-14
--- 
+--
 -- This migration creates the users table for authentication.
 -- Learners can see the actual SQL DDL statements!
 

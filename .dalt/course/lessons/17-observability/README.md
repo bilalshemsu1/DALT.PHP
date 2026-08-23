@@ -59,14 +59,14 @@ CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 Run this to find the top 5 queries taking the most cumulative time:
 
 ```sql
-SELECT 
-    query, 
-    calls, 
-    total_exec_time, 
-    mean_exec_time, 
+SELECT
+    query,
+    calls,
+    total_exec_time,
+    mean_exec_time,
     rows
-FROM pg_stat_statements 
-ORDER BY total_exec_time DESC 
+FROM pg_stat_statements
+ORDER BY total_exec_time DESC
 LIMIT 5;
 ```
 
@@ -171,9 +171,9 @@ You can expose these metrics to an admin panel by creating a specific endpoint:
 $db = \Core\App::resolve(\Core\Database::class);
 
 $queries = $db->query(
-    'SELECT query, calls, mean_exec_time 
-     FROM pg_stat_statements 
-     ORDER BY mean_exec_time DESC 
+    'SELECT query, calls, mean_exec_time
+     FROM pg_stat_statements
+     ORDER BY mean_exec_time DESC
      LIMIT 10'
 )->get();
 

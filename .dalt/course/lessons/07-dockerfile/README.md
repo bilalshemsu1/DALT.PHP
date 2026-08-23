@@ -166,8 +166,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 Copies your entire project into the image, at `WORKDIR` (`/var/www/html`).
 
-First `.` = source (your project directory on the host).  
-Second `.` = destination (the WORKDIR inside the image).
+- First `.` = source (your project directory on the host).
+- Second `.` = destination (the WORKDIR inside the image).
 
 **This comes AFTER `composer install`**, so the vendor directory is already in place from the previous step. The `COPY . .` overlays your source code on top — a clean separation between dependencies and source.
 

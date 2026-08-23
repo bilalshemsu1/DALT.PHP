@@ -20,7 +20,7 @@ $id = $_GET['id'] ?? null;
 </head>
 <body>
     <div class="nav">
-        <a href="/">← Home</a> | 
+        <a href="/">← Home</a> |
         <a href="/posts">All Posts</a>
     </div>
 

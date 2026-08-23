@@ -140,7 +140,7 @@ They will all select Job ID #1. All three workers will send the same email.
 Postgres provides a mechanism specifically for building queues.
 
 ```sql
-SELECT * FROM jobs 
+SELECT * FROM jobs
 WHERE status = 'pending' AND available_at <= NOW()
 ORDER BY created_at ASC
 FOR UPDATE SKIP LOCKED
@@ -215,7 +215,7 @@ while (true) {
     try {
         // 1. Grab and lock exactly one job
         $job = $db->query(
-            "SELECT * FROM jobs 
+            "SELECT * FROM jobs
              WHERE status = 'pending' AND available_at <= NOW()
              ORDER BY created_at ASC
              FOR UPDATE SKIP LOCKED
