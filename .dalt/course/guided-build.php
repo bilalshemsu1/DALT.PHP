@@ -612,5 +612,105 @@ return [
                 ['label' => 'OWASP authorization testing', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Testing_Automation_Cheat_Sheet.html'],
             ],
         ],
+        [
+            'id' => '48',
+            'slug' => 'assign-issues-to-members',
+            'title' => 'Assign issues to workspace members',
+            'description' => 'Give an issue one responsible person, keep unassigned an honest state, and prove the chosen member belongs to the workspace instead of trusting a submitted ID.',
+            'background' => [
+                ['label' => 'PostgreSQL constraints', 'href' => 'https://www.postgresql.org/docs/18/ddl-constraints.html'],
+            ],
+        ],
+        [
+            'id' => '49',
+            'slug' => 'add-priority-and-due-dates',
+            'title' => 'Add priority and due dates',
+            'description' => 'Sequence work with a constrained priority and a nullable calendar date, keeping a missing deadline different from an invented one.',
+            'background' => [
+                ['label' => 'PostgreSQL date/time types', 'href' => 'https://www.postgresql.org/docs/18/datatype-datetime.html'],
+            ],
+        ],
+        [
+            'id' => '50',
+            'slug' => 'organize-issues-with-labels',
+            'title' => 'Organize issues with labels',
+            'description' => 'Give each workspace its own label vocabulary, attach many labels to an issue through a composite join table, and keep refreshed label URLs durable.',
+            'background' => [
+                ['label' => 'PostgreSQL constraints', 'href' => 'https://www.postgresql.org/docs/18/ddl-constraints.html'],
+            ],
+        ],
+        [
+            'id' => '51',
+            'slug' => 'discuss-work-with-comments',
+            'title' => 'Discuss work with comments',
+            'description' => 'Add a chronological conversation whose author comes from the authenticated session rather than a browser-supplied user ID.',
+            'background' => [
+                ['label' => 'PostgreSQL foreign keys', 'href' => 'https://www.postgresql.org/docs/18/ddl-constraints.html#DDL-CONSTRAINTS-FK'],
+            ],
+        ],
+        [
+            'id' => '52',
+            'slug' => 'record-meaningful-activity',
+            'title' => 'Record meaningful activity history',
+            'description' => 'Write one append-only timeline of structured events inside the same transaction as the change it describes, so history cannot drift from the data.',
+            'background' => [
+                ['label' => 'PostgreSQL transactions', 'href' => 'https://www.postgresql.org/docs/18/tutorial-transactions.html'],
+            ],
+        ],
+        [
+            'id' => '53',
+            'slug' => 'search-filter-and-sort-issues',
+            'title' => 'Search, filter, and sort issues',
+            'description' => 'Make a growing issue list searchable and filterable, with every choice held in the URL so a refresh or copied link opens the same view.',
+            'background' => [
+                ['label' => 'PostgreSQL pattern matching', 'href' => 'https://www.postgresql.org/docs/18/functions-matching.html'],
+            ],
+        ],
+        [
+            'id' => '54',
+            'slug' => 'paginate-a-deterministic-result',
+            'title' => 'Paginate a deterministic issue result',
+            'description' => 'Return bounded pages under a predictable ordering, with links that preserve the active search, filters, sorting, and page size.',
+            'background' => [
+                ['label' => 'PostgreSQL LIMIT and OFFSET', 'href' => 'https://www.postgresql.org/docs/18/queries-limit.html'],
+            ],
+        ],
+        [
+            'id' => '55',
+            'slug' => 'cache-server-reads-with-tanstack-query',
+            'title' => 'Cache server reads with TanStack Query',
+            'description' => 'Give repeated server reads one cache identity each, while form values stay local and identity stays in the session provider.',
+            'background' => [
+                ['label' => 'TanStack Query keys', 'href' => 'https://tanstack.com/query/latest/docs/framework/react/guides/query-keys'],
+            ],
+        ],
+        [
+            'id' => '56',
+            'slug' => 'invalidate-after-confirmed-mutations',
+            'title' => 'Invalidate after confirmed mutations',
+            'description' => 'Move the issue workflow to useMutation and refresh only the cached resources a confirmed server change can make stale.',
+            'background' => [
+                ['label' => 'TanStack Query invalidation', 'href' => 'https://tanstack.com/query/latest/docs/framework/react/guides/invalidations-from-mutations'],
+            ],
+        ],
+        [
+            'id' => '57',
+            'slug' => 'build-membership-scoped-dashboards',
+            'title' => 'Build membership-scoped dashboard views',
+            'description' => 'Gather assigned, overdue, and recent work across every workspace the signed-in user may actually open, scoped by membership on the server.',
+            'background' => [
+                ['label' => 'PostgreSQL joins', 'href' => 'https://www.postgresql.org/docs/18/queries-table-expressions.html'],
+            ],
+        ],
+        [
+            'id' => '58',
+            'slug' => 'make-empty-and-denied-states-intentional',
+            'title' => 'Make empty and denied states intentional',
+            'description' => 'Separate loading, first-use empty, filtered empty, recoverable failure, missing, and denied, and give API errors one machine-readable envelope.',
+            'background' => [
+                ['label' => 'WAI-ARIA status role', 'href' => 'https://www.w3.org/TR/wai-aria-1.2/#status'],
+                ['label' => 'MDN HTTP response status codes', 'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Status'],
+            ],
+        ],
     ],
 ];
