@@ -1,0 +1,12 @@
+{
+    "title": "Compose services, networking, environment, and volumes",
+    "description": "Describe a multi-service topology once, and know which parts of it survive a restart.",
+    "order": 72,
+    "section": "fullstack",
+    "section_order": 53,
+    "icon": "docker",
+    "color": "purple",
+    "prerequisites": [
+        "74-fs10-3-layers-cache-and-multistage-builds"
+    ]
+}

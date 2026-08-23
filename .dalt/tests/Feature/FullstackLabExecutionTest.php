@@ -251,6 +251,19 @@ function fullstackLabCopy(string $source, string $destination): void
     }
 }
 
+/** Make a copied workspace readable by unrelated uids inside a container. */
+function fullstackLabOpenPermissions(string $path): void
+{
+    chmod($path, 0755);
+    foreach (new FilesystemIterator($path, FilesystemIterator::SKIP_DOTS) as $entry) {
+        if ($entry->isDir()) {
+            fullstackLabOpenPermissions($entry->getPathname());
+        } else {
+            chmod($entry->getPathname(), 0644);
+        }
+    }
+}
+
 function fullstackLabRemove(string $path): void
 {
     if (is_link($path) || is_file($path)) {
@@ -649,6 +662,11 @@ test('the Batch 11 Docker lab runs each lesson against real Docker', function ()
     $workspace = sys_get_temp_dir() . '/dalt-docker-' . bin2hex(random_bytes(6));
     fullstackLabCopy($source, $workspace);
 
+    // fullstackLabCopy creates 0700 directories, which is right for a temp workspace and
+    // wrong here: the PostgreSQL container runs as its own uid and has to read the seed
+    // SQL bind-mounted from this tree. Without this the database exits 1 during startup.
+    fullstackLabOpenPermissions($workspace);
+
     [$dockerExit] = fullstackLabRun($workspace, ['docker', 'version'], 30);
     if ($dockerExit !== 0) {
         fullstackLabRemove($workspace);
@@ -776,7 +794,55 @@ test('the Batch 11 Docker lab runs each lesson against real Docker', function ()
         );
 
         fullstackLabRun($workspace, ['docker', 'image', 'rm', '-f', $singleTag, $multiTag], 120);
+
+        // FS10.4 - the topology, its private network, and what survives a teardown.
+        $compose = ['docker', 'compose', '--project-directory', $workspace, '-p', 'dalt-lab-' . bin2hex(random_bytes(4))];
+        $composeRan = true;
+
+        [$upExit, $upOutput] = fullstackLabRun($workspace, [...$compose, 'up', '-d', '--wait', '--build'], 900);
+        expect($upExit)->toBe(0, "FS10.4's Compose stack did not become healthy:\n{$upOutput}");
+
+        [, $psOutput] = fullstackLabRun($workspace, [...$compose, 'ps', '--format', '{{.Service}} {{.Ports}}'], 120);
+        expect($psOutput)->toContain('127.0.0.1:58000->8000/tcp')
+            ->and(preg_match('/^db .*->/m', $psOutput))->toBe(
+                0,
+                "The database is published to the host; FS10.4 claims it is reachable only on the private network.\n{$psOutput}",
+            );
+
+        [$dnsExit, $dnsOutput] = fullstackLabRun($workspace, [...$compose, 'exec', '-T', 'app', 'getent', 'hosts', 'db'], 120);
+        expect($dnsExit)->toBe(0, "Service DNS did not resolve:\n{$dnsOutput}")
+            ->and($dnsOutput)->toContain('db');
+
+        [, $issuesOutput] = fullstackLabRun($workspace, ['curl', '-s', 'http://127.0.0.1:58000/issues'], 60);
+        expect($issuesOutput)->toContain('Trace a request')
+            ->and($issuesOutput)->toContain('Ship the container');
+
+        $issueCount = static function () use ($workspace, $compose): string {
+            [, $count] = fullstackLabRun($workspace, [
+                ...$compose, 'exec', '-T', 'db', 'psql', '-U', 'dalt', '-d', 'dalt_course',
+                '-At', '-c', 'SELECT count(*) FROM issues;',
+            ], 120);
+
+            return trim($count);
+        };
+
+        fullstackLabRun($workspace, [
+            ...$compose, 'exec', '-T', 'db', 'psql', '-U', 'dalt', '-d', 'dalt_course',
+            '-c', "INSERT INTO issues (title) VALUES ('Survives a restart');",
+        ], 120);
+        expect($issueCount())->toBe('4');
+
+        fullstackLabRun($workspace, [...$compose, 'down'], 300);
+        fullstackLabRun($workspace, [...$compose, 'up', '-d', '--wait'], 600);
+        expect($issueCount())->toBe('4', 'The named volume did not survive `docker compose down`.');
+
+        fullstackLabRun($workspace, [...$compose, 'down', '-v'], 300);
+        fullstackLabRun($workspace, [...$compose, 'up', '-d', '--wait'], 600);
+        expect($issueCount())->toBe('3', '`docker compose down -v` did not discard the volume.');
     } finally {
+        if (isset($compose) && isset($composeRan)) {
+            fullstackLabRun($workspace, [...$compose, 'down', '-v'], 300);
+        }
         fullstackLabRun($workspace, ['docker', 'rm', '-f', $container], 60);
         fullstackLabRemove($workspace);
     }
