@@ -742,5 +742,15 @@ return [
                 ['label' => 'MDN Set-Cookie Secure', 'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#secure'],
             ],
         ],
+        [
+            'id' => '62',
+            'slug' => 'produce-the-frontend-once-for-production',
+            'title' => 'Produce the frontend once for production',
+            'description' => 'Put the full gate in front of the artifact, then verify the build is complete, content-hashed, current, and free of source maps and dev-server references.',
+            'background' => [
+                ['label' => 'Vite build guide', 'href' => 'https://vite.dev/guide/build.html'],
+                ['label' => 'MDN Cache-Control', 'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control'],
+            ],
+        ],
     ],
 ];
