@@ -9,6 +9,9 @@ health. It grows across Part 10:
 - `Dockerfile` splits build from runtime and drops privileges;
 - `compose.yaml` runs the service with PostgreSQL, a named volume, and health gates.
 
+The published port is `127.0.0.1:58000`. The database is not published at all: the
+application reaches it over the project's private network.
+
 `/health` deliberately answers whenever the process is alive. `/ready` deliberately
 checks the database. FS10.5 is built on the difference.
 
@@ -32,8 +35,22 @@ docker build -f Dockerfile.single -t dalt-docker-lab:single . # FS10.3
 docker build -t dalt-docker-lab:multi .                       # FS10.3
 docker compose up -d --wait                                   # FS10.4, FS10.5
 curl http://127.0.0.1:58000/issues                            # three seeded issues
+docker compose stop db && sleep 12
+docker compose ps                                             # app: unhealthy
+curl http://127.0.0.1:58000/health                            # still {"status":"ok"}
 docker compose down -v
 ```
+
+## Prove the evidence can fail honestly
+
+```text
+delete .dockerignore and rebuild            → config.local.php ships in the image
+move COPY . . above the RUN apt-get block   → every source edit reinstalls the extension
+point the app health check at /health       → the stack stays green through an outage
+```
+
+The course test performs the first and the third automatically and requires both to
+behave as described.
 
 ## Reset
 

@@ -32,7 +32,10 @@ services:
       test: ["CMD-SHELL", "php -r \"exit(@file_get_contents('http://127.0.0.1:8000/ready') === false ? 1 : 0);\""]
       interval: 2s
       timeout: 3s
-      retries: 30
+      # start_period gives startup room without counting failures, so `retries` can stay
+      # small enough that a real outage is reported in seconds rather than a minute.
+      start_period: 30s
+      retries: 5
 
 volumes:
   db-data:

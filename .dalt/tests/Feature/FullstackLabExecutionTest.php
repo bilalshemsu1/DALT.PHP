@@ -839,11 +839,100 @@ test('the Batch 11 Docker lab runs each lesson against real Docker', function ()
         fullstackLabRun($workspace, [...$compose, 'down', '-v'], 300);
         fullstackLabRun($workspace, [...$compose, 'up', '-d', '--wait'], 600);
         expect($issueCount())->toBe('3', '`docker compose down -v` did not discard the volume.');
+
+        // FS10.5 - the honest health check must actually go unhealthy, and the naive one
+        // must actually keep lying. A check that cannot fail is the defect this proves.
+        [, $uidOutput] = fullstackLabRun($workspace, [...$compose, 'exec', '-T', 'app', 'id', '-u'], 120);
+        expect(trim($uidOutput))->toBe('10001', 'FS10.5 promises the container does not run as root.');
+
+        fullstackLabRun($workspace, [...$compose, 'stop', 'db'], 300);
+
+        $appStatus = static function () use ($workspace, $compose): string {
+            [, $status] = fullstackLabRun($workspace, [...$compose, 'ps', '--format', '{{.Service}} {{.Status}}'], 120);
+            foreach (explode("\n", $status) as $line) {
+                if (str_starts_with(trim($line), 'app ')) {
+                    return trim($line);
+                }
+            }
+
+            return trim($status);
+        };
+
+        $becameUnhealthy = false;
+        for ($attempt = 0; $attempt < 40; $attempt++) {
+            if (str_contains($appStatus(), 'unhealthy')) {
+                $becameUnhealthy = true;
+                break;
+            }
+            sleep(1);
+        }
+        expect($becameUnhealthy)->toBeTrue('The /ready health check never reported the database outage.');
+
+        // The process is still perfectly alive, which is exactly why /health is not enough.
+        [, $healthBody] = fullstackLabRun($workspace, ['curl', '-s', 'http://127.0.0.1:58000/health'], 60);
+        expect($healthBody)->toContain('"status":"ok"');
+
+        [, $readyCode] = fullstackLabRun($workspace, [
+            'curl', '-s', '-o', '/dev/null', '-w', '%{http_code}', 'http://127.0.0.1:58000/ready',
+        ], 60);
+        expect(trim($readyCode))->toBe('503');
     } finally {
         if (isset($compose) && isset($composeRan)) {
             fullstackLabRun($workspace, [...$compose, 'down', '-v'], 300);
         }
         fullstackLabRun($workspace, ['docker', 'rm', '-f', $container], 60);
+        fullstackLabRemove($workspace);
+    }
+});
+
+test('the FS10.5 health check reports an outage that a naive one hides', function () {
+    if (getenv('DALT_SKIP_LAB_EXECUTION') === '1') {
+        $this->markTestSkipped('DALT_SKIP_LAB_EXECUTION=1.');
+    }
+
+    // The lesson's claim is not "our health check works". It is "the obvious health
+    // check cannot fail". Only running the obvious one proves that, so this guard builds
+    // the naive variant the lesson warns about and requires it to stay green through a
+    // database outage. If it ever goes unhealthy, the lesson's argument is wrong.
+    $source = base_path('.dalt/course/fullstack/docker-lab/starter');
+    $workspace = sys_get_temp_dir() . '/dalt-naive-' . bin2hex(random_bytes(6));
+    fullstackLabCopy($source, $workspace);
+    fullstackLabOpenPermissions($workspace);
+
+    [$dockerExit] = fullstackLabRun($workspace, ['docker', 'version'], 30);
+    if ($dockerExit !== 0) {
+        fullstackLabRemove($workspace);
+        $this->markTestSkipped('Docker is unavailable; the FS10.5 proof cannot run.');
+    }
+
+    $naive = str_replace('/ready', '/health', (string) file_get_contents($workspace . '/compose.yaml'), $count);
+    expect($count)->toBe(1, "FS10.5's health check no longer asks /ready, so this guard is checking nothing.");
+
+    // The naive stack must not fight the honest one over the published port.
+    $naive = str_replace('127.0.0.1:58000:8000', '127.0.0.1:58102:8000', $naive, $portCount);
+    expect($portCount)->toBe(1, "The lab's published port moved; update this guard with it.");
+    file_put_contents($workspace . '/compose.naive.yaml', $naive);
+
+    $project = 'dalt-naive-' . bin2hex(random_bytes(4));
+    $compose = ['docker', 'compose', '--project-directory', $workspace, '-f', $workspace . '/compose.naive.yaml', '-p', $project];
+
+    try {
+        [$upExit, $upOutput] = fullstackLabRun($workspace, [...$compose, 'up', '-d', '--wait', '--build'], 900);
+        expect($upExit)->toBe(0, "The naive stack did not start:\n{$upOutput}");
+
+        fullstackLabRun($workspace, [...$compose, 'stop', 'db'], 300);
+        sleep(20);
+
+        [, $status] = fullstackLabRun($workspace, [...$compose, 'ps', '--format', '{{.Service}} {{.Status}}'], 120);
+        expect(str_contains($status, 'unhealthy'))->toBeFalse(
+            "The naive /health check reported the outage, so FS10.5's warning no longer describes reality.\n{$status}",
+        );
+        expect($status)->toContain('healthy');
+
+        [, $body] = fullstackLabRun($workspace, ['curl', '-s', 'http://127.0.0.1:58102/health'], 60);
+        expect($body)->toContain('"status":"ok"');
+    } finally {
+        fullstackLabRun($workspace, [...$compose, 'down', '-v'], 300);
         fullstackLabRemove($workspace);
     }
 });
