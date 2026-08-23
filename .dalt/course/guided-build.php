@@ -811,5 +811,15 @@ return [
                 ['label' => 'MDN HTTP response status codes', 'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Status'],
             ],
         ],
+        [
+            'id' => '69',
+            'slug' => 'perform-and-fix-an-accessibility-audit',
+            'title' => 'Perform and fix an accessibility audit',
+            'description' => 'Scan every screen with axe in a real browser, fix the dead-end error page it finds, check the keyboard path directly, and state plainly what still needs a person.',
+            'background' => [
+                ['label' => 'WCAG 2.2 quick reference', 'href' => 'https://www.w3.org/WAI/WCAG22/quickref/'],
+                ['label' => 'axe-core Playwright integration', 'href' => 'https://playwright.dev/docs/accessibility-testing'],
+            ],
+        ],
     ],
 ];
