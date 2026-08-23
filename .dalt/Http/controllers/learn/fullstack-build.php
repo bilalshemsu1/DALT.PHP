@@ -57,7 +57,7 @@ return view('learn/fullstack-build.view.php', [
     'title' => $milestone['title'],
     'partNumber' => str_pad((string) $partNumber, 2, '0', STR_PAD_LEFT),
     'partTitle' => $track['parts'][$partNumber]['title'],
-    'renderedContent' => (new MarkdownRenderer())->render(BuildMilestone::specification($milestoneId)),
+    'renderedContent' => (new MarkdownRenderer())->render(BuildMilestone::specification($milestoneId), $milestone['title']),
     'completeAction' => BuildMilestone::routeFor($milestoneId) . '/complete',
     'isCompleted' => isset(ProgressManager::completedMilestoneIds()[$milestoneId]),
 ]);

@@ -22,7 +22,7 @@ npm ci --prefix .dalt           # learning-platform toolchain (Vue, Vite, Tailwi
 php artisan serve               # http://localhost:8000
 ```
 
-You need PHP 8.2, 8.3, or 8.4 with `pdo` and `pdo_sqlite`. Node 20.19+ or 22.12+ is
+You need PHP 8.2, 8.3, 8.4, or 8.5 with `pdo` and `pdo_sqlite`. Node 20.19+ or 22.12+ is
 needed only to rebuild frontend assets — a plain checkout runs without it, because the
 built assets are committed. PostgreSQL and Docker are needed only for the labs that use
 them.

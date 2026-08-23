@@ -45,6 +45,8 @@ tested compatibility promise instead of a beta disclaimer.
 
 - Installation no longer requires `--stability=beta`. The documented command is
   `composer create-project ibnuafdel/daltphp my-project --remove-vcs`.
+- PHP 8.5 is supported. The `^8.2` constraint already permitted it, so the documented
+  support window now matches what Composer will actually install.
 - `minimum-stability` is `stable`; no dependency requires a pre-release.
 - README describes the three learning surfaces separately — Core, Fullstack theory, and
   DALT Build — and states the framework size, supported PHP versions, extensions,
@@ -69,6 +71,16 @@ tested compatibility promise instead of a beta disclaimer.
   Vite entry point had actually moved.
 - Trailing whitespace across 25 tracked files; two Markdown hard breaks that depended on
   invisible trailing spaces are now explicit lists.
+- Every lesson, build and challenge page rendered two `<h1>` elements: one from the
+  layout header and one from the Markdown source, which also opens with the title. On
+  guided Build pages the two were word-for-word identical, so a screen reader announced
+  the same top-level heading twice in a row. Content headings now start at `<h2>`, and a
+  leading heading that only repeats the page title is dropped. The demotion runs on the
+  parsed document, not the source text, so a `# comment` inside a fenced shell block is
+  untouched — the Docker lesson alone has thirty-two of those.
+- `Router::only()` raised "Using null as an array offset is deprecated" on PHP 8.5 when
+  called before any route was registered, on its way to throwing the intended
+  `LogicException`.
 
 ### Removed
 

@@ -25,7 +25,7 @@ Plain *emphasis* and **strong** with ~~strikethrough~~.
 https://dalt.test
 MARKDOWN);
 
-    expect($html)->toContain('<h1>Heading</h1>')
+    expect($html)->toContain('<h2>Heading</h2>')
         ->toContain('<em>emphasis</em>')
         ->toContain('<strong>strong</strong>')
         ->toContain('<del>strikethrough</del>')
@@ -96,4 +96,68 @@ test('renders representative PHP, shell, SQL, and Docker course code without cor
         ->and($shell)->toContain('language-bash')->toContain('docker')
         ->and($sql)->toContain('language-sql')->toContain('SELECT')
         ->and($docker)->toContain('language-dockerfile')->toContain('FROM');
+});
+
+test('rendered content never contains an h1, because the layout owns the only one', function () {
+    // Two <h1> elements on a page is not a style preference. Every lesson, build
+    // and challenge page printed the title in its header and then again from the
+    // Markdown source, so a screen reader announced two competing top-level
+    // headings — and on guided Build pages, the same words twice in a row.
+    $html = markdownRenderer()->render(<<<'MARKDOWN'
+# Some lesson title
+
+Intro.
+
+## A real section
+
+### A subsection
+
+# A second top-level heading
+MARKDOWN);
+
+    expect($html)->not->toContain('<h1')
+        ->toContain('<h2>Some lesson title</h2>')
+        ->toContain('<h2>A real section</h2>')
+        ->toContain('<h3>A subsection</h3>')
+        ->toContain('<h2>A second top-level heading</h2>');
+});
+
+test('a leading heading that only repeats the page title is dropped, not demoted', function () {
+    $html = markdownRenderer()->render("# Accept an invitation once\n\nBody text.\n", 'Accept an invitation once');
+
+    expect($html)->not->toContain('Accept an invitation once')
+        ->toContain('Body text.');
+
+    // Whitespace and case differences are still the same title.
+    expect(markdownRenderer()->render("#   accept an   invitation ONCE\n\nBody.\n", 'Accept an invitation once'))
+        ->not->toContain('invitation');
+});
+
+test('only a leading duplicate is dropped; a later matching heading is kept as a section', function () {
+    $html = markdownRenderer()->render(
+        "# Recovery\n\nIntro.\n\n## Steps\n\n# Recovery\n\nAgain.\n",
+        'Recovery',
+    );
+
+    expect(substr_count($html, 'Recovery'))->toBe(1)
+        ->and($html)->toContain('<h2>Recovery</h2>')
+        ->and($html)->not->toContain('<h1');
+});
+
+test('a hash inside a fenced block is a comment, not a heading', function () {
+    // The Docker lesson has thirty-two lines starting with "# " inside shell
+    // fences. Demoting headings by rewriting source text would have mangled
+    // every one of them; this works on the parsed document instead.
+    $html = markdownRenderer()->render(<<<'MARKDOWN'
+## Build it
+
+```sh
+# build the image
+docker build -t app .
+```
+MARKDOWN);
+
+    expect($html)->toContain('# build the image')
+        ->toContain('<h2>Build it</h2>')
+        ->not->toContain('<h1');
 });

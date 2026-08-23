@@ -79,6 +79,7 @@
     "archive": {
         "exclude": [
             "/.agents",
+            "/.gitleaks.toml",
             "/.dalt/active_challenge.txt",
             "/.dalt/baseline",
             "/.dalt/challenge-backup",

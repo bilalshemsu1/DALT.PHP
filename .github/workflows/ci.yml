@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3', '8.4']
+        php: ['8.2', '8.3', '8.4', '8.5']
     steps:
       - uses: actions/checkout@v7
 
@@ -327,7 +327,7 @@ jobs:
           done <<'PATTERNS'
           (^|/)\.git/ a_git_directory
           (^|/)\.github/ CI_internals
-          (^|/)tests/ root_tests
+          ^tests/ root_tests
           (^|/)docs/ ignored_local_docs
           (^|/)\.env$ a_real_env_file
           (^|/)node_modules/ a_node_dependency_tree

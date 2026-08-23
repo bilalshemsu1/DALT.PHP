@@ -78,7 +78,7 @@ test('the compatibility policy exists and states the supported PHP versions', fu
     $composer = json_decode((string) file_get_contents(BASE_PATH . 'composer.json'), true);
     expect($composer['require']['php'])->toBe('^8.2');
 
-    foreach (['8.2', '8.3', '8.4'] as $version) {
+    foreach (['8.2', '8.3', '8.4', '8.5'] as $version) {
         expect($body)->toContain($version);
     }
 })->group('compatibility');

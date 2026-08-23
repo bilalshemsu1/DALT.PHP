@@ -22,7 +22,7 @@ $content = file_get_contents($readmePath);
 if ($content === false) {
     abort(500, 'The challenge content could not be read.');
 }
-$renderedContent = (new MarkdownRenderer())->render($content);
+$renderedContent = (new MarkdownRenderer())->render($content, $challenge['title']);
 
 $activeChallenge = ChallengeManager::getActiveChallenge();
 

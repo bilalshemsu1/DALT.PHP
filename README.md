@@ -43,7 +43,7 @@ Production-ready frontend assets are included, so Node.js is not required to sta
 
 | | |
 |---|---|
-| PHP | 8.2, 8.3, or 8.4 |
+| PHP | 8.2, 8.3, 8.4, or 8.5 |
 | Extensions | `pdo` and `pdo_sqlite` (bundled with most PHP builds); `pdo_pgsql` only if you set `DB_DRIVER=pgsql` |
 | Databases | SQLite (default) and PostgreSQL |
 | Composer | 2.x |

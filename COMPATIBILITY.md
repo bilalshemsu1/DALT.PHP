@@ -18,7 +18,7 @@ you should not build on it expecting otherwise.
 
 | | Supported in 1.x |
 |---|---|
-| PHP | 8.2, 8.3, 8.4 |
+| PHP | 8.2, 8.3, 8.4, 8.5 |
 | Required extensions | `pdo`, plus the PDO driver for your database |
 | Databases | SQLite (via `pdo_sqlite`, the default) and PostgreSQL 16+ (via `pdo_pgsql`; the course labs run `postgres:16-alpine`) |
 | Composer | 2.x |

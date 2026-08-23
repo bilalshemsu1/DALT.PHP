@@ -67,11 +67,15 @@ class Router
     /** @param string|list<string> $keys */
     public function only(string|array $keys): self
     {
-        $route = $this->routes[array_key_last($this->routes)] ?? null;
-
-        if ($route === null) {
+        // Ask whether there is a last route before asking for it. On an empty
+        // array array_key_last() returns null, and PHP 8.5 deprecates using null
+        // as an array offset — so the old `$this->routes[array_key_last(...)] ?? null`
+        // raised a deprecation on the way to the exception below.
+        if ($this->routes === []) {
             throw new LogicException('Register a route before attaching middleware.');
         }
+
+        $route = $this->routes[array_key_last($this->routes)];
 
         $route->setMiddleware($keys);
 

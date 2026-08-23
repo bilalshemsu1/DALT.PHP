@@ -55,7 +55,7 @@ if ($isFullstack) {
     // learner view starts at the first teaching section.
     $content = preg_replace('/\A# [^\n]+\R\R.*?\R\R(?=## )/s', '', $content, 1) ?? $content;
 }
-$renderedContent = (new MarkdownRenderer())->render($content);
+$renderedContent = (new MarkdownRenderer())->render($content, $lesson['title']);
 
 // Find related challenge(s) - first one that links to this lesson
 $relatedChallenges = array_values(CourseLoader::getChallengesForLesson($lessonId));

@@ -33,5 +33,5 @@ return view('learn/guided-project-lesson.view.php', [
     'lesson' => $lesson,
     'previous' => $previous,
     'next' => $next,
-    'renderedContent' => (new MarkdownRenderer())->render(GuidedBuild::content($lesson)),
+    'renderedContent' => (new MarkdownRenderer())->render(GuidedBuild::content($lesson), $lesson['title']),
 ]);

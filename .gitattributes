@@ -7,3 +7,4 @@
 /.editorconfig export-ignore
 /phpunit.xml export-ignore
 /phpunit.xml.dist export-ignore
+/.gitleaks.toml export-ignore
