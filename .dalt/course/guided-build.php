@@ -762,5 +762,15 @@ return [
                 ['label' => 'Compose environment interpolation', 'href' => 'https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/'],
             ],
         ],
+        [
+            'id' => '64',
+            'slug' => 'distinguish-liveness-from-readiness',
+            'title' => 'Distinguish liveness from readiness',
+            'description' => 'Answer "restart me" and "give me a moment" with two different endpoints, keep the failure reason out of an unauthenticated response, and wire the right probe into the container.',
+            'background' => [
+                ['label' => 'Compose startup order', 'href' => 'https://docs.docker.com/compose/how-tos/startup-order/'],
+                ['label' => 'Dockerfile HEALTHCHECK', 'href' => 'https://docs.docker.com/reference/dockerfile/#healthcheck'],
+            ],
+        ],
     ],
 ];
