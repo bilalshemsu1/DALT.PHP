@@ -712,5 +712,15 @@ return [
                 ['label' => 'MDN HTTP response status codes', 'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Status'],
             ],
         ],
+        [
+            'id' => '59',
+            'slug' => 'expand-postgresql-integration-coverage',
+            'title' => 'Expand PostgreSQL integration coverage',
+            'description' => 'Replace copied fixtures with schema-honest factories, describe every role in one policy matrix, and add the constraint, rollback, pagination, and query-count cases a status code cannot see.',
+            'background' => [
+                ['label' => 'PostgreSQL constraints', 'href' => 'https://www.postgresql.org/docs/18/ddl-constraints.html'],
+                ['label' => 'OWASP authorization testing', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Testing_Automation_Cheat_Sheet.html'],
+            ],
+        ],
     ],
 ];
