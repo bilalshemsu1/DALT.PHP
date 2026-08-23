@@ -1,0 +1,8 @@
+# The first Dockerfile: the smallest thing that produces a running container.
+FROM php@sha256:f78661b492226388a7057679cc731c3e43bc92ba66cd49a8cfe12374a56bee9f
+
+WORKDIR /app
+COPY . .
+
+EXPOSE 8000
+CMD ["php", "-S", "0.0.0.0:8000", "-t", "public"]

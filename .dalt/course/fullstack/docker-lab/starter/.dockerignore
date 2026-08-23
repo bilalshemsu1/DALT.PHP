@@ -1,0 +1,8 @@
+# Anything listed here never reaches the build context, so it can never end up in a
+# layer — which is the only place "later I will delete it" reliably fails.
+.git
+vendor
+notes
+config.local.php
+compose.yaml
+Dockerfile*

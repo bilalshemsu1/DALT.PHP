@@ -1,0 +1,15 @@
+# One stage that can actually reach PostgreSQL. It works, and FS10.3 measures what it
+# leaves behind.
+FROM php@sha256:f78661b492226388a7057679cc731c3e43bc92ba66cd49a8cfe12374a56bee9f
+
+# libpq-dev is a build-time need: pdo_pgsql is compiled against its headers. Keeping it
+# in the shipped image is the cost this file pays.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libpq-dev \
+    && docker-php-ext-install pdo_pgsql
+
+WORKDIR /app
+COPY . .
+
+EXPOSE 8000
+CMD ["php", "-S", "0.0.0.0:8000", "-t", "public"]

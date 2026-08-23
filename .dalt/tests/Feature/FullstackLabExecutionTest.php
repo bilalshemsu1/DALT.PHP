@@ -640,6 +640,63 @@ test('the Batch 7 PostgreSQL lab executes each lesson against the real database'
     }
 });
 
+test('the Batch 11 Docker lab runs each lesson against real Docker', function () {
+    if (getenv('DALT_SKIP_LAB_EXECUTION') === '1') {
+        $this->markTestSkipped('DALT_SKIP_LAB_EXECUTION=1.');
+    }
+
+    $source = base_path('.dalt/course/fullstack/docker-lab/starter');
+    $workspace = sys_get_temp_dir() . '/dalt-docker-' . bin2hex(random_bytes(6));
+    fullstackLabCopy($source, $workspace);
+
+    [$dockerExit] = fullstackLabRun($workspace, ['docker', 'version'], 30);
+    if ($dockerExit !== 0) {
+        fullstackLabRemove($workspace);
+        $this->markTestSkipped('Docker is unavailable; the Part 10 lab cannot run.');
+    }
+
+    $php = 'php@sha256:f78661b492226388a7057679cc731c3e43bc92ba66cd49a8cfe12374a56bee9f';
+    $container = 'dalt-lab-test-' . bin2hex(random_bytes(4));
+    $port = '127.0.0.1:58101';
+
+    try {
+        // FS10.1 - no Dockerfile at all: the official image, a bind mount, a published port.
+        [$runExit, $runOutput] = fullstackLabRun($workspace, [
+            'docker', 'run', '--rm', '-d', '--name', $container,
+            '-p', $port . ':8000', '-v', $workspace . ':/app', '-w', '/app',
+            $php, 'php', '-S', '0.0.0.0:8000', '-t', 'public',
+        ], 120);
+        expect($runExit)->toBe(0, "FS10.1's container did not start:\n{$runOutput}");
+
+        // The server needs a moment; poll rather than sleeping a guessed amount.
+        $health = '';
+        for ($attempt = 0; $attempt < 40; $attempt++) {
+            [, $health] = fullstackLabRun($workspace, ['curl', '-s', 'http://' . $port . '/health'], 15);
+            if (str_contains($health, 'ok')) {
+                break;
+            }
+            usleep(250000);
+        }
+        expect($health)->toContain('"status":"ok"');
+
+        [$pidExit, $pidOutput] = fullstackLabRun($workspace, [
+            'docker', 'exec', $container, 'sh', '-c', "tr '\\0' ' ' < /proc/1/cmdline",
+        ], 30);
+        expect($pidExit)->toBe(0)
+            ->and(trim($pidOutput))->toBe('php -S 0.0.0.0:8000 -t public');
+
+        // The same process, seen from the host, is an ordinary PID - which is the whole
+        // claim FS10.1 makes about what a container is.
+        [$topExit, $topOutput] = fullstackLabRun($workspace, ['docker', 'top', $container, '-o', 'pid,args'], 30);
+        expect($topExit)->toBe(0)
+            ->and($topOutput)->toContain('php -S 0.0.0.0:8000 -t public')
+            ->and(preg_match('/^\s*\d+\s+php -S/m', $topOutput))->toBe(1, "docker top showed no host PID:\n{$topOutput}");
+    } finally {
+        fullstackLabRun($workspace, ['docker', 'rm', '-f', $container], 60);
+        fullstackLabRemove($workspace);
+    }
+});
+
 test('every command a milestone specification names actually exists', function () {
     // The defect this catches: B02's specification said `npm run test` three times
     // while its starter only defined `test:parser`. Structural conformance passed,

@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+    environment:
+      POSTGRES_DB: dalt_course
+      POSTGRES_USER: dalt
+      POSTGRES_PASSWORD: dalt-course-local
+    volumes:
+      # PostgreSQL 18 declares /var/lib/postgresql, not the older data path. Mount the
+      # path the image declares, never the one you remember.
+      - db-data:/var/lib/postgresql
+      - ./database:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dalt -d dalt_course"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgres://dalt:dalt-course-local@db:5432/dalt_course
+    ports:
+      # Published on the loopback address only: this is a lab, not a service.
+      - "127.0.0.1:58000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php -r \"exit(@file_get_contents('http://127.0.0.1:8000/ready') === false ? 1 : 0);\""]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  db-data:

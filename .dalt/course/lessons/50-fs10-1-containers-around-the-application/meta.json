@@ -1,6 +1,6 @@
 {
-    "title": "Containers around the application",
-    "description": "Run the issue tracker as cooperating services without confusing host and container boundaries.",
+    "title": "Processes, images, containers, and ports",
+    "description": "Run the application in a container with no Dockerfile, and learn what each word means.",
     "order": 69,
     "section": "fullstack",
     "section_order": 50,
