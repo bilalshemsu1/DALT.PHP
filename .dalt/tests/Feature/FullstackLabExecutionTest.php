@@ -1048,6 +1048,30 @@ test('the Batch 12 PostgreSQL lab executes each lesson against the real database
         expect($searchSections[5])->toContain('Bitmap Index Scan on issues_search_idx');
         expect($searchSections[6])->toContain('66666');
         expect($searchSections[7])->toContain('0.1844');
+
+        // FS11.4 - the operator, not the column, decides whether the index is usable.
+        // Section 4 repeats section 2's query with the GIN index in place and must still
+        // be a sequential scan, or the lesson's central distinction is wrong.
+        [$jsonExit, $json] = fullstackLabRun(
+            $workspace,
+            [...$compose, ...$psql(['-f', '/course/sql/fs11-4-jsonb.sql'])],
+            600,
+        );
+        expect($jsonExit)->toBe(0, "FS11.4's experiment failed:\n{$json}");
+
+        $jsonSections = preg_split('/^--- \d+\. /m', $json);
+        expect($jsonSections)->toHaveCount(7, "FS11.4's experiment no longer prints six labelled sections.");
+
+        expect($jsonSections[1])->toContain('"source"');
+        expect($jsonSections[2])->toContain('Seq Scan on issues');
+        expect($jsonSections[3])->toContain('Bitmap Index Scan on issues_attributes_idx');
+        expect($jsonSections[4])->toContain('Seq Scan on issues')
+            ->and(str_contains($jsonSections[4], 'issues_attributes_idx'))->toBeFalse(
+                "The GIN index now answers the ->> form, so FS11.4's operator distinction is gone.\n{$jsonSections[4]}",
+            );
+        expect($jsonSections[5])->toContain('"sorce"')
+            ->and($jsonSections[5])->toContain('rows_with_a_misspelled_key');
+        expect($jsonSections[6])->toContain('Bitmap Index Scan on issues_source_idx');
     } finally {
         fullstackLabRun($workspace, [...$compose, 'down', '-v'], 300);
         fullstackLabRemove($workspace);

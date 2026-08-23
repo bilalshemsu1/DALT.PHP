@@ -33,6 +33,8 @@ docker compose exec -T db psql -U dalt -d dalt_depth -v ON_ERROR_STOP=1 \
   -f /course/sql/fs11-2-explain-and-indexes.sql
 docker compose exec -T db psql -U dalt -d dalt_depth -v ON_ERROR_STOP=1 \
   -f /course/sql/fs11-3-full-text-search.sql
+docker compose exec -T db psql -U dalt -d dalt_depth -v ON_ERROR_STOP=1 \
+  -f /course/sql/fs11-4-jsonb.sql
 ```
 
 They build on each other: FS11.2 starts from the index FS11.1 created, so run them in
