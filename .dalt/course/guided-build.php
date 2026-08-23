@@ -782,5 +782,15 @@ return [
                 ['label' => 'PostgreSQL backup and restore', 'href' => 'https://www.postgresql.org/docs/18/backup-dump.html'],
             ],
         ],
+        [
+            'id' => '66',
+            'slug' => 'make-ci-enforce-the-release-contract',
+            'title' => 'Make CI enforce the release contract',
+            'description' => 'Put every release check in one script that CI and a laptop both run, pin the runtimes, cache downloads but never generated output, and catch a credential pasted into a job definition.',
+            'background' => [
+                ['label' => 'GitHub Actions service containers', 'href' => 'https://docs.github.com/en/actions/using-containerized-services/about-service-containers'],
+                ['label' => 'Playwright in CI', 'href' => 'https://playwright.dev/docs/ci'],
+            ],
+        ],
     ],
 ];
