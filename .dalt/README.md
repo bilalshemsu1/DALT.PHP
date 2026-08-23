@@ -2,13 +2,36 @@
 
 This directory contains the DALT learning platform UI and assets. It's completely separate from the framework core.
 
+Nothing in here is covered by the v1 compatibility promise — see
+[COMPATIBILITY.md](../COMPATIBILITY.md). Course content changes continuously.
+
 ## What's Inside
 
+- `course/` - The learning content: `lessons/` (DALT Core and Fullstack theory),
+  `guided-build/` (the DALT Build course), `build/` (Fullstack build milestones), and
+  `challenges/` (deliberately broken states with executable verification)
+- `Core/` - Platform-only PHP classes: catalog loading, challenge lifecycle, verification
 - `Http/controllers/` - Controllers for `/learn` routes (lesson viewer, challenge UI, verification API)
 - `resources/` - Vue components, CSS, and views for the learning interface
 - `routes/` - Platform routes (loaded automatically in `public/index.php`)
 - `stubs/` - Code templates for authentication scaffolding
 - `scripts/` - Setup scripts (post-create hooks)
+- `tests/` - The course suite; run it with `php vendor/bin/pest .dalt/tests --bootstrap=.dalt/bootstrap.php`
+- `build/` - Prebuilt platform assets, committed so a new project runs without Node.js
+
+## The three learning surfaces
+
+**DALT Core** teaches framework internals, Docker, and PostgreSQL through short lessons
+and small experiments, backed by the debugging challenges.
+
+**Fullstack theory** teaches React, TypeScript, Tailwind, HTTP, PHP, and PostgreSQL as
+theory with small disposable experiments, plus build milestones that specify what to make.
+
+**DALT Build** is a guided course that has you build one issue-tracking application from
+an empty skeleton. It ships as *lessons*, not as starter code: the reference application
+those lessons were written from is not distributed, and `app/`, `routes/`, and
+`resources/` in a fresh project are the plain framework skeleton. You write the
+application.
 
 ## Authentication Example
 
@@ -47,4 +70,19 @@ This means:
 
 ## For Contributors
 
-If you're working on the learning platform itself, the frontend dependencies are managed at the project root (`package.json`), not here.
+The learning platform has **its own** frontend toolchain, isolated from the root one:
+
+| | Root `package.json` | `.dalt/package.json` |
+|---|---|---|
+| Serves | the learner's application | the `/learn` interface |
+| Stack | React, TypeScript, Vitest, ESLint | Vue 3, Tailwind, Vite |
+| Build output | `public/build/` | `.dalt/build/` |
+| Install | `npm ci` | `npm ci --prefix .dalt` |
+| Rebuild | `npm run build` | `npm run build --prefix .dalt` |
+
+Both sets of built assets are committed, which is why a fresh project runs without
+Node.js installed. If you change platform CSS, Vue components, or views, rebuild
+`.dalt/build/` and commit the result.
+
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for the full contribution rules, including the
+standard course content has to meet.

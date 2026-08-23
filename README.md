@@ -6,7 +6,7 @@
   [![PHP Version](https://img.shields.io/packagist/php-v/ibnuafdel/daltphp.svg?style=flat-square)](https://packagist.org/packages/ibnuafdel/daltphp)
 </div>
 
-DALT is a learning framework where you can see and understand everything. The entire codebase is ~1,000 lines of readable PHP. You write real SQL queries, handle security yourself, and see exactly how routing, sessions, and authentication work.
+DALT is a learning framework where you can see and understand everything. The whole framework is under 3,000 lines of readable PHP across 25 files — small enough to read in an afternoon. You write real SQL queries, handle security yourself, and see exactly how routing, sessions, and authentication work.
 
 This isn't a framework for production apps. It's a framework for understanding how web applications actually work.
 
@@ -28,16 +28,27 @@ The framework includes optional lessons and debugging challenges to help you get
 
 ```bash
 # Create a new project
-composer create-project ibnuafdel/daltphp my-project --stability=beta --remove-vcs
+composer create-project ibnuafdel/daltphp my-project --remove-vcs
 cd my-project
 
 # Start the application
 php artisan serve    # http://localhost:8000
 ```
 
-Visit `http://localhost:8000` to see your app. Visit `http://localhost:8000/learn` for optional lessons and challenges.
+Visit `http://localhost:8000` to see your app. Visit `http://localhost:8000/learn` for the optional courses and challenges.
 
 Production-ready frontend assets are included, so Node.js is not required to start a new project. If you change the learning-platform CSS, JavaScript, or Vue components, run `npm ci` and `npm run dev`; use `npm run build` before distributing those changes.
+
+### Requirements
+
+| | |
+|---|---|
+| PHP | 8.2, 8.3, or 8.4 |
+| Extensions | `pdo` and `pdo_sqlite` (bundled with most PHP builds); `pdo_pgsql` only if you set `DB_DRIVER=pgsql` |
+| Databases | SQLite (default) and PostgreSQL |
+| Composer | 2.x |
+| Node.js | not required to run a project; needed only to rebuild frontend assets |
+| Operating systems | tested on Linux; macOS is expected to work. Windows is untested — use WSL2 |
 
 ### Deployment boundary
 
@@ -47,13 +58,31 @@ DALT is an educational framework, not a production-hardened runtime. If you adap
 
 ## 📚 Learning Features (Optional)
 
-DALT includes 17 lessons and 20 debugging challenges across framework internals, Docker, and PostgreSQL:
+Everything under `/learn` is optional and lives entirely in `.dalt/`. There are three
+separate learning surfaces, and you do not have to take them in order:
 
-**Lessons:** Request lifecycle, routing, middleware, authentication, database, containers, PostgreSQL, reliability, and observability
+**DALT Core** — 19 lessons on framework internals, Docker, and PostgreSQL: request
+lifecycle, routing, middleware, authentication, sessions, databases, containers,
+reliability, and observability. Short lessons with small experiments.
 
-**Challenges:** Diagnose deliberately broken framework code, container configuration, SQL, migrations, reliability, and database performance
+**Fullstack theory** — 60 concise lessons across 13 parts, taking React + TypeScript +
+Tailwind down through HTTP and JSON into PHP and PostgreSQL under Docker. Theory with
+small disposable experiments, plus 19 build milestones that specify what to make.
 
-Run `php artisan challenge:start broken-routing` to try a challenge. Run `php artisan challenge:verify` to check your solution.
+**DALT Build** — 71 guided lessons that build one serious issue-tracking application
+from an empty DALT skeleton, in the order real product development creates the need for
+each idea. This is a course, not starter code: you write the application yourself.
+
+**Challenges** — 22 deliberately broken states across framework code, container
+configuration, SQL, migrations, reliability, and database performance. Each one is
+verified by behavior rather than by matching your source text.
+
+```bash
+php artisan challenge:list
+php artisan challenge:start broken-routing
+php artisan challenge:verify
+php artisan challenge:stop
+```
 
 These are completely optional. Remove them with `php artisan platform:remove` to keep only the framework core. The command preserves application files, including an installed auth example; generated auth files become learner-owned after the platform is gone. Use `--force` only when intentionally running the removal non-interactively.
 
@@ -77,19 +106,37 @@ After learning with PHP, these concepts transfer to any backend language. You'll
 - [Contributor Content Guide](documentation/contributor-content.md)
 - [Competency Roadmap](documentation/competency-roadmap.md)
 
-Full documentation at: **[daltphp.com/docs](https://dalt.ibnuafdel.com/docs)**
+Hosted documentation: **[dalt.ibnuafdel.com/docs](https://dalt.ibnuafdel.com/docs)**
 
-- [What is DALT?](https://dalt.ibnuafdel.com/docs/introduction/what-is-dalt) - Understanding the learning framework
-- [Why DALT?](https://dalt.ibnuafdel.com/docs/introduction/why-dalt) - When DALT is right for you
-- [Why PHP?](https://dalt.ibnuafdel.com/docs/introduction/why-php) - Why PHP is ideal for learning
-- [Quick Start](https://dalt.ibnuafdel.com/docs/introduction/quick-start) - Get started in 5 minutes
-- [Building a Blog](https://dalt.ibnuafdel.com/docs/guides/building-a-blog) - Your first project
+- [What is DALT?](https://dalt.ibnuafdel.com/docs/start/what-is-dalt) — what the framework is, and what it is not
+- [Installation](https://dalt.ibnuafdel.com/docs/start/installation) — getting a project running
+- [Learn locally](https://dalt.ibnuafdel.com/docs/start/learn-locally) — using the bundled courses
+- [Architecture](https://dalt.ibnuafdel.com/docs/build/architecture) — how a request moves through DALT
+- [Framework reference](https://dalt.ibnuafdel.com/docs/reference/framework) — the public API
+
+---
+
+## 📦 What v1 promises
+
+`v1.0.0` is a stable release. [COMPATIBILITY.md](COMPATIBILITY.md) records exactly which
+public APIs, Artisan commands, configuration keys, routes, and removal behavior are
+covered by that promise, and what is deliberately left free to change. Anything that
+breaks a covered contract requires a new major version.
+
+Security fixes and the supported version window are in [SECURITY.md](SECURITY.md). The
+release history is in [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
 ## 🤝 Contributing
 
 DALT is open source and welcomes contributions through the [GitHub repository](https://github.com/Ibnu-Afdel/DALT.PHP).
+Read [CONTRIBUTING.md](CONTRIBUTING.md) first — it covers local setup, the commands that
+must pass, the boundary between framework and course code, and how course content is
+reviewed. Participation is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+Please do not report security issues in a public issue. [SECURITY.md](SECURITY.md) has
+the private disclosure route.
 
 Join the community: [Telegram](https://t.me/daltphp)
 

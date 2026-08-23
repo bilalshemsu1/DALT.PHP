@@ -7,6 +7,127 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - unreleased
+
+The first stable release. DALT is still an educational framework and says so
+everywhere — what changes at 1.0.0 is that the public surface now carries a written,
+tested compatibility promise instead of a beta disclaimer.
+
+### Added
+
+- **[COMPATIBILITY.md](COMPATIBILITY.md)** — the v1 contract. It records the public
+  `Core` classes and methods, the global helpers, routing and response behavior,
+  configuration and environment keys, the Artisan command set, migration behavior, the
+  auth-example lifecycle, and the `platform:remove` guarantee, together with an explicit
+  list of what is *not* covered. `tests/Feature/CompatibilityContractTest.php` checks the
+  document against the code in both directions, so the promise cannot silently drift.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — local setup, the commands that must pass, the
+  framework/course boundary, how course content is reviewed, and where security reports
+  go instead of the issue tracker.
+- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — Contributor Covenant 2.1.
+- **Continuous integration** — a PHP 8.2/8.3/8.4 matrix, frontend jobs for both the root
+  and `.dalt` toolchains, a PostgreSQL job, a Docker job, a Composer-artifact install
+  smoke test, the destructive skeleton-isolation proof, dependency auditing, and secret
+  scanning. Integration jobs fail on an unexpected skip rather than reporting green.
+- **Issue and pull-request templates** that ask for reproduction, environment, expected
+  behavior, and actual behavior, and route security reports privately.
+- **DALT Fullstack** — 60 concise theory lessons across 13 parts taking React,
+  TypeScript, and Tailwind down through HTTP and JSON into PHP and PostgreSQL under
+  Docker, with 19 build milestones.
+- **DALT Build** — 71 guided lessons that build one issue-tracking application from an
+  empty skeleton, in the order real product development creates the need for each idea.
+- **Router**: `OPTIONS` support, and prefix fallback routes (`/app/{*}`) that match a
+  prefix and everything beneath it across segment boundaries — what an SPA route table
+  and an API preflight catch-all both need.
+- **Frontend test tooling** in the root toolchain: Vitest, Testing Library, and jsdom.
+
+### Changed
+
+- Installation no longer requires `--stability=beta`. The documented command is
+  `composer create-project ibnuafdel/daltphp my-project --remove-vcs`.
+- `minimum-stability` is `stable`; no dependency requires a pre-release.
+- README describes the three learning surfaces separately — Core, Fullstack theory, and
+  DALT Build — and states the framework size, supported PHP versions, extensions,
+  databases, and operating-system boundary. The previous "17 lessons and 20 challenges"
+  and "~1,000 lines" claims were both stale.
+- `SECURITY.md` supports the `1.x` line, states what a security fix is allowed to break,
+  and points at GitHub Security Advisories for published vulnerabilities.
+- Challenge verification checks behavior rather than matching learner source text.
+
+### Fixed
+
+- `.env.example` advertised a MySQL configuration block. `Database` accepts only
+  `sqlite` and `pgsql`, and rejects anything else with
+  `InvalidArgumentException: Unsupported database driver`. The false block is gone.
+- Hosted documentation links pointed at a `/docs/introduction/*` and `/docs/guides/*`
+  structure the site no longer serves; every one returned 404. README and both footers
+  now point at pages that resolve. All 490 external links in the tracked tree were
+  checked, and the one broken third-party link in the competency roadmap was corrected.
+- The README hosted-docs label read `daltphp.com/docs`, a domain that does not exist.
+- Build milestone B03 stage 1 had no "Check it yourself" section, so the first stage of
+  the first build milestone could be "finished" without the learner knowing whether the
+  Vite entry point had actually moved.
+- Trailing whitespace across 25 tracked files; two Markdown hard breaks that depended on
+  invisible trailing spaces are now explicit lists.
+
+### Removed
+
+- `php artisan fullstack:status`. It was an authoring command that read `docs/` files
+  excluded from every distribution, and it reported a superseded lesson count. Removing
+  it before 1.0.0 keeps it out of the CLI compatibility promise.
+- The empty tracked `.codex` file.
+- `lucide-vue-next`, `reka-ui`, and `shadcn-vue` from the `.dalt` toolchain. None was
+  imported by any source file; removing them takes that install from 455 packages to 86
+  and produces byte-identical build output.
+
+### Security
+
+- Development dependency remediation: Vitest to 4.1.11 (fixes a critical arbitrary
+  file read and execute through the Vitest UI server, GHSA-5xrq-8626-4rwp) and Vite to
+  8.2.2 (fixes a `server.fs.deny` bypass, GHSA-fx2h-pf6j-xcff, and an NTLMv2 hash
+  disclosure through `launch-editor`, GHSA-v6wh-96g9-6wx3). Production dependencies were
+  never affected, but contributor and CI tooling is part of the public release. Both
+  `npm audit` runs and both Composer audits now report zero advisories.
+- ESLint moved to 10.9.0; the 9.x line is no longer supported upstream.
+
+### Upgrade notes
+
+There is no in-place upgrade from a `0.x` beta. The betas carried no compatibility
+promise and the learning platform changed substantially. Start a new project with
+`composer create-project ibnuafdel/daltphp my-project --remove-vcs` and copy your
+application code from `app/`, `routes/`, `database/migrations/`, and `resources/` into
+it. Nothing under `framework/` or `.dalt/` should be carried across.
+
+If you removed the learning platform with `platform:remove`, that remains the supported
+way to keep only the framework, and it is now proven in CI on every commit.
+
+## [0.4.1-beta] - 2026-08-13
+
+### Fixed
+- Installation shipped without prebuilt `.dalt` assets, and `.dalt` dependencies were
+  not installed automatically
+
+## [0.4.0-beta] - 2026-08-13
+
+### Added
+- Docker, PostgreSQL, database-layer and observability challenges converted to
+  executable verification, plus `compose_config`, `handler_result` and `class_contract`
+  check types
+- Framework reference, quick start, architecture, debugging and contributor
+  documentation, and an interactive competency roadmap
+- Laravel bridges and curated external reading across the course
+
+### Changed
+- DALT's asset build and dependencies isolated into `.dalt/`, with the root Vite
+  pipeline serving the application
+- Learning shell, roadmap, challenge pages and Markdown rendering redesigned;
+  server-side Markdown rendering replaced the client pipeline
+- DALT-only tests moved under `.dalt/tests` with isolation coverage
+
+### Fixed
+- Challenge fixtures that could not run, unrunnable Docker and PostgreSQL lesson
+  examples, and a dead-code false positive in the verifier
+
 ## [0.3.0-beta.3] - 2026-05-11
 
 ### Added
@@ -121,7 +242,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/Ibnu-Afdel/DALT.PHP/compare/v0.3.0-beta.3...HEAD
+[Unreleased]: https://github.com/Ibnu-Afdel/DALT.PHP/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/Ibnu-Afdel/DALT.PHP/compare/v0.4.1-beta...v1.0.0
+[0.4.1-beta]: https://github.com/Ibnu-Afdel/DALT.PHP/compare/v0.4.0-beta...v0.4.1-beta
+[0.4.0-beta]: https://github.com/Ibnu-Afdel/DALT.PHP/compare/v0.3.0-beta.3...v0.4.0-beta
 [0.3.0-beta.3]: https://github.com/Ibnu-Afdel/DALT.PHP/compare/v0.3.0-beta.2...v0.3.0-beta.3
 [0.3.0-beta.2]: https://github.com/Ibnu-Afdel/DALT.PHP/compare/v0.3.0-beta.1...v0.3.0-beta.2
 [0.3.0-beta.1]: https://github.com/Ibnu-Afdel/DALT.PHP/compare/v0.2.0-beta.7...v0.3.0-beta.1

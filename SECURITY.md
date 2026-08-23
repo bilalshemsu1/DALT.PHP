@@ -2,12 +2,21 @@
 
 ## Supported Versions
 
-We release patches for security vulnerabilities in the following versions:
+Security fixes land on the latest `1.x` release. Older lines are not patched — the
+upgrade path from any `0.x` beta to `1.0.0` is a fresh `composer create-project`, since
+the betas were never covered by a compatibility promise.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.3.x   | :white_check_mark: |
-| < 0.3   | :x:                |
+| 1.x     | :white_check_mark: |
+| 0.x     | :x:                |
+
+### What a security fix may change
+
+A vulnerability fix may break a contract listed in [COMPATIBILITY.md](COMPATIBILITY.md),
+even in a patch release. When that happens the change is called out explicitly in
+`CHANGELOG.md` under `Security`, with the reason and the upgrade path. Everything else
+follows the normal semantic-versioning rules in that document.
 
 ## Reporting a Vulnerability
 
@@ -115,7 +124,9 @@ DALT.PHP is designed as a **learning platform** with intentionally broken code i
 
 While DALT.PHP can be used as a foundation for real projects:
 
-1. **Remove challenge code** - Delete `.dalt/` (or use without it) for production
+1. **Remove challenge code** - Run `php artisan platform:remove --force`. This deletes
+   `.dalt/`, including every intentionally vulnerable challenge fixture, and leaves the
+   framework and your application intact.
 2. **Review all code** - Audit before deploying
 3. **Add additional security layers** - Rate limiting, WAF, etc.
 4. **Follow security best practices** - See above
@@ -140,7 +151,9 @@ These mechanisms do not include login throttling, password reset, email verifica
 - We follow **responsible disclosure** practices
 - Security fixes are released as soon as possible
 - We credit researchers who report vulnerabilities (unless they prefer anonymity)
-- We maintain a security advisory page for disclosed vulnerabilities
+- Confirmed vulnerabilities are published as
+  [GitHub Security Advisories](https://github.com/Ibnu-Afdel/DALT.PHP/security/advisories)
+  on this repository once a fix is available
 
 ## Contact
 
