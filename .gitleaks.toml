@@ -2,34 +2,42 @@
 #
 # The hard part here is not finding secrets — it is that this repository teaches
 # security by shipping deliberately insecure code. `.dalt/course/challenges/`
-# contains broken authentication, SQL injection, and session handling on purpose,
-# and the lessons quote example credentials so a learner can run them.
+# contains broken authentication, SQL injection and plaintext credentials on
+# purpose, and one guided Build lesson plants a fake Stripe key specifically so
+# the learner's own secret scan catches it.
 #
 # The wrong fix is to exclude `.dalt/` from scanning: that is most of the
-# repository, and a real leak in a lesson would then be invisible. Instead this
-# config keeps every rule active everywhere and allowlists only the specific,
-# obviously-fake credentials the course uses.
+# repository, and a real leak in a lesson would then be invisible. Instead every
+# rule stays active everywhere, and only the specific fake values the course uses
+# are allowlisted — each one with a comment naming where it comes from, so a future
+# maintainer can tell an allowlisted teaching value from an allowlisted mistake.
 
 [extend]
 useDefault = true
 
 [[rules]]
-id = "dalt-generic-password-assignment"
-description = "Password assigned to a literal in application or framework code"
-regex = '''(?i)(password|passwd|secret|token)\s*(=>|=|:)\s*['"][^'"\s]{8,}['"]'''
+id = "dalt-hardcoded-password"
+description = "Password or secret assigned to a string literal in authored code"
+# Deliberately narrow: a value on the same line, at least eight characters, no
+# newline crossing. An earlier version matched across lines and flagged an empty
+# `DB_PASSWORD=` followed by `DB_CHARSET=utf8` in a lesson.
+# The keyword may be part of a longer identifier — `$dbPassword`, `adminSecret`,
+# `stripe_api_key` — so it is not anchored on a word boundary at the front.
+regex = '''(?i)(password|passwd|pwd|secret|api[_-]?key|access[_-]?token)\s*(=>|=|:)\s*['"][^'"\n]{8,}['"]'''
+keywords = ["password", "passwd", "secret", "api_key", "apikey", "token"]
 tags = ["password", "dalt"]
-[rules.allowlist]
-paths = [
-  # Course material: the credentials below are printed in the lesson text so the
-  # learner can copy them into a throwaway container.
-  '''\.dalt/course/''',
-  '''documentation/''',
-]
 
-[allowlist]
-description = "Course fixtures, documented example values, and lockfile hashes"
+[[allowlists]]
+description = "Third-party code, course fixtures, and documented example values"
+# Match the whole source line, not just the extracted secret. A rule reports
+# `apiKey = "sk_live_..."` as its match, so a pattern holding only the value
+# never lines up.
+regexTarget = "line"
 
 paths = [
+  # Not authored here, and never published from this repository.
+  '''(^|/)vendor/''',
+  '''(^|/)node_modules/''',
   # Lockfiles are full of base64 integrity hashes that trip entropy rules.
   '''(^|/)composer\.lock$''',
   '''(^|/)package-lock\.json$''',
@@ -39,15 +47,57 @@ paths = [
 ]
 
 regexes = [
-  # The example environment file ships placeholders, not values.
+  # --- Placeholders in shipped example configuration -----------------------
   '''your_password''',
   '''changeme''',
-  '''POSTGRES_PASSWORD=(dalt|postgres|password)''',
-  # Every course lab uses this throwaway pair against a local container.
-  '''(?i)(user(name)?|POSTGRES_USER)\s*(=>|=|:)\s*['"]?dalt['"]?''',
-  '''(?i)password\s*(=>|=|:)\s*['"]?dalt['"]?''',
-  # Deliberately weak passwords used to demonstrate hashing and login flows.
-  '''(?i)['"](secret|password|password123|hunter2|correct-horse-battery-staple)['"]''',
-  # PHP's own hash output shown in lessons about password storage.
+
+  # --- The throwaway credentials every course lab uses against a local
+  # --- container. They exist in the compose files the learner runs.
+  '''POSTGRES_PASSWORD:?=?\s*['"]?(dalt|postgres|password)['"]?''',
+  '''(?i)\b(user(name)?|POSTGRES_USER)\b\s*(=>|=|:)\s*['"]?dalt['"]?''',
+  '''(?i)\bpassword\b\s*(=>|=|:)\s*['"]?dalt['"]?''',
+
+  # --- Deliberately weak passwords used to demonstrate hashing and login ----
+  '''(?i)['"](secret|password|password123|hunter2)['"]''',
+  # .dalt/course/fullstack/auth-boundaries-lab: the canonical xkcd passphrase,
+  # used to show that length beats character classes.
+  '''correct[- ]horse[- ]battery[- ]staple''',
+  # PHP's own hash output, shown in lessons about password storage.
   '''\$2y\$[0-9]{2}\$[./A-Za-z0-9]{53}''',
+
+  # --- Values the course plants *so that a scan finds them* ----------------
+  # .dalt/course/challenges/docker-plaintext-secrets: the entire challenge is
+  # that this password is hardcoded in the compose file. Fixing it is the task.
+  '''POSTGRES_PASSWORD:\s*supersecret''',
+  # .dalt/course/guided-build/61-define-production-configuration-and-secrets:
+  # a synthetic Stripe key appended to a bundle so the learner's own
+  # `composer check:secrets` reports it. Not a real key and never was.
+  #
+  # Written as a pattern with a character class rather than as the literal value.
+  # Spelling a key-shaped string out here would make this config itself trip every
+  # scanner that reads it — GitHub push protection rejected exactly that, from this
+  # exact line, before it was written this way.
+  '''sk_live_9f2b7c41[0-9a-f]{20}''',
+  # .dalt/course/fullstack/frontend-architecture-lab: demonstrates that a
+  # non-VITE_ variable never reaches the browser. The value says so.
+  '''never-shipped-to-a-browser''',
+
+  # An empty value is not a secret. B05 shows a local PostgreSQL .env whose
+  # DB_PASSWORD is blank; the built-in generic-api-key rule reads past the empty
+  # value onto the next line and reports the character set as the secret.
+  '''DB_PASSWORD=\s*[\r\n]+DB_CHARSET=utf8''',
+
+  # A value that is an expansion, not a literal, cannot be a leaked secret —
+  # it is a reference to one held elsewhere. This is the pattern the Docker
+  # production lesson teaches: DB_PASSWORD="$(cat /run/secrets/db_password)".
+  # Go's RE2 has no lookahead, so this is expressed as an allowlist rather than
+  # as a negative branch inside the rule.
+  '''(?i)(password|passwd|pwd|secret|api[_-]?key|access[_-]?token)\s*(=>|=|:)\s*['"]?\$[({]''',
+  '''(?i)(password|passwd|pwd|secret|api[_-]?key|access[_-]?token)\s*(=>|=|:)\s*['"]?\$[A-Za-z_]''',
+  '''(?i)(password|passwd|pwd|secret|api[_-]?key|access[_-]?token)\s*(=>|=|:)\s*(env|getenv|config|process\.env)''',
+
+  # --- Internal non-secrets whose variable names look alarming --------------
+  # .dalt/Core/MarkdownRenderer.php: a per-render nonce prefix that guards
+  # against source content forging the disclosure-element placeholders.
+  '''DALT_MARKDOWN_''',
 ]

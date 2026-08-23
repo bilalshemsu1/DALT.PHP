@@ -65,19 +65,64 @@ jobs:
       - name: Credential-shaped filenames
         # A scanner that reads file contents will not notice a committed key file
         # whose contents happen to look unremarkable. Check the names too.
+        #
+        # Course fixtures under .dalt/course/ are exempt by path, not by pattern:
+        # a lab that teaches environment files has to contain environment files,
+        # and a challenge about plaintext secrets has to contain one. Their
+        # *contents* are still scanned by gitleaks above, with a per-value
+        # allowlist rather than a directory exclusion.
         run: |
-          hits=$(git ls-files | grep -iE '(^|/)(\.env|\.env\..*|id_rsa|id_ed25519|.*\.pem|.*\.key|.*\.p12|.*\.pfx|.*credentials.*|.*secret.*\.(json|ya?ml))$' \
-                 | grep -v '^\.env\.example$' || true)
+          hits=$(git ls-files \
+                 | grep -iE '(^|/)(\.env|\.env\..*|id_rsa|id_ed25519|.*\.pem|.*\.key|.*\.p12|.*\.pfx|.*credentials.*|.*secret.*\.(json|ya?ml))$' \
+                 | grep -v '^\.env\.example$' \
+                 | grep -v '^\.dalt/course/' || true)
           if [ -n "$hits" ]; then
-            echo "::error::Credential-shaped files are tracked:"
+            echo "::error::Credential-shaped files are tracked outside the course fixtures:"
             echo "$hits"
             exit 1
           fi
+          echo "No credential-shaped filenames outside .dalt/course/."
 
       - name: No private key blocks anywhere in the tree
         run: |
-          if git grep -lE 'BEGIN (RSA |EC |OPENSSH |PGP )?PRIVATE KEY' -- . ; then
+          if git grep -lE 'BEGIN (RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY' -- . ; then
             echo "::error::A private key block is committed."
             exit 1
           fi
           echo "No private key blocks found."
+
+      - name: The allowlist has not blinded the scanner
+        # An allowlist that grows one entry per false positive eventually matches
+        # a real secret, and nobody notices because the scan stays green either
+        # way. Plant realistic secrets — one in framework/, one inside the course
+        # directory the allowlist is most permissive about — and fail if gitleaks
+        # still reports clean. A secret scan nobody has watched fail is not a check.
+        #
+        # The values are generated here rather than written into the repository.
+        # A committed probe value would itself be a finding, and allowlisting it
+        # is precisely the move this step exists to catch.
+        run: |
+          probe="$(head -c 24 /dev/urandom | base64 | tr -d '/+=' | head -c 24)"
+          printf '<?php\n$dbPassword = %s;\n' "'Pr0d-${probe}'" > framework/Core/ScanProbe.php
+          {
+            printf 'password: "Live-%s"\n' "$probe"
+            printf 'STRIPE_KEY=sk_live_51%s\n' "$(head -c 12 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 22)"
+          } > .dalt/course/guided-build/SCAN_PROBE.md
+
+          if docker run --rm -v "$PWD":/repo zricethezav/gitleaks:latest \
+               dir /repo --config /repo/.gitleaks.toml --no-banner --redact; then
+            outcome=clean
+          else
+            outcome=found
+          fi
+          rm -f framework/Core/ScanProbe.php .dalt/course/guided-build/SCAN_PROBE.md
+
+          if [ "$outcome" = "clean" ]; then
+            echo "::error::gitleaks reported no leaks while planted secrets were present. The allowlist is too broad."
+            exit 1
+          fi
+          echo "Planted secrets were detected; the allowlist is still narrow enough to be useful."
+
+          # And the tree without them must be clean, or the step above proves nothing.
+          docker run --rm -v "$PWD":/repo zricethezav/gitleaks:latest \
+            dir /repo --config /repo/.gitleaks.toml --no-banner --redact
