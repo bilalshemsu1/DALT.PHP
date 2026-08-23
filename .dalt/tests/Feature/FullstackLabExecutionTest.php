@@ -1023,6 +1023,31 @@ test('the Batch 12 PostgreSQL lab executes each lesson against the real database
         expect($indexSections[4])->toContain('issues_open_recent_idx');
         expect($indexSections[5])->toContain('issues_open_recent_idx')
             ->and($indexSections[5])->toContain('issues_workspace_status_created_idx');
+
+        // FS11.3 - the claim is that LIKE misses real matches and that GIN changes the
+        // plan. The stemming contrast (0 vs 66666) is the part worth guarding: it is a
+        // correctness claim, not a performance one.
+        [$searchExit, $search] = fullstackLabRun(
+            $workspace,
+            [...$compose, ...$psql(['-f', '/course/sql/fs11-3-full-text-search.sql'])],
+            300,
+        );
+        expect($searchExit)->toBe(0, "FS11.3's experiment failed:\n{$search}");
+
+        $searchSections = preg_split('/^--- \d+\. /m', $search);
+        expect($searchSections)->toHaveCount(8, "FS11.3's experiment no longer prints seven labelled sections.");
+
+        expect($searchSections[1])->toContain('Seq Scan on issues');
+        expect(preg_match('/like_deploys\s*\n-+\s*\n\s*0\s*\n/', $searchSections[2]))->toBe(
+            1,
+            "LIKE '%deploys%' no longer misses the stemmed matches, so FS11.3's argument is gone.\n{$searchSections[2]}",
+        );
+        expect($searchSections[2])->toContain('66666');
+        expect($searchSections[3])->toContain("'deploy':9")->and($searchSections[3])->toContain("'report':4");
+        expect($searchSections[4])->toContain('Seq Scan on issues');
+        expect($searchSections[5])->toContain('Bitmap Index Scan on issues_search_idx');
+        expect($searchSections[6])->toContain('66666');
+        expect($searchSections[7])->toContain('0.1844');
     } finally {
         fullstackLabRun($workspace, [...$compose, 'down', '-v'], 300);
         fullstackLabRemove($workspace);
