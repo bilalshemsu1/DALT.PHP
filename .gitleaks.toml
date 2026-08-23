@@ -1,0 +1,53 @@
+# gitleaks configuration for DALT.PHP
+#
+# The hard part here is not finding secrets — it is that this repository teaches
+# security by shipping deliberately insecure code. `.dalt/course/challenges/`
+# contains broken authentication, SQL injection, and session handling on purpose,
+# and the lessons quote example credentials so a learner can run them.
+#
+# The wrong fix is to exclude `.dalt/` from scanning: that is most of the
+# repository, and a real leak in a lesson would then be invisible. Instead this
+# config keeps every rule active everywhere and allowlists only the specific,
+# obviously-fake credentials the course uses.
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "dalt-generic-password-assignment"
+description = "Password assigned to a literal in application or framework code"
+regex = '''(?i)(password|passwd|secret|token)\s*(=>|=|:)\s*['"][^'"\s]{8,}['"]'''
+tags = ["password", "dalt"]
+[rules.allowlist]
+paths = [
+  # Course material: the credentials below are printed in the lesson text so the
+  # learner can copy them into a throwaway container.
+  '''\.dalt/course/''',
+  '''documentation/''',
+]
+
+[allowlist]
+description = "Course fixtures, documented example values, and lockfile hashes"
+
+paths = [
+  # Lockfiles are full of base64 integrity hashes that trip entropy rules.
+  '''(^|/)composer\.lock$''',
+  '''(^|/)package-lock\.json$''',
+  # Committed build output is minified vendor code, not authored source.
+  '''(^|/)public/build/''',
+  '''(^|/)\.dalt/build/''',
+]
+
+regexes = [
+  # The example environment file ships placeholders, not values.
+  '''your_password''',
+  '''changeme''',
+  '''POSTGRES_PASSWORD=(dalt|postgres|password)''',
+  # Every course lab uses this throwaway pair against a local container.
+  '''(?i)(user(name)?|POSTGRES_USER)\s*(=>|=|:)\s*['"]?dalt['"]?''',
+  '''(?i)password\s*(=>|=|:)\s*['"]?dalt['"]?''',
+  # Deliberately weak passwords used to demonstrate hashing and login flows.
+  '''(?i)['"](secret|password|password123|hunter2|correct-horse-battery-staple)['"]''',
+  # PHP's own hash output shown in lessons about password storage.
+  '''\$2y\$[0-9]{2}\$[./A-Za-z0-9]{53}''',
+]

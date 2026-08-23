@@ -1,0 +1,46 @@
+name: Proposal
+description: Suggest a change to the framework or the course
+labels: ["proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        DALT is deliberately small — under 3,000 lines. "It would be useful" is not
+        enough on its own; the question is whether a learner would understand the
+        framework *worse* with this in it.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve
+      description: Describe the situation you hit, not the solution you have in mind.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you are proposing
+    validations:
+      required: true
+
+  - type: textarea
+    id: teaching-cost
+    attributes:
+      label: What does this cost a learner
+      description: |
+        More code to read, more magic, a new concept to explain? A change that makes the
+        framework harder to read has to earn it.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: compatibility
+    attributes:
+      label: Does this break anything in COMPATIBILITY.md?
+      options:
+        - "No — it is additive"
+        - "Yes — it changes a covered contract (needs a major release)"
+        - "I am not sure"
+    validations:
+      required: true

@@ -1,0 +1,97 @@
+name: Bug report
+description: Something in the framework or the CLI does not work as documented
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **If this is a security vulnerability, stop here** and
+        follow [SECURITY.md](../blob/main/SECURITY.md) instead — do not describe it in a
+        public issue.
+
+        For a problem with lesson or challenge content, use the "Course content" template.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you observe? Paste the exact error or output, not a summary.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+      description: If the documentation says something different, quote it and link it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: |
+        Exact commands, starting from a fresh project where possible. A reproduction
+        somebody else can run is worth more than a description of the problem.
+      placeholder: |
+        1. composer create-project ibnuafdel/daltphp bug-repro --remove-vcs
+        2. cd bug-repro
+        3. php artisan migrate
+        4. ...
+    validations:
+      required: true
+
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP version
+      description: Output of `php -v` (first line).
+      placeholder: "PHP 8.4.1 (cli)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: database
+    attributes:
+      label: Database driver
+      options:
+        - sqlite (default)
+        - pgsql
+        - other / not applicable
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Ubuntu 24.04 / macOS 15.3 / Windows 11 + WSL2"
+    validations:
+      required: true
+
+  - type: input
+    id: dalt-version
+    attributes:
+      label: DALT.PHP version
+      description: From `composer show ibnuafdel/daltphp`, or the commit SHA if you cloned.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform-present
+    attributes:
+      label: Is the learning platform installed?
+      description: Run `php artisan platform:status`.
+      options:
+        - "Yes — .dalt/ is present"
+        - "No — I ran platform:remove"
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Stack traces, relevant config, or what you already tried.

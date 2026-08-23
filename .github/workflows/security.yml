@@ -1,0 +1,83 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Advisories are published on somebody else's schedule, not on our commit
+    # cadence. A weekly run catches one that lands between releases.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependencies:
+    name: Dependency advisories
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@2.37.2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer:v2
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Composer advisories, including development dependencies
+        run: |
+          composer install --prefer-dist --no-progress
+          composer audit
+          composer audit --no-dev
+
+      - name: npm advisories, root toolchain
+        run: |
+          npm ci
+          npm audit --audit-level=high
+
+      - name: npm advisories, .dalt toolchain
+        working-directory: .dalt
+        run: |
+          npm ci
+          npm audit --audit-level=high
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+      - name: Credential-shaped filenames
+        # A scanner that reads file contents will not notice a committed key file
+        # whose contents happen to look unremarkable. Check the names too.
+        run: |
+          hits=$(git ls-files | grep -iE '(^|/)(\.env|\.env\..*|id_rsa|id_ed25519|.*\.pem|.*\.key|.*\.p12|.*\.pfx|.*credentials.*|.*secret.*\.(json|ya?ml))$' \
+                 | grep -v '^\.env\.example$' || true)
+          if [ -n "$hits" ]; then
+            echo "::error::Credential-shaped files are tracked:"
+            echo "$hits"
+            exit 1
+          fi
+
+      - name: No private key blocks anywhere in the tree
+        run: |
+          if git grep -lE 'BEGIN (RSA |EC |OPENSSH |PGP )?PRIVATE KEY' -- . ; then
+            echo "::error::A private key block is committed."
+            exit 1
+          fi
+          echo "No private key blocks found."

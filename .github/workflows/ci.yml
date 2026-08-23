@@ -1,0 +1,453 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # The course suite shells out to real Docker and PostgreSQL. A skip there is a
+  # release-infrastructure failure, not a pass, so the integration jobs assert on it.
+  COMPOSER_NO_INTERACTION: "1"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # The framework, on every PHP version the package claims to support.
+  # composer.json says ^8.2; COMPATIBILITY.md names 8.2, 8.3 and 8.4. If those two
+  # ever disagree, CompatibilityContractTest fails here rather than in a user's
+  # project.
+  # ---------------------------------------------------------------------------
+  framework:
+    name: Framework · PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@2.37.2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo, pdo_sqlite, pdo_pgsql, mbstring
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer metadata
+        run: composer validate --strict
+
+      - name: Cache Composer packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ matrix.php }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ matrix.php }}-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Prepare environment
+        run: cp .env.example .env
+
+      - name: Lint every PHP file
+        run: |
+          find framework app config database public routes tests artisan \
+            -type f \( -name '*.php' -o -name 'artisan' \) -print0 \
+            | xargs -0 -n1 -P4 php -l > /dev/null
+
+      - name: Framework test suite
+        run: php artisan test
+
+      - name: Catalog loads and validates
+        run: php artisan platform:status
+
+  # ---------------------------------------------------------------------------
+  # The course suite. It needs Node (labs run a real `npm install`), Docker and
+  # PostgreSQL. Runs once — the content does not vary by PHP version.
+  # ---------------------------------------------------------------------------
+  course:
+    name: Course suite · Docker + PostgreSQL
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@2.37.2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_sqlite, pdo_pgsql, mbstring
+          coverage: none
+          tools: composer:v2
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Confirm Docker and PostgreSQL tooling are present
+        run: |
+          docker version
+          docker compose version
+          psql --version
+
+      - name: Install dependencies
+        run: |
+          composer install --prefer-dist --no-progress
+          composer install --prefer-dist --no-progress --working-dir=.dalt
+          cp .env.example .env
+
+      - name: Free disk space for lab installs
+        # Lab tests copy each lab to a temporary directory and run a real npm
+        # install. On a full disk npm fails with ERR_INVALID_PACKAGE_CONFIG, which
+        # says nothing about disk — so make room before, not after.
+        run: |
+          df -h /tmp /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          df -h /tmp /
+
+      - name: Course suite
+        run: php vendor/bin/pest .dalt/tests --bootstrap=.dalt/bootstrap.php | tee course.log
+
+      - name: No unexpected skips
+        # A skipped Docker or PostgreSQL lab looks identical to a passing one in the
+        # summary line. This is the check that tells them apart.
+        run: |
+          if grep -qiE '^\s+- .*(skipped|Set DALT_)' course.log; then
+            echo "::error::The course suite skipped a test. In CI every required service is present, so a skip is a failure."
+            grep -iE '^\s+- ' course.log
+            exit 1
+          fi
+          grep -E '^\s+Tests:' course.log
+
+  # ---------------------------------------------------------------------------
+  # The one PostgreSQL parity test the framework suite skips without a server.
+  # ---------------------------------------------------------------------------
+  postgres-parity:
+    name: PostgreSQL driver parity
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: dalt
+          POSTGRES_PASSWORD: dalt
+          POSTGRES_DB: dalt_parity
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U dalt -d dalt_parity"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@2.37.2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_sqlite, pdo_pgsql, mbstring
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: |
+          composer install --prefer-dist --no-progress
+          cp .env.example .env
+
+      - name: Run the parity test against a real server
+        env:
+          DALT_TEST_PGSQL_CONFIG: >-
+            {"driver":"pgsql","host":"127.0.0.1","port":5432,"dbname":"dalt_parity",
+            "username":"dalt","password":"dalt","charset":"utf8"}
+        run: |
+          php vendor/bin/pest tests/Unit/DatabaseTest.php --filter='PostgreSQL matches' | tee parity.log
+          if grep -qi 'skipped' parity.log; then
+            echo "::error::The PostgreSQL parity test skipped even though a server was provided."
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Both frontend toolchains. They are separate on purpose: the root one serves
+  # the learner's application, .dalt's serves the /learn interface.
+  # ---------------------------------------------------------------------------
+  frontend:
+    name: Frontend · ${{ matrix.toolchain.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain:
+          - name: root
+            dir: .
+            full: true
+          - name: .dalt
+            dir: .dalt
+            full: false
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ${{ matrix.toolchain.dir }}/package-lock.json
+
+      - name: Install from the lockfile
+        working-directory: ${{ matrix.toolchain.dir }}
+        run: npm ci
+
+      - name: Audit
+        working-directory: ${{ matrix.toolchain.dir }}
+        # Zero high or critical advisories is the release policy, in development
+        # dependencies too — contributor tooling ships as part of the public repo.
+        run: npm audit --audit-level=high
+
+      - name: Typecheck
+        if: matrix.toolchain.full
+        working-directory: ${{ matrix.toolchain.dir }}
+        run: npm run typecheck
+
+      - name: Lint
+        if: matrix.toolchain.full
+        working-directory: ${{ matrix.toolchain.dir }}
+        run: npm run lint
+
+      - name: Test
+        if: matrix.toolchain.full
+        working-directory: ${{ matrix.toolchain.dir }}
+        run: npm test
+
+      - name: Build
+        working-directory: ${{ matrix.toolchain.dir }}
+        run: npm run build
+
+      - name: Built assets are committed and reproducible
+        # A stale committed bundle is how a project ships assets that do not match
+        # its source. Rebuilding must not change what is in Git.
+        run: |
+          if ! git diff --quiet; then
+            echo "::error::Rebuilding changed committed assets. Run the build and commit the result."
+            git --no-pager diff --stat
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------
+  # The load-bearing promise: deleting .dalt/ leaves a working framework.
+  # ---------------------------------------------------------------------------
+  skeleton:
+    name: Framework survives platform removal
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@2.37.2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_sqlite, mbstring
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: |
+          composer install --prefer-dist --no-progress
+          cp .env.example .env
+
+      - name: Remove the learning platform
+        run: |
+          php artisan platform:remove --force
+          test ! -d .dalt || { echo "::error::.dalt/ still exists after platform:remove."; exit 1; }
+
+      - name: Application files survived
+        run: |
+          for path in app config database public routes resources storage artisan composer.json; do
+            test -e "$path" || { echo "::error::platform:remove deleted $path"; exit 1; }
+          done
+
+      - name: Framework suite on the skeleton
+        # The suite is green with .dalt/ present no matter how badly a root test
+        # depends on it, because .dalt/ is always there in development. Only
+        # actually removing it reveals that class of bug.
+        run: php artisan test
+
+      - name: The site still serves
+        run: |
+          php artisan serve 127.0.0.1 8000 &
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/ || true)
+            [ "$code" = "200" ] && { echo "GET / -> 200"; exit 0; }
+            sleep 1
+          done
+          echo "::error::GET / did not return 200 on the skeleton (last: ${code:-none})"
+          exit 1
+
+  # ---------------------------------------------------------------------------
+  # Prove the package, not the repository. Everything a new user actually gets.
+  # ---------------------------------------------------------------------------
+  package:
+    name: Composer artifact install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@2.37.2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_sqlite, mbstring
+          coverage: none
+          tools: composer:v2
+
+      - name: Build the archive
+        run: |
+          composer archive --format=zip --dir=/tmp/dalt-archive --file=dalt-package
+          ls -lh /tmp/dalt-archive/
+
+      - name: Nothing private, generated, or repository-only leaked in
+        run: |
+          unzip -Z1 /tmp/dalt-archive/dalt-package.zip | sort > /tmp/archive-contents.txt
+          wc -l /tmp/archive-contents.txt
+          fail=0
+          # Each pattern here is something that must never reach a user's project.
+          while read -r pattern description; do
+            if grep -qE "$pattern" /tmp/archive-contents.txt; then
+              echo "::error::Archive contains $description (pattern: $pattern)"
+              grep -E "$pattern" /tmp/archive-contents.txt | head -5
+              fail=1
+            fi
+          done <<'PATTERNS'
+          (^|/)\.git/ a_git_directory
+          (^|/)\.github/ CI_internals
+          (^|/)tests/ root_tests
+          (^|/)docs/ ignored_local_docs
+          (^|/)\.env$ a_real_env_file
+          (^|/)node_modules/ a_node_dependency_tree
+          (^|/)vendor/ a_composer_dependency_tree
+          \.sqlite$ a_local_database
+          \.log$ a_log_file
+          (^|/)\.dalt/progress\.json course_progress_state
+          (^|/)\.dalt/challenge-state\.json active_challenge_state
+          (^|/)\.dalt/active_challenge\.txt an_active_challenge_marker
+          (^|/)\.dalt/baseline/ challenge_baseline_state
+          (^|/)\.dalt/challenge-backup/ challenge_backup_state
+          (^|/)\.dalt/workspace/ a_learner_workspace
+          (^|/)phpunit\.xml a_test_runner_config
+          (^|/)\.codex repository_only_noise
+          PATTERNS
+          exit $fail
+
+      - name: Everything a user needs is present
+        run: |
+          fail=0
+          for path in artisan composer.json README.md LICENSE SECURITY.md \
+                      COMPATIBILITY.md CONTRIBUTING.md CODE_OF_CONDUCT.md CHANGELOG.md \
+                      .env.example public/index.php framework/Core/App.php \
+                      .dalt/bootstrap.php documentation/framework-reference.md; do
+            grep -qE "(^|/)$(echo "$path" | sed 's/[.]/[.]/g')$" /tmp/archive-contents.txt \
+              || { echo "::error::Archive is missing $path"; fail=1; }
+          done
+          exit $fail
+
+      - name: Prebuilt assets shipped, so Node is not needed to start
+        run: |
+          grep -qE 'public/build/\.vite/manifest\.json$' /tmp/archive-contents.txt \
+            || { echo "::error::Archive has no root Vite manifest; a new project would need Node."; exit 1; }
+          grep -qE '\.dalt/build/\.vite/manifest\.json$' /tmp/archive-contents.txt \
+            || { echo "::error::Archive has no .dalt Vite manifest; /learn would not render."; exit 1; }
+
+      - name: Install the artifact as a new user would
+        run: |
+          mkdir -p /tmp/newproject && cd /tmp/newproject
+          unzip -q /tmp/dalt-archive/dalt-package.zip
+          test ! -d node_modules
+          command -v node && node --version || true
+          composer install --prefer-dist --no-progress
+          cp .env.example .env
+
+      - name: Migrate and serve without Node
+        working-directory: /tmp/newproject
+        run: |
+          php artisan migrate
+          php artisan serve 127.0.0.1 8100 &
+          ok=0
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8100/ || true)
+            [ "$code" = "200" ] && { ok=1; break; }
+            sleep 1
+          done
+          [ "$ok" = "1" ] || { echo "::error::GET / failed on a fresh install"; exit 1; }
+          for route in /learn /learn/build; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8100$route" || true)
+            echo "$route -> $code"
+            [ "$code" = "200" ] || { echo "::error::$route returned $code on a fresh install"; exit 1; }
+          done
+
+      - name: Remove the platform from the installed artifact
+        working-directory: /tmp/newproject
+        run: |
+          php artisan platform:remove --force
+          test ! -d .dalt
+          php artisan test
+          php artisan serve 127.0.0.1 8101 &
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8101/ || true)
+            [ "$code" = "200" ] && { echo "skeleton GET / -> 200"; exit 0; }
+            sleep 1
+          done
+          echo "::error::The installed artifact did not serve / after platform:remove"
+          exit 1
+
+      - name: Keep the archive for inspection
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: composer-archive
+          path: /tmp/dalt-archive/dalt-package.zip
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Repository hygiene that does not need a language runtime.
+  # ---------------------------------------------------------------------------
+  hygiene:
+    name: Hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: No whitespace damage
+        run: git diff --check $(git hash-object -t tree /dev/null) HEAD
+
+      - name: Community files are present
+        run: |
+          for f in LICENSE README.md SECURITY.md CONTRIBUTING.md CODE_OF_CONDUCT.md \
+                   COMPATIBILITY.md CHANGELOG.md; do
+            test -f "$f" || { echo "::error::$f is missing"; exit 1; }
+          done
+
+      - name: No repository-only noise is tracked
+        run: |
+          if git ls-files | grep -iE '^\.(codex|aider|cursor|windsurf|claude)|(^|/)\.DS_Store$|\.swp$'; then
+            echo "::error::Agent or editor scratch files are tracked."
+            exit 1
+          fi
+
+      - name: No tracked file is empty
+        run: |
+          empty=$(git ls-files | while read -r f; do
+            [ -f "$f" ] && [ ! -s "$f" ] && [ "$(basename "$f")" != ".gitkeep" ] && echo "$f"
+          done)
+          if [ -n "$empty" ]; then
+            echo "::error::Empty tracked files: $empty"
+            exit 1
+          fi

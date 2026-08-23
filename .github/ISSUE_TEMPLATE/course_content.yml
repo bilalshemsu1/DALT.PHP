@@ -1,0 +1,76 @@
+name: Course content
+description: A lesson, challenge, or build milestone is wrong, unclear, or cannot be followed
+labels: ["course"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A lesson that cannot be followed is a defect, not a documentation nit. If a
+        command in a lesson did not do what the lesson said it would, that is exactly
+        the report we want.
+
+  - type: input
+    id: content-id
+    attributes:
+      label: Which lesson, challenge, or milestone
+      description: Use the ID and the URL path.
+      placeholder: "FS04.2 — /learn/fullstack/fs04-2, or broken-routing, or B07"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which learning surface
+      options:
+        - DALT Core (framework, Docker, PostgreSQL lessons)
+        - Fullstack theory (FSxx.x lessons)
+        - DALT Build (/learn/build guided course)
+        - Fullstack build milestone (Bxx / Cxx)
+        - Challenge
+    validations:
+      required: true
+
+  - type: textarea
+    id: instruction
+    attributes:
+      label: What the lesson told you to do
+      description: Quote the instruction verbatim.
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened
+      description: The real command output, not a paraphrase.
+      render: shell
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of problem is it
+      options:
+        - The command or code does not work
+        - A verification passed when it should not have
+        - A verification failed when my solution was correct
+        - The explanation is wrong or contradicts the code
+        - The explanation is unclear or assumes unstated knowledge
+        - A broken or outdated link
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: PHP and Node versions
+      placeholder: "PHP 8.4.1, Node 22.14.0"
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: What would have helped
+      description: Optional. What should the lesson have said?

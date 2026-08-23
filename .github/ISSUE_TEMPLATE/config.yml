@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/Ibnu-Afdel/DALT.PHP/security/advisories/new
+    about: Report privately. Never open a public issue for a vulnerability — see SECURITY.md.
+  - name: Question or discussion
+    url: https://t.me/daltphp
+    about: Ask in the Telegram community. The issue tracker is for defects and proposals.
