@@ -1,473 +1,174 @@
-# FS11.1 — Query performance and PostgreSQL capabilities
+# FS11.1 — Data scale, indexes, and selectivity
 
 Lesson ID: FS11.1
-Title: Query performance and PostgreSQL capabilities
+Lesson format: Concise theory
 Part: 11 — PostgreSQL deeper
-Order: 1
 Status: Published
-Estimated effort: 100–130 minutes
-Difficulty: Advanced
-Prerequisites: FS10.2 — Builds, health and debugging
-Project milestone: B11 — Database-aware application
-Primary source dossier: POSTGRESQL_DOCS.md
-Last reviewed: 2026-08-20
+Estimated effort: 30–40 minutes
+Difficulty: Applied
+Prerequisites: FS10.5
+Last reviewed: 2026-08-23
 
-## Why this matters
+We will find out why the same index is used for one value and ignored for another, by measuring it rather than guessing.
 
-An issue list can be correct and still become the slowest request in the product. A table with fifteen rows tells us almost nothing about the query that will filter a workspace with thousands of issues. PostgreSQL isn't a passive place to store rows: its planner estimates alternatives from statistics, then chooses an access path. An index is a cost paid on writes and storage for a measured read workload — not a badge to attach to every column.
+> **Helpful background:** [Migrations, constraints, and foundational indexes](/learn/lessons/66-fs05-5-migrations-constraints-and-indexes)
 
-The mature issue tracker finally has a real question: find one workspace's open issues, optionally assigned to one person, newest first, with predictable pagination. This lesson makes the answer observable before we touch the schema. It also uses PostgreSQL full-text search instead of pretending a leading-wildcard `LIKE` query is the same feature. JSONB appears as a bounded capability here, not a replacement for relationships.
+## What we will learn
 
-## Before you start
+- build a workload large enough for the planner's decisions to be visible;
+- read a plan well enough to tell a table scan from an index scan;
+- explain selectivity, and why it decides whether an index is worth using.
 
-Required: FS10.2 and a running Compose PostgreSQL service containing the issue tracker tables. Keep a disposable local database or a dump; `EXPLAIN ANALYZE` runs the statement, so it is not a harmless preview for mutations.
+## Small data hides everything
 
-Going deeper in DALT Core — optional:
-- The Core PostgreSQL material is optional study, not a prerequisite. This lesson teaches the performance decisions required for Fullstack.
+Every query is fast against two hundred rows. PostgreSQL will happily read the whole table, because reading the whole table costs almost nothing. Nothing you learn at that size transfers.
 
-Use the actual Compose service and configured database name from your project. The following `db` and `issue_tracker` names are examples; replace them deliberately.
+So the first step in any performance question is a **representative workload**: enough rows, and a realistic distribution of values. Our lab seeds two hundred thousand issues where 5% are open and 95% are closed — a shape most issue trackers actually have.
 
-```sh
-docker compose exec db psql -U issue_tracker -d issue_tracker
-docker compose exec db psql -U issue_tracker -d issue_tracker -c 'ANALYZE issues'
-docker compose exec db psql -U issue_tracker -d issue_tracker -c '\d+ issues'
+```sql
+SELECT status, count(*) FROM issues GROUP BY status ORDER BY status;
 ```
-
-## By the end
-
-You should be able to:
-
-- distinguish a query's result correctness from its work and cost;
-- capture and read `EXPLAIN` and `EXPLAIN ANALYZE` for a representative list query;
-- justify a multicolumn index from predicates and ordering rather than guessing;
-- implement PostgreSQL full-text search using an explicit configuration and GIN index; and
-- decide whether flexible metadata honestly earns JSONB.
-
-## Predict before reading
-
-Predict the plan for a query that returns twenty `todo` issues from one workspace ordered by `created_at DESC`. Will PostgreSQL always use an index if one exists? If a filter matches most rows, why might a sequential scan be cheaper? If an index says `(workspace_id, status, created_at DESC)`, which filters can use its leading columns? Write an answer, then compare it with the plan instead of treating `EXPLAIN` as decorative output.
-
-## Mental model
 
 ```text
-application request → SQL shape → planner estimates → chosen plan → rows returned
-                              ↑              ↓
-                       table statistics   actual timing/rows
-
-index: extra ordered/searchable structure
-read benefit ↔ write maintenance + disk + planning complexity
+ status | count
+--------+--------
+ closed | 190000
+ open   |  10000
 ```
 
-The planner compares estimated work. A sequential scan reads the table; an index scan finds matching locations through an index and then may visit table pages. A bitmap scan collects many matching locations first. None is morally better. The useful plan is the one that answers the actual query cheaply on representative data. `EXPLAIN` reports estimates without executing. `EXPLAIN ANALYZE` executes and adds actual row counts and timing, which is why it is safe for a read query and requires transaction/rollback care for a write.
+That distribution is not decoration. It is the input to every decision the planner makes next.
 
-## 1. Make the workload representative
+## An index is not a guarantee
 
-Seed deterministic data across several workspaces, projects, statuses, assignees, labels, and dates. Random-looking data without controlled distribution can hide the selectivity that the planner needs. Keep the seed command idempotent or resettable; do not hand-create a large data set that cannot be reproduced.
+Ask for the open issues with no index at all, and PostgreSQL reads every row:
 
 ```sql
-SELECT workspace_id, status, count(*)
-FROM issues
-GROUP BY workspace_id, status
-ORDER BY workspace_id, status;
+EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF, SUMMARY OFF)
+SELECT id, title FROM issues WHERE status = 'open';
 ```
 
-```sql
-SELECT count(*) AS issues,
-       count(DISTINCT workspace_id) AS workspaces,
-       count(DISTINCT assignee_id) AS assignees
-FROM issues;
+```text
+ Seq Scan on issues (actual rows=10000.00 loops=1)
+   Filter: (status = 'open'::text)
+   Rows Removed by Filter: 190000
+   Buffers: shared hit=3631
 ```
 
+`Rows Removed by Filter: 190000` is the cost, in plain sight: 95% of the work was thrown away.
+
+Add an index and ask again:
+
 ```sql
+CREATE INDEX issues_status_idx ON issues (status);
 ANALYZE issues;
-SELECT relname, n_live_tup
-FROM pg_stat_user_tables
-WHERE relname = 'issues';
-```
-
-Statistics are estimates and can become stale after substantial change. `ANALYZE` refreshes statistics without rebuilding the table. Do not select a row count merely to force a particular plan: the dataset should make the product query meaningful, even if the supported laptop still finds it fast.
-
-## 2. Capture a baseline plan
-
-Start with parameter values representing a normal workspace, not a special empty or all-row case. Preserve the SQL and both plans in a project note. The query needs a deterministic ordering; pagination without a stable order lets rows drift between pages.
-
-```sql
-EXPLAIN
-SELECT id, title, status, assignee_id, created_at
-FROM issues
-WHERE workspace_id = 7
-  AND status = 'todo'
-ORDER BY created_at DESC
-LIMIT 20;
-```
-
-```sql
-EXPLAIN (ANALYZE, BUFFERS)
-SELECT id, title, status, assignee_id, created_at
-FROM issues
-WHERE workspace_id = 7
-  AND status = 'todo'
-ORDER BY created_at DESC
-LIMIT 20;
 ```
 
 ```text
-Limit
-  → Sort
-      Sort Key: created_at DESC
-      → Seq Scan on issues
-          Filter: workspace_id = 7 AND status = 'todo'
+ Index Scan using issues_status_idx on issues (actual rows=10000.00 loops=1)
+   Index Cond: (status = 'open'::text)
 ```
 
-Read from the bottom upward: the scan produces candidates, a filter removes rows, a sort orders survivors, and limit returns a small prefix. Compare `rows=` with `actual rows=` at each node. A large mismatch is evidence that the statistics or value distribution does not model reality; it is not automatic permission to add an index.
-
-## 3. Design an index for the query shape
-
-Equality conditions generally lead a multicolumn B-tree index; an ordering column can follow when it lets PostgreSQL avoid a separate sort for this exact query. The index is a hypothesis. Create it, analyze, rerun the same captured query, and record what changed.
-
-```sql
-CREATE INDEX issues_workspace_status_created_at_idx
-ON issues (workspace_id, status, created_at DESC);
-```
-
-```sql
-ANALYZE issues;
-EXPLAIN (ANALYZE, BUFFERS)
-SELECT id, title, status, assignee_id, created_at
-FROM issues
-WHERE workspace_id = 7 AND status = 'todo'
-ORDER BY created_at DESC
-LIMIT 20;
-```
-
-```sql
-SELECT indexrelname, idx_scan
-FROM pg_stat_user_indexes
-WHERE relname = 'issues';
-```
-
-The leftmost-prefix property matters: this index helps a `workspace_id` filter, and can narrow further by status; it is not a universal answer to `WHERE status = 'todo'` across all workspaces. A partial index may be justified when a stable predicate dominates, but only if it corresponds to a real query and data distribution. Every index slows inserts, updates to indexed values, vacuum work, and consumes disk.
-
-## 4. Search is language-aware matching
-
-`ILIKE '%bug%'` can be a valid small administrative query, but it is not PostgreSQL full-text search. FTS turns text into lexemes under a configuration, makes a query expression, ranks matching documents, and commonly uses GIN to avoid scanning every document. Select a configuration deliberately; do not rely on whatever a server happens to default to.
-
-```sql
-ALTER TABLE issues
-ADD COLUMN search_document tsvector GENERATED ALWAYS AS (
-  to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, ''))
-) STORED;
-```
-
-```sql
-CREATE INDEX issues_search_document_gin_idx
-ON issues USING GIN (search_document);
-```
-
-```sql
-SELECT id, title,
-       ts_rank(search_document, websearch_to_tsquery('english', 'login timeout')) AS rank
-FROM issues
-WHERE workspace_id = 7
-  AND search_document @@ websearch_to_tsquery('english', 'login timeout')
-ORDER BY rank DESC, created_at DESC
-LIMIT 20;
-```
-
-The workspace predicate remains an authorization and product boundary; FTS does not replace it. Verify punctuation, inflections, empty input, and a query that returns no rows. Ranking is a product decision, not a security boundary. Explain exactly which fields are searched, which language configuration is used, and why `%term%` is deliberately not the fallback called “search.”
-
-## 5. Use JSONB only for flexible attributes
-
-Issue title, status, project, assignee, labels, and workspace relationships deserve normal columns/tables because the application joins, constrains, and queries them. A small external integration payload whose keys genuinely vary can be JSONB. State the boundary first, then choose operators and an index only if queries need them.
-
-```sql
-ALTER TABLE issues
-ADD COLUMN integration_metadata jsonb NOT NULL DEFAULT '{}'::jsonb;
-```
-
-```sql
-UPDATE issues
-SET integration_metadata = '{"source":"github","external_number":42}'::jsonb
-WHERE id = 101;
-```
-
-```sql
-CREATE INDEX issues_metadata_gin_idx
-ON issues USING GIN (integration_metadata);
-SELECT id FROM issues
-WHERE integration_metadata @> '{"source":"github"}'::jsonb;
-```
-
-Do not put relational foreign keys, per-field validations, or frequently ordered product attributes into a JSON document because it feels flexible. JSONB makes some data variable; it does not make an unclear model clear. If your tracker has no honest flexible metadata need, keep this as a focused database exercise and do not alter the permanent schema.
-
-## 6. Read estimates, buffers, and scan choices together
-
-`cost=...` is the planner's relative model, not milliseconds. It combines estimates of I/O and CPU work; comparing it across alternatives is useful, treating it as a stopwatch is not. `actual time` and `Execution Time` come from a run of the query in that environment. `BUFFERS` adds whether nodes found blocks already cached (`shared hit`) or needed reads. A warm local cache can make two plans look similar even when one does much more work, which is why the node shape and row counts remain part of the evidence.
-
-An Index Scan retrieves index entries then visits heap rows. An Index Only Scan can avoid many heap visits only when the selected columns are in the index and PostgreSQL's visibility map says pages are safe; it is an optimization that vacuum and update behavior influence. A Bitmap Index Scan commonly appears when many index matches are collected before heap pages are visited. A Seq Scan is often best when a predicate is not selective, because following many random index pointers costs more than reading a table sequentially. Do not turn off scan types to force a prettier demonstration: that changes the planner rather than improving the workload.
-
-```sql
-EXPLAIN (ANALYZE, BUFFERS)
-SELECT id, title, created_at
-FROM issues
-WHERE workspace_id = 7 AND status = 'todo'
-ORDER BY created_at DESC
-LIMIT 20;
-```
+Now ask for the *closed* issues — the same table, the same column, the same index:
 
 ```text
-Index Scan using issues_workspace_status_created_at_idx on issues
-  Index Cond: ((workspace_id = 7) AND (status = 'todo'))
-  Buffers: shared hit=18 read=2
+ Seq Scan on issues (actual rows=190000.00 loops=1)
+   Filter: (status = 'closed'::text)
+   Rows Removed by Filter: 10000
 ```
 
-If an estimate is wrong by a large factor, ask whether values are correlated (for example, a workspace has mostly one status), whether statistics are stale, and whether the representative parameter is unusually common. More statistics or extended statistics may be a later, measured response; they are not the first answer to every mismatch. The learner-facing decision is precise: record what the plan says for this query and data, then retest after a meaningful data or schema change.
+The planner declined its own index. That is not a bug, and it is the most useful thing in this lesson.
 
-## 7. Pagination needs an order the index can serve
+## Selectivity is the reason
 
-`OFFSET` pagination is approachable but makes PostgreSQL locate and discard earlier rows as the offset grows. That can be acceptable for small internal lists; it should be a conscious cost. A stable ordering also needs a tiebreaker: timestamps can collide, so `ORDER BY created_at DESC, id DESC` gives a total order. Cursor/keyset pagination uses the last row's ordering values to ask for the next slice and usually fits an index shaped around the scope, filters, and ordering.
+**Selectivity** is the fraction of the table a condition matches. An index scan reads the index and then fetches each matching row from the table — cheap when there are few matches, and steadily worse as the count grows, because those fetches jump around the table in index order.
 
-```sql
-CREATE INDEX issues_workspace_status_created_id_idx
-ON issues (workspace_id, status, created_at DESC, id DESC);
-```
+Past roughly a fifth of the table, reading everything in physical order is simply faster. `status = 'closed'` matches 95%, so a scan wins.
 
-```sql
-SELECT id, title, created_at
-FROM issues
-WHERE workspace_id = 7
-  AND status = 'todo'
-  AND (created_at, id) < ('2026-08-15 10:00:00+00', 9001)
-ORDER BY created_at DESC, id DESC
-LIMIT 20;
-```
+That is why "add an index on the column in the WHERE clause" is not advice. An index helps a condition that selects a small share of the rows. A primary-key lookup is the extreme case:
 
 ```text
-page cursor = last returned (created_at, id)
-next request = values strictly after that cursor in the chosen order
+ Index Scan using issues_pkey on issues (actual rows=1.00 loops=1)
+   Index Cond: (id = 123456)
+   Buffers: shared hit=7
 ```
 
-Do not change the production list to cursor pagination just because it appears in this lesson. First decide what the product needs: direct page numbers, stable export traversal, or an infinite list. Whatever choice you keep must still be scoped to the workspace and tested around rows inserted between requests. Index design follows the retained query shape; it does not decide UX on its own.
+Seven buffers instead of 3,631, for one row instead of ten thousand.
 
-## 8. Keep search documents current and inspect their semantics
+## Indexes are not free
 
-A generated stored `tsvector` is a good fit when the document is derived only from columns in the same row. If search must include labels or comments from other tables, a generated column cannot magically follow those relations. Decide whether those belong in issue search at all; if they do, use an intentional update path or materialized/search design and document its refresh behavior. A trigger can be valid, but it adds write-path complexity that must be tested. Do not concatenate entire related tables into a value without measuring update and relevance costs.
+Every index is a second structure that every `INSERT`, `UPDATE`, and `DELETE` must maintain, and disk it must occupy. An index that is never chosen is pure cost. Two rules follow:
 
-Weights let a title matter more than a description, while `ts_rank_cd` can rank using coverage/density. They improve ordering, not matching authorization. `websearch_to_tsquery` is friendly for ordinary words and quoted phrases, but it still needs an explicit language configuration. Log or inspect the resulting query during development without exposing it as a SQL string to the browser.
-
-```sql
-SELECT setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
-       setweight(to_tsvector('english', coalesce(description, '')), 'B')
-FROM issues WHERE id = 42;
-```
-
-```sql
-SELECT ts_rank_cd(search_document,
-                  websearch_to_tsquery('english', '"login timeout"')) AS rank;
-```
-
-```sql
-EXPLAIN (ANALYZE, BUFFERS)
-SELECT id FROM issues
-WHERE search_document @@ websearch_to_tsquery('english', 'login timeout');
-```
-
-Search input is still data: bind it as a parameter in application SQL rather than interpolating it. An FTS query parser is not an excuse to concatenate user input into SQL. Define a maximum query length and an empty-query behavior at the HTTP boundary, then verify the database behavior with normal and awkward terms.
-
-## 9. Turn one plan into a durable operational decision
-
-The plan capture belongs beside the migration because an index without its workload story is hard to maintain. Record the table size/date, query text, representative parameter values, PostgreSQL version, pre-change plan, post-change plan, and the observed reason for retaining the change. A short record is enough when it makes the next decision reversible: “this index serves the workspace todo list ordered by newest; it avoided a sort and reduced heap work for the measured distribution; reevaluate if status distribution or pagination changes.” Do not promise a fixed number of milliseconds across hardware, cache state, and production data.
-
-Also name the invalidation conditions. Adding a second optional filter may create a different query shape. Changing `ORDER BY` from `created_at` to priority can make the old index irrelevant. Growing a table changes the relative costs. An index that is perfect for the interactive first page might not help a background export that reads all matching rows. Re-run the evidence when one of those application facts changes, not only when someone complains that the page feels slow.
-
-```text
-evidence record
-  workload: workspace + status, newest first, first 20 rows
-  data: seeded multi-workspace dataset, analyzed on PostgreSQL 17
-  baseline: scan/filter/sort plan captured
-  decision: multicolumn B-tree migration retained
-  review trigger: query predicate/order or data distribution changes
-```
-
-Measure end-to-end behavior too. A faster database plan may still leave an API response slow because PHP serializes a large relationship graph or the browser requests more than it renders. Conversely, a browser delay is not a reason to optimize an unmeasured SQL query. Keep a request trace that identifies the SQL statement, then improve the narrowest demonstrated bottleneck. This prevents the database lesson from becoming a license for speculative tuning.
-
-Finally, treat migrations as the deployable artifact. `CREATE INDEX` on a busy real database can have operational implications, and production migration choices may need an online/concurrent strategy appropriate to the project deployment process. Do not paste a production-only option into a transaction-managed migration without verifying its restrictions. The learner's local migration should be honest, repeatable, and reviewed; production rollout is a separate decision that starts from the same measured query evidence.
-
-Plan evidence is time-bound, not eternal. Keep the captured output small enough to review, but retain enough context to reproduce it: database major version, seed revision, the result columns, and whether the run was warm or cold. When a query returns a radically different number of rows after a feature change, revisit the decision rather than assuming the old index remains correct. That discipline is the capability this lesson is building: PostgreSQL features remain tied to a named workload, observable evidence, and a reversible migration.
+- add an index for a query shape you have actually measured, not for a column that looks important;
+- run `ANALYZE` after a large data change, because the planner chooses using statistics, and stale statistics produce confident wrong decisions.
 
 ## Try it
 
-**Prediction:** §3's index is `(workspace_id, status, created_at DESC)`. Before running
-anything, predict what plan PostgreSQL chooses for a query that filters only on
-`assignee_id` — a column the index does not lead with — for the same `issues` table.
+**Workspace:** copy the Part 11 lab. Docker is required.
 
-**Run / inspect:**
-
-```sql
-EXPLAIN (ANALYZE, BUFFERS)
-SELECT id, title, status, created_at
-FROM issues
-WHERE assignee_id = 9
-ORDER BY created_at DESC
-LIMIT 20;
+```bash
+mkdir -p .dalt/workspace
+cp -R .dalt/course/fullstack/postgres-depth-lab/starter .dalt/workspace/fs11-postgres
+cd .dalt/workspace/fs11-postgres
+docker compose up -d --wait
+docker compose exec -T db psql -U dalt -d dalt_depth -v ON_ERROR_STOP=1 -q \
+  -f /course/database/001_schema.sql
+docker compose exec -T db psql -U dalt -d dalt_depth -v ON_ERROR_STOP=1 -q \
+  -f /course/database/002_seed.sql
 ```
 
-Compare that plan with §3's `EXPLAIN (ANALYZE, BUFFERS)` output for the `workspace_id` +
-`status` query, run back to back on the same seeded data with no schema change between
-them.
+**Starting state:** an empty schema, then two hundred thousand issues across two workspaces and ten projects, seeded in about seven seconds.
 
-**What happened:** the `assignee_id` query almost certainly falls back to a sequential
-scan or a much less selective plan than the workspace/status query did, even though both
-run against the identical table and the identical set of indexes.
+```bash
+docker compose exec -T db psql -U dalt -d dalt_depth -v ON_ERROR_STOP=1 \
+  -f /course/sql/fs11-1-selectivity.sql
+```
 
-**Why:** the leftmost-prefix property is not a suggestion — an index on
-`(workspace_id, status, created_at DESC)` cannot serve an `assignee_id`-only predicate at
-all, because PostgreSQL can only use a B-tree index by matching a prefix of its declared
-column order, and `assignee_id` never appears in that prefix. A query needing this access
-path would need its own index; retrofitting the existing one, or reordering its columns
-without checking every other query that already depends on the current order, is not the
-same fix.
+**Expected result:** five labelled sections. The distribution is 190,000 closed and 10,000 open. Before the index, the open query is a `Seq Scan` with `Rows Removed by Filter: 190000`. After the index, the open query becomes an `Index Scan`, the closed query stays a `Seq Scan`, and the primary-key lookup reads 7 buffers instead of 3,631.
+
+Now change section 4 to `WHERE status = 'open' AND priority = 1` and rerun. The plan still uses the index and then filters — which is the question FS11.2 answers.
+
+**Reset:** `docker compose down -v` deletes the database. Delete the workspace copy when finished with Part 11.
+
+## What to notice
+
+Sections 3 and 4 differ by one literal. Same table, same index, same statistics — and two different plans. Whatever intuition says an index "makes queries fast", the planner is doing arithmetic with the numbers from section 1.
+
+Notice also that `Buffers` is the honest unit. Wall-clock time on a laptop is noise; buffer counts are the work.
 
 ## Common mistakes
 
-### Adding an index before capturing the SQL, parameters, and baseline plan
+- Testing performance against a few hundred rows.
+- Adding an index because a column appears in a `WHERE` clause.
+- Reading a `Seq Scan` as a failure. On a low-selectivity condition it is the right plan.
+- Forgetting `ANALYZE` after bulk-loading, then debugging a plan built from stale statistics.
 
-Without a before-and-after comparison, you can't actually tell whether the index changed anything — you only have a belief that it did.
+## Check your understanding
 
-### Calling an index "unused" because one small test selected a sequential scan
+1. What does selectivity mean, and why does the planner care?
+2. Why is `Rows Removed by Filter: 190000` a useful number?
+3. Why did the same index help `status = 'open'` and not `status = 'closed'`?
+4. Name two ongoing costs of an index nobody's queries use.
 
-A sequential scan can be the genuinely correct plan for that predicate's selectivity. The planner choosing it isn't evidence the index is broken.
+<details><summary>Check your answers</summary>
 
-### Reading only total execution time
-
-Ignoring estimated-versus-actual rows and buffer work misses the actual explanation. Two plans can report similar timing while doing very different amounts of real work, especially on a warm cache.
-
-### Running `EXPLAIN ANALYZE` on a destructive statement outside a transaction
-
-`EXPLAIN ANALYZE` actually executes the statement. Run it on an `UPDATE` or `DELETE` without a transaction to roll back, and the "harmless preview" has already changed the data.
-
-### Calling substring matching full-text search
-
-`ILIKE '%bug%'` can be a fine small administrative query, but it isn't ranking, isn't language-aware, and doesn't use the index structures full-text search actually relies on.
-
-### Indexing every JSONB column by habit
-
-An index on a column nothing queries against is pure write and storage cost with no read benefit — the same mistake as any other unjustified index, just with a trendier data type.
-
-## When this goes wrong
-
-If the plan does not change, first confirm that you are connected to the Compose database you seeded, the migration ran, and `ANALYZE` completed. Check the exact schema and index definition with `\d+ issues`. If it still chooses a sequential scan, that may be correct for the selected values; inspect selectivity rather than disabling planner options. If search returns no expected result, inspect `to_tsvector` and `websearch_to_tsquery` separately to find the configuration or tokenization mismatch. Roll back an experiment instead of deleting a useful production index blindly.
-
-```sql
-SELECT to_tsvector('english', 'Connection failures while logging in');
-SELECT websearch_to_tsquery('english', 'login failure');
-```
-
-## Exercise
-
-### Goal
-
-Turn one measured issue-list request and one search request into documented, evidence-based database decisions.
-
-### Starting state
-
-The Compose database has a reproducible representative seed and an issue list endpoint that filters by workspace and status.
-
-### Requirements
-
-- Capture the exact list SQL and pre-index `EXPLAIN (ANALYZE, BUFFERS)` output.
-- Add only an index justified by its predicates and order.
-- Capture the post-index plan.
-- Add FTS across title and description with an explicit configuration and GIN.
-- Write a short decision for JSONB that names a real flexible field, or explicitly rejects JSONB.
-
-### Constraints
-
-- No index added before a captured baseline plan exists to compare it against.
-- No `EXPLAIN ANALYZE` run against a destructive statement outside a transaction.
-- No JSONB column added without a query that actually needs its operators.
-
-### Verification
-
-**Mode: tool-run and manual-proof.** PostgreSQL and your project tests produce the evidence; the course does not pretend to grade your environment.
-
-Show a peer or your future self the seed command, both plans, the migration, and three searches: a hit, no hit, and an inflection/punctuation case. Explain a plan node and one write cost of the index without reading this page.
-
-### Hints
-
-<details>
-<summary>Hint 1 — when a query might be unsafe to run</summary>
-
-Start with plain `EXPLAIN` if a query is unsafe to execute, or if you just want the estimate before committing to running the real thing.
+1. The fraction of rows a condition matches. An index scan pays per matching row, so it wins only when that fraction is small.
+2. It is the work that was done and thrown away — the clearest signal that a scan read far more than the query needed.
+3. `open` matches 5% of the table, `closed` matches 95%. Above roughly a fifth, reading the table in physical order is cheaper.
+4. Extra work on every write that touches the table, and the disk it permanently occupies.
 </details>
 
-<details>
-<summary>Hint 2 — reading a plan</summary>
+## Next
 
-Read plans bottom-up. The deepest node is where rows first come from; each node above it processes what came before.
+Next we will read plans properly, and design indexes for the shape of a query rather than for one column.
+
+<details><summary>Maintainer source record</summary>
+
+- Source dossier: `POSTGRESQL_DOCS.md` and `FSO_RELATIONAL_DATABASES.md`.
+- Official sources: PostgreSQL 18 documentation on "Using EXPLAIN", planner cost estimation, index types and their uses, `ANALYZE`, and row-estimation examples.
+- Versions: PostgreSQL 18.4 (`postgres@sha256:9a8afca5…`); Docker Compose 5.4.0.
+- Consulted: 2026-08-23.
+- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 12, FS11.1.
+- DALT files inspected: the new `postgres-depth-lab`, the Part 11 track manifest, and the former FS11.1 page.
+- Extracted material: "make the workload representative", "capture a baseline plan", and "design an index for the query shape" from the former FS11.1. Its `EXPLAIN` detail, search, and JSONB material move to FS11.2–FS11.4.
+- Verified in the lab: every plan fragment above is real output from the seeded 200,000-row table.
 </details>
-
-<details>
-<summary>Hint 3 — keeping the comparison honest</summary>
-
-Keep the same parameters before and after the index. Changing the query shape along with the schema makes it impossible to tell which change actually caused the difference.
-</details>
-
-<details>
-<summary>Reference explanation — read after an honest attempt</summary>
-
-The working shape is §2's baseline `EXPLAIN (ANALYZE, BUFFERS)` capture, §3's `(workspace_id, status, created_at DESC)` index chosen from the query's actual predicates and ordering, and §4's generated `tsvector` column with a GIN index and an explicit `english` configuration. The proof isn't that a plan changed — it's that you can name the plan node that disappeared, the buffer count that dropped, and the write cost the new index now imposes on every insert.
-</details>
-
-## In the project
-
-Commit migrations for the justified index and FTS schema, not a screenshot of a lucky plan. Put the captured query plan and data scale in the project documentation so the next maintainer knows what workload it serves. The API must keep scoping every search and list query to the authorized workspace — an index makes a query faster, never more authorized. B11 asks for representative data and evidence, and FS11.2 makes multi-step changes and tenant isolation safe under concurrent requests.
-
-## Closed-book checkpoint
-
-Close the lesson first.
-
-1. What is the difference between `EXPLAIN` and `EXPLAIN ANALYZE`?
-2. Why might a sequential scan be the right plan even when an index exists?
-3. For the list query above, why does column order in a multicolumn index matter?
-4. What does a GIN index support in this lesson, and what does it not prove?
-5. Name one field that should stay relational even if JSONB is available.
-
-<details>
-<summary>Reveal comparison answers</summary>
-
-1. `EXPLAIN` reports the planner's estimate without running the query. `EXPLAIN ANALYZE` actually executes it and adds real row counts and timing — which is why it needs transaction/rollback care on anything that writes.
-2. When the predicate isn't selective enough — matching most of the table — following many random index pointers costs more than just reading the table straight through. The planner isn't wrong to prefer that; it's comparing real costs.
-3. A multicolumn B-tree index can only be used by matching a prefix of its declared column order. An index on `(workspace_id, status, created_at DESC)` serves a `workspace_id` filter and can narrow further by `status`, but a query filtering on `assignee_id` alone can't use it at all, because that column never appears in the prefix.
-4. It supports fast lookups into a `tsvector` for full-text search (or a JSONB document's keys). It proves nothing about ranking quality, authorization, or that the workspace predicate is still being applied — the index only makes containment/match checks fast.
-5. Anything the application joins, constrains, or queries as a first-class relationship — title, status, project, assignee, or workspace membership are all named in the lesson as columns that deserve real columns and tables, not JSON keys.
-</details>
-
-## Resources
-
-### Read
-
-- [PostgreSQL EXPLAIN](https://www.postgresql.org/docs/17/using-explain.html)
-- [PostgreSQL indexes](https://www.postgresql.org/docs/17/indexes.html)
-- [PostgreSQL full-text search](https://www.postgresql.org/docs/17/textsearch.html)
-- [PostgreSQL JSON types](https://www.postgresql.org/docs/17/datatype-json.html)
-
-Use the documentation version matching the image tag you actually pin. The links above correspond to the Part 10 Compose baseline, PostgreSQL 17.
-
-## You are done when
-
-You can reproduce the representative data, explain the before-and-after plan for one list query, defend the index's column order and write cost, and demonstrate FTS across title and description. You have either implemented a bounded, query-driven JSONB use or explicitly rejected it. You have not claimed that a plan from an empty table is performance evidence.
-
-## Maintainer source record
-
-Source dossier: `docs/dalt-fullstack/sources/POSTGRESQL_DOCS.md`.
-
-Official sources: PostgreSQL 17 documentation for EXPLAIN, indexes, text search, JSON types, and statistics; URLs above.
-
-Versions: learner environment is PostgreSQL 17 as pinned by Part 10 Compose material; update links and this record if that image major changes.
-
-Consulted: 2026-08-15; repository Compose conventions and the authoritative Part 11 curriculum were checked before writing.
-
-Curriculum authority: `docs/dalt-fullstack/CURRICULUM.md` §22, FS11.1; `PROJECT_BLUEPRINT.md` §§62–67.
-
-Follow-up pass: 2026-08-20 — restructured Exercise from bold-label paragraphs into LESSON_STANDARD.md §97's `### Goal`/`Starting state`/`Requirements`/`Constraints`/`Verification`/`Hints` subsections with a hint ladder and reference explanation (this lesson predated the Part 09/10 structural pattern); split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal and a `### Read` subheading under Resources; light voice pass toward first-person-plural framing. Content itself required no changes — the leftmost-prefix, buffers-vs-cost, and keyset-pagination material checked out against PostgreSQL 17's documented behavior.

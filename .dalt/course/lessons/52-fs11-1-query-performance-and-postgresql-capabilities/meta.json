@@ -1,6 +1,6 @@
 {
-    "title": "Query performance and PostgreSQL capabilities",
-    "description": "Measure an issue-list query, read its plan, and choose PostgreSQL search and indexes from evidence.",
+    "title": "Data scale, indexes, and selectivity",
+    "description": "Measure why the same index is used for one value and declined for another.",
     "order": 74,
     "section": "fullstack",
     "section_order": 55,

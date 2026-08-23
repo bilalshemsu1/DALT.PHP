@@ -937,6 +937,72 @@ test('the FS10.5 health check reports an outage that a naive one hides', functio
     }
 });
 
+test('the Batch 12 PostgreSQL lab executes each lesson against the real database', function () {
+    if (getenv('DALT_SKIP_LAB_EXECUTION') === '1') {
+        $this->markTestSkipped('DALT_SKIP_LAB_EXECUTION=1.');
+    }
+
+    $source = base_path('.dalt/course/fullstack/postgres-depth-lab/starter');
+    $workspace = sys_get_temp_dir() . '/dalt-depth-' . bin2hex(random_bytes(6));
+    fullstackLabCopy($source, $workspace);
+    fullstackLabOpenPermissions($workspace);
+
+    [$dockerExit] = fullstackLabRun($workspace, ['docker', 'version'], 30);
+    if ($dockerExit !== 0) {
+        fullstackLabRemove($workspace);
+        $this->markTestSkipped('Docker is unavailable; the Part 11 lab cannot run.');
+    }
+
+    $project = 'dalt-depth-' . bin2hex(random_bytes(4));
+    $compose = ['docker', 'compose', '--project-directory', $workspace, '-p', $project];
+    $psql = static fn (array $arguments): array => [
+        'exec', '-T', 'db', 'psql', '-U', 'dalt', '-d', 'dalt_depth', '-v', 'ON_ERROR_STOP=1', ...$arguments,
+    ];
+
+    try {
+        [$upExit, $upOutput] = fullstackLabRun($workspace, [...$compose, 'up', '-d', '--wait'], 600);
+        expect($upExit)->toBe(0, "The Part 11 database did not become healthy:\n{$upOutput}");
+
+        foreach (['001_schema.sql', '002_seed.sql'] as $file) {
+            [$exit, $output] = fullstackLabRun(
+                $workspace,
+                [...$compose, ...$psql(['-q', '-f', '/course/database/' . $file])],
+                600,
+            );
+            expect($exit)->toBe(0, "{$file} did not apply:\n{$output}");
+        }
+
+        [, $count] = fullstackLabRun($workspace, [...$compose, ...$psql(['-At', '-c', 'SELECT count(*) FROM issues;'])], 120);
+        expect(trim($count))->toBe('200000');
+
+        // FS11.1 - the same index is used for the rare value and declined for the common
+        // one. Both halves are asserted, because the lesson's whole argument is the
+        // contrast; a run that only proved the index is used would prove nothing.
+        [$planExit, $plan] = fullstackLabRun(
+            $workspace,
+            [...$compose, ...$psql(['-f', '/course/sql/fs11-1-selectivity.sql'])],
+            300,
+        );
+        expect($planExit)->toBe(0, "FS11.1's experiment failed:\n{$plan}");
+
+        $sections = preg_split('/^--- \d+\. /m', $plan);
+        expect($sections)->toHaveCount(6, "FS11.1's experiment no longer prints five labelled sections.");
+
+        expect($sections[1])->toContain('190000')->and($sections[1])->toContain('10000');
+        expect($sections[2])->toContain('Seq Scan on issues')
+            ->and($sections[2])->toContain('Rows Removed by Filter: 190000');
+        expect($sections[3])->toContain('Index Scan using issues_status_idx');
+        expect($sections[4])->toContain('Seq Scan on issues')
+            ->and(str_contains($sections[4], 'Index Scan'))->toBeFalse(
+                "The common value now uses the index, so FS11.1's selectivity contrast is gone.\n{$sections[4]}",
+            );
+        expect($sections[5])->toContain('Index Scan using issues_pkey');
+    } finally {
+        fullstackLabRun($workspace, [...$compose, 'down', '-v'], 300);
+        fullstackLabRemove($workspace);
+    }
+});
+
 test('every command a milestone specification names actually exists', function () {
     // The defect this catches: B02's specification said `npm run test` three times
     // while its starter only defined `test:parser`. Structural conformance passed,
