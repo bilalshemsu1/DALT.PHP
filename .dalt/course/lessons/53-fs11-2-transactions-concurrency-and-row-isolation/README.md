@@ -1,565 +1,172 @@
-# FS11.2 — Transactions, concurrency and row isolation
+# FS11.5 — Transactions, concurrency, locks, and isolation
 
-Lesson ID: FS11.2
-Title: Transactions, concurrency and row isolation
+Lesson ID: FS11.5
+Lesson format: Concise theory
 Part: 11 — PostgreSQL deeper
-Order: 2
 Status: Published
-Estimated effort: 110–140 minutes
-Difficulty: Advanced
-Prerequisites: FS11.1 — Query performance and PostgreSQL capabilities
-Project milestone: B11 — Database-aware application
-Primary source dossier: POSTGRESQL_DOCS.md
-Last reviewed: 2026-08-20
+Estimated effort: 35–45 minutes
+Difficulty: Applied
+Prerequisites: FS11.4
+Last reviewed: 2026-08-23
 
-## Why this matters
+We will make two sessions collide on the same row, watch an update disappear, and then prevent it in two different ways.
 
-The request that moves an issue can update its status, append an activity event, and change a related counter. If the second write fails after the first succeeds, the tracker tells a story that never happened. A transaction gives those writes one outcome: all commit, or all roll back. But atomicity alone doesn't settle what two simultaneous requests can see or overwrite of each other.
+> **Helpful background:** [Transaction boundaries and database failure classification](/learn/lessons/67-fs05-7-transaction-boundaries-and-failures)
 
-Workspace authorization in application code is essential, yet it depends on every single query continuing to include the correct predicate. PostgreSQL row-level security (RLS) adds a database boundary: a correctly configured application role gets filtered even when a query forgets a workspace condition. It's defense in depth, not a replacement for authentication, authorization, or careful SQL. This lesson proves behavior as the role that actually experiences the policy, because an owner, a superuser, or a `BYPASSRLS` role can make a green test meaningless.
+## What we will learn
 
-## Before you start
+- reproduce a lost update rather than reasoning about one;
+- take a row lock with `SELECT … FOR UPDATE`, and see what waiting looks like;
+- choose between locking and `SERIALIZABLE`, and handle the retry each implies.
 
-Required: FS11.1, a Compose database, authenticated workspace membership in the application, and tables for issues plus an activity/history record or an equivalent related update.
+## Read-then-write is where correctness leaks
 
-Going deeper in DALT Core — optional:
-- Core PostgreSQL transaction and security material is optional study. This lesson is self-contained for the Fullstack track.
+A transaction makes several statements atomic. It does not stop another transaction from doing the same thing at the same time.
 
-Open two terminals connected to the same disposable database. Label them Session A and Session B. Never test a race by running two statements sequentially in one psql prompt: concurrency requires overlapping transactions.
-
-```sh
-docker compose exec db psql -U issue_tracker -d issue_tracker
-docker compose exec db psql -U issue_tracker -d issue_tracker
-docker compose exec db psql -U issue_tracker -d issue_tracker -c 'SHOW transaction_isolation'
-```
-
-## By the end
-
-You should be able to:
-
-- place a transaction boundary around a real multi-step issue operation;
-- reproduce and explain a lost-update-style race with two sessions;
-- choose a practical protection such as a row lock, optimistic version check, constraint, or retry;
-- explain PostgreSQL's default Read Committed visibility at a useful level; and
-- enable and verify RLS with a non-owner, non-superuser role that cannot bypass it.
-
-## Predict before reading
-
-Two browser requests read issue 42 with `status = 'todo'`. Each independently decides it may claim the issue, then both write `in_progress`. What final state will the table show? Does that prove only one claim happened? Now predict what occurs if Session A updates a row but does not commit while Session B runs `SELECT ... FOR UPDATE` on it. Record the prediction before coordinating the two prompts.
-
-## Mental model
+The classic shape is read-modify-write:
 
 ```text
-transaction = a private sequence that either commits together or disappears
-
-Session A: read ─ decide ─ write ─ commit
-Session B: read ─ decide ─ write ─ commit    ← can invalidate A's assumption
-
-application authorization → intended access decision
-RLS policy + application role → database backstop for each row
-```
-
-PostgreSQL uses MVCC: readers generally see a consistent version without blocking ordinary writers. At the default Read Committed isolation, each statement sees rows committed before that statement begins. This is often a good default, but “I read that it was available” is not automatically reserved until your operation makes it so. Locks serialize selected conflicting operations. Constraints make invalid final states impossible. Serializable isolation detects some unsafe interleavings and can require a retry. Choose the smallest mechanism that protects the named invariant.
-
-## 1. Make one operation atomic
-
-Start with a failure that is visible. Moving an issue should update the issue and add an activity record. If a related project counter exists, include it only when it is a real invariant rather than a new feature invented for the lesson. Run the operation inside a transaction in your actual DALT database boundary; do not claim a controller's two separate `execute` calls are atomic merely because they are adjacent.
-
-```sql
-BEGIN;
-UPDATE issues
-SET status = 'in_progress', updated_at = now()
-WHERE id = 42;
-```
-
-```sql
-INSERT INTO issue_activity (issue_id, actor_id, event_type, created_at)
-VALUES (42, 9, 'moved_to_in_progress', now());
-COMMIT;
-```
-
-```sql
-BEGIN;
-UPDATE issues SET status = 'done' WHERE id = 42;
-INSERT INTO issue_activity (issue_id, actor_id, event_type)
-VALUES (42, 9, 'done');
-ROLLBACK;
-```
-
-The rollback case must leave neither the status change nor the event. Write a behavior test or direct SQL proof that checks both tables after the intentional failure. A transaction protects its enclosed statements; it does not correct a missing authorization predicate, validate a bad transition, or make a remote HTTP call transactional.
-
-## 2. Reproduce a concurrent decision
-
-Use a simple claim rule: only an unassigned issue can be claimed. First reproduce the broken read-then-write flow. Both sessions can read the same old state before either writes, so the later write can silently replace a decision the application thought was exclusive.
-
-```sql
--- Session A
-BEGIN;
-SELECT id, assignee_id FROM issues WHERE id = 42;
--- wait while Session B makes the same observation
-```
-
-```sql
--- Session B
-BEGIN;
-SELECT id, assignee_id FROM issues WHERE id = 42;
-UPDATE issues SET assignee_id = 11 WHERE id = 42;
-COMMIT;
-```
-
-```sql
--- Session A, acting on stale observation
-UPDATE issues SET assignee_id = 9 WHERE id = 42;
-COMMIT;
-```
-
-The row ends assigned to 9, but that final value does not reveal that both people received success. That is the defect. Capture the timeline and define the invariant in one sentence: “at most one successful claim can occur for an unassigned issue.” Avoid inventing a generic “increase isolation” fix before the invariant is explicit.
-
-## 3. Protect the invariant deliberately
-
-For a single-row claim, an atomic conditional update is often simpler than a separate read and lock. The affected row count is the evidence: one means this request claimed it; zero means another request already did. This approach also makes the application response honest.
-
-```sql
-UPDATE issues
-SET assignee_id = 9, updated_at = now()
-WHERE id = 42
-  AND assignee_id IS NULL
-RETURNING id, assignee_id;
-```
-
-```php
-$statement = $pdo->prepare(
-    'UPDATE issues SET assignee_id = :user, updated_at = now() '
-    . 'WHERE id = :issue AND assignee_id IS NULL RETURNING id'
-);
-$statement->execute(['user' => $userId, 'issue' => $issueId]);
-if ($statement->fetch() === false) {
-    throw new DomainException('Issue was already claimed.');
-}
-```
-
-When a decision needs to read related rows before writing, lock the selected row within the same transaction. Session B will wait for Session A's lock, then re-read current state rather than acting on a stale observation.
-
-```sql
-BEGIN;
-SELECT id, assignee_id FROM issues WHERE id = 42 FOR UPDATE;
--- validate current state, update, append activity
-COMMIT;
-```
-
-```sql
-SELECT pid, wait_event_type, wait_event, query
-FROM pg_stat_activity
-WHERE datname = current_database();
-```
-
-Keep transactions short: do not hold locks while waiting for a browser, human input, or external API. Lock ordering matters when several rows are involved; acquire a consistent order. A deadlock is PostgreSQL protecting progress by aborting one transaction, so the application must treat the error as a retryable outcome where the operation is safe to retry.
-
-## 4. Isolation is a contract, not a magic switch
-
-Read Committed gives each statement a fresh committed view. Repeatable Read provides a stable transaction snapshot but may raise serialization failures in conflicting updates. Serializable asks PostgreSQL to prevent outcomes that cannot be explained by some serial order; it can abort a transaction that must be retried. Do not switch the whole app to Serializable to avoid reasoning about one invariant.
-
-```sql
-BEGIN ISOLATION LEVEL REPEATABLE READ;
-SELECT status FROM issues WHERE id = 42;
-COMMIT;
-```
-
-```sql
-BEGIN ISOLATION LEVEL SERIALIZABLE;
--- perform a retry-safe invariant-preserving operation
-COMMIT;
+A: BEGIN; read priority = 1
+B: BEGIN; read priority = 1
+A: UPDATE priority = 2; COMMIT
+B: UPDATE priority = 2; COMMIT
 ```
 
 ```text
-serialization failure → rollback → retry whole transaction with bounded attempts
-deadlock detected     → rollback → retry only if operation is idempotent/safe
-constraint violation  → report domain conflict; do not blindly retry
+A read 1, B read 1, both added 1. Expected 3, actual 2.
 ```
 
-An application retry begins the entire transaction again because the old snapshot is no longer valid. A retry must not duplicate an email, payment, external request, or activity entry. For the issue tracker, prefer a conditional update, a lock, or a constraint when it directly expresses the invariant, then test the concurrent behavior rather than merely asserting that `BEGIN` appears in source.
+Nothing failed. No error was raised, no constraint was violated, and one person's change is simply gone. Both transactions were internally consistent; the pair was not.
 
-## 5. Add RLS as a database backstop
+PostgreSQL's default isolation level, **read committed**, guarantees that each statement sees only committed data. It does not promise that a value you read is still true when you write.
 
-First make the tenant key explicit. Policies are easier to reason about when protected tables carry `workspace_id`; indirect joins can be valid but obscure a security boundary. The application establishes a trusted workspace context for each request using a connection-lifecycle-safe mechanism chosen for the actual PHP connection. This example uses a transaction-local setting, so it cannot leak to a reused connection after commit.
+## A lock makes the second session wait
 
-A policy's `TO issue_app` clause names a role that must already exist, so create the
-restricted application role — the one that will actually experience these policies —
-before the first `CREATE POLICY`, not after. Table owners and superusers bypass RLS by
-default, which is exactly why this role is neither:
+`SELECT … FOR UPDATE` takes a row lock as part of the read, so nobody else can update that row until the transaction ends:
 
 ```sql
-CREATE ROLE issue_app LOGIN NOINHERIT NOBYPASSRLS PASSWORD 'local-development-only';
-GRANT USAGE ON SCHEMA public TO issue_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON issues TO issue_app;
-GRANT USAGE ON SEQUENCE issues_id_seq TO issue_app;
-```
-
-`issues.id` is almost certainly `BIGSERIAL`, which is a `bigint` column backed by a
-sequence PostgreSQL creates and owns implicitly — `issues_id_seq` by the standard naming
-convention (`<table>_<column>_seq`; confirm yours with `\d issues` if you named it
-differently). Table privileges do not include sequence privileges: without this grant, an
-`INSERT` fails on `permission denied for sequence issues_id_seq` before your policy is
-ever evaluated, and that failure is easy to misread as the policy working when it is
-actually the policy never running at all.
-
-Every policy below reads the same transaction-local setting the same way, so the exact
-comparison matters: `NULLIF(current_setting('app.workspace_id', true), '')::bigint` rather
-than casting the raw result directly. §9 explains why — the short version is that an
-absent-context connection returns an empty string, not `NULL`, once any transaction on it
-has ever called `set_config`, and casting `''::bigint` raises rather than failing the
-comparison safely.
-
-```sql
-ALTER TABLE issues ENABLE ROW LEVEL SECURITY;
-ALTER TABLE issues FORCE ROW LEVEL SECURITY;
-
-CREATE POLICY issues_workspace_select ON issues
-FOR SELECT TO issue_app
-USING (workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::bigint);
-```
-
-```sql
-CREATE POLICY issues_workspace_write ON issues
-FOR INSERT TO issue_app
-WITH CHECK (workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::bigint);
-
-CREATE POLICY issues_workspace_change ON issues
-FOR UPDATE TO issue_app
-USING (workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::bigint)
-WITH CHECK (workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::bigint);
-```
-
-```sql
-CREATE POLICY issues_workspace_delete ON issues
-FOR DELETE TO issue_app
-USING (workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::bigint);
-```
-
-`USING` determines existing rows visible or targetable by a command; `WITH CHECK` determines new row values allowed by insert/update. Both are needed: a policy that filters reads but lets an insert name another workspace is not tenant isolation. Apply equivalent policies to projects, comments, and other protected tenant-owned tables. Application authorization must still establish that the signed-in user is allowed to choose the workspace context; RLS does not authenticate a browser.
-
-## 6. Prove RLS under the right role
-
-Table owners typically bypass RLS unless forced, and superusers/BYPASSRLS roles bypass it. §5 already created `issue_app` with only the privileges it needs — no more, no less — before a single policy referenced it. Execute all evidence as that role. A policy listed in `pg_policies` proves syntax exists, not that it protects rows.
-
-```sql
-SET ROLE issue_app;
 BEGIN;
-SELECT set_config('app.workspace_id', '7', true);
-SELECT id, workspace_id FROM issues ORDER BY id;
+SELECT priority FROM issues WHERE id = 1 FOR UPDATE;
+UPDATE issues SET priority = priority + 1 WHERE id = 1;
 COMMIT;
-RESET ROLE;
 ```
+
+The second session simply blocks — correct, and invisible. To make the wait observable, give it a deadline:
 
 ```sql
-SET ROLE issue_app;
-BEGIN;
-SELECT set_config('app.workspace_id', '7', true);
-SELECT id FROM issues WHERE workspace_id = 8;
-UPDATE issues SET title = 'should not change' WHERE workspace_id = 8;
-INSERT INTO issues (workspace_id, title, status)
-VALUES (8, 'should be refused', 'todo');
-ROLLBACK;
-RESET ROLE;
-```
-
-Run the reciprocal case for workspace 8. Assert tenant 7 sees its own records, cannot read/update/delete tenant 8 records, and cannot write a row claiming tenant 8. Also inspect the role attributes and table owner; do not accept a test authenticated as the database owner. Keep development passwords out of commits and use your Compose environment's secret mechanism.
-
-## 7. Put the transaction boundary in the application deliberately
-
-The SQL examples demonstrate behavior, but the issue tracker needs one connection for every statement in the transaction. Obtain the connection, begin, establish tenant context if it belongs to the transaction, perform the guarded writes, then commit. On every exception, roll back only when the transaction is active and translate known database outcomes into an honest HTTP/domain response. Do not catch an exception and continue issuing writes on a failed PostgreSQL transaction: PostgreSQL marks it aborted until rollback.
-
-```php
-$pdo->beginTransaction();
-try {
-    $context = $pdo->prepare("SELECT set_config('app.workspace_id', :workspace, true)");
-    $context->execute(['workspace' => (string) $workspaceId]);
-
-    $move->execute(['issue' => $issueId, 'status' => $targetStatus]);
-    $activity->execute(['issue' => $issueId, 'actor' => $userId]);
-    $pdo->commit();
-} catch (Throwable $error) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
-    throw $error;
-}
+SET lock_timeout = '300ms';
 ```
 
 ```text
-connection A: BEGIN → set local tenant → statements → COMMIT/ROLLBACK
-connection B: different request, different transaction/context
-pooled connection: context disappears at transaction end because it was local
+B could not take the row lock: SQLSTATE 55P03.
+B then read the committed 2 and wrote 3. No update was lost.
 ```
 
-Inspect DALT's actual connection and transaction API before applying this shape. The essential rule is not a particular helper name: statements that must commit together share one connection and one explicit boundary. Put validation that needs no lock before opening the transaction when possible, then re-check state that can change after acquiring the lock or conditional update. This keeps locks short and prevents a slow request from becoming an accidental denial of service.
+`55P03` is `lock_not_available`. In an application that is a signal to fail fast rather than to hold a request open indefinitely — an unbounded wait is how one slow transaction becomes a queue of stuck requests.
 
-## 8. Constraints are concurrent correctness tools
+Two rules travel with row locks. Lock the row you are about to change, in the same transaction that changes it. And always lock rows in a consistent order across the codebase: two transactions that lock A-then-B and B-then-A will deadlock, and PostgreSQL will kill one of them.
 
-Some invariants are best represented by database constraints rather than application branches. A unique constraint can stop two transactions from creating the same logical membership. A foreign key prevents a reference to a row that does not exist. A check constraint constrains values in one row. PostgreSQL arbitrates constraint conflicts even when two sessions raced past the same prior `SELECT`; application code must catch the specific violation and present a useful conflict rather than a 500.
+## `SERIALIZABLE` checks the whole schedule instead
 
-```sql
-ALTER TABLE workspace_memberships
-ADD CONSTRAINT workspace_memberships_workspace_user_key
-UNIQUE (workspace_id, user_id);
-```
+Locking works when you know which row you are protecting. Some invariants are about a *set* — "no more than N high-priority issues in this project" — and there is no single row to lock.
 
-```sql
-ALTER TABLE issues
-ADD CONSTRAINT issues_status_check
-CHECK (status IN ('todo', 'in_progress', 'done'));
-```
-
-```sql
-INSERT INTO workspace_memberships (workspace_id, user_id)
-VALUES (7, 9);
--- a concurrent duplicate is refused by the database, not accepted twice
-```
-
-A constraint does not encode every workflow rule. “Only a current workspace member may move this issue” needs authorization and often a transaction/lock across related records. “An issue belongs to a project in the same workspace” may need a schema design that makes the relationship enforceable. Write the invariant in product language first, then decide which portion is a constraint, which is a conditional update, and which remains application authorization.
-
-## 9. Policy lifecycle and connection safety
-
-RLS applies after normal privilege checks; a role without `SELECT` privilege does not gain it from a policy. Grant only the operations the application needs. `FORCE ROW LEVEL SECURITY` is important when a table owner might otherwise bypass policies, but it does not make a superuser test meaningful. Use a migration that records ownership, grants, enabling/forcing RLS, and policies together so a fresh database has the same boundary as your development machine.
-
-`current_setting('app.workspace_id', true)` returns null **only on a connection that has
-never called `set_config` for that name.** Prove this rather than trusting the intuitive
-answer — it is the opposite of what the name "transaction-local" suggests:
-
-```sql
-BEGIN;
-SELECT set_config('app.workspace_id', '7', true);
-SELECT current_setting('app.workspace_id', true);
-COMMIT;
-SELECT current_setting('app.workspace_id', true);
-```
+`SERIALIZABLE` makes PostgreSQL verify that the concurrent transactions could have produced their result if run one after another. When they could not, one is refused:
 
 ```text
-inside transaction: '7'
-after commit:       ''  ← empty string, not null
+B was rolled back: SQLSTATE 40001. Retry the whole transaction.
+Both sessions had counted the same 10000 rows before deciding what to write.
 ```
 
-Once `set_config(..., true)` has run at least once on a connection, the transaction-local
-value resets to `''` at commit, not back to absent — the setting exists, its value is just
-empty. `NULLIF(current_setting('app.workspace_id', true), '')::bigint` is therefore not a
-defensive flourish in §5's policies; without it, `''::bigint` raises
-`invalid input syntax for type bigint`, which aborts the transaction and every
-policy-protected query in it, rather than the "safely matches no rows" behavior a raw
-`current_setting(...)::bigint` comparison looks like it would give you on first read.
+`40001` is `serialization_failure`, and it is not an error in the usual sense — it is the mechanism working. Using this level means the application **must** retry the whole transaction, from the first read, because every value it read may now be wrong. Retrying only the failed statement re-uses stale reads and reintroduces the bug.
 
-This is not a corner case DALT can ignore: `Database` is bound as a **container singleton**
-(`framework/Core/bootstrap.php`), so one PDO connection typically serves an entire request
-— and, depending on your connection lifecycle, possibly more than one. The second
-policy-protected query issued on a connection that has already committed one
-`set_config`'d transaction hits this exact empty-string path, not the fresh-connection
-`NULL` path. Test both states, not only the first query of the first request:
-
-```sql
--- fresh connection, never called set_config: current_setting returns NULL, comparison is safe
--- same connection, after any set_config + COMMIT: current_setting returns '', NULLIF saves it
-```
-
-An absent context should still be diagnosed in application tests: a query unexpectedly
-returning an empty list can otherwise look like a harmless product bug. `set_config(...,
-true)` is transaction-local only inside a transaction. A session-level `SET` can leak
-across reused/persistent connections and is unacceptable unless the lifecycle has an
-explicit reset discipline you can prove.
-
-Policies must cover every command whose cross-tenant effect matters. A `SELECT` policy can make an update target zero rows, but explicit `UPDATE ... USING ... WITH CHECK` states both old-row and new-row requirements clearly. Test policy behavior with direct SQL and through the API: direct SQL proves the database boundary; API tests prove identity-to-workspace context is established correctly.
-
-## 10. Design failure responses before the race happens
-
-Concurrency control is visible product behavior. A conditional claim that returns no row is not an internal mystery: the request should return a conflict-shaped response, reload authoritative issue state, and tell the user the issue was claimed elsewhere. A serialization failure is different from an authorization denial; retry it only with a bounded policy and only when repeating the entire operation cannot duplicate an external effect. A unique-constraint violation is often a normal “already exists” conflict, while a foreign-key violation may reveal a stale selection or a programming mistake. Preserve the database error for server diagnostics, but do not expose raw SQL, role names, or policy expressions to a browser.
+Choose deliberately:
 
 ```text
-0 rows from guarded update → 409-style domain conflict, refresh state
-serialization/deadlock     → rollback, bounded whole-operation retry if safe
-unique constraint          → domain conflict with a specific message
-RLS empty result           → application distinguishes absent from unauthorized carefully
+FOR UPDATE     you know the rows; contention is on specific rows
+SERIALIZABLE   the invariant spans a set; you can afford to retry
+constraints    the rule can be expressed once, in the schema
 ```
 
-For RLS, do not turn every empty result into a confirmation that a resource does not exist if that changes your application's information-disclosure policy. The application can use its membership knowledge to choose an honest response, while the database still refuses the row. Test that the frontend invalidates or refetches server state after a losing race; a stale optimistic UI claiming success would recreate the defect at a different layer. This is why the milestone keeps existing API and frontend behavior tests alongside direct database proofs.
+The third option is the strongest when it applies. A `UNIQUE` constraint or a `CHECK` is enforced under every isolation level and by every client, including the one nobody remembered to update.
 
-Record these responses in the operation's contract and tests. A maintainer should be able to distinguish a legitimate conflict from a transient database retry and from an authorization refusal without looking at an incidental exception message. That clarity makes concurrency behavior supportable after the two-session exercise is over.
+## A failed statement aborts the transaction
+
+One more behaviour surprises people the first time:
+
+```text
+The insert failed as designed: SQLSTATE 23514.
+Every later statement fails too: SQLSTATE 25P02. Roll back first.
+```
+
+After any error, PostgreSQL marks the transaction aborted and refuses everything until `ROLLBACK`. Catching an exception and continuing to issue writes does not work — every one of them fails with `25P02`, `in_failed_sql_transaction`. Roll back, then decide what to do.
 
 ## Try it
 
-**Prediction:** §9 claims an empty `set_config` context is `''`, not `NULL`, on a
-connection that has already used it once. Before running anything, predict what a policy
-written as `workspace_id = current_setting('app.workspace_id', true)::bigint` — without
-`NULLIF` — does on the *second* query of a connection that committed a tenant context on
-its first.
+**Workspace:** continue in `.dalt/workspace/fs11-postgres`. If starting fresh, run the setup in FS11.1, then `fs11-1` through `fs11-4` in order.
 
-**Run / inspect:** as the restricted `issue_app` role, run one transaction that sets and
-commits a workspace context, then a second transaction on the **same session** that never
-calls `set_config` again:
-
-```sql
-SET ROLE issue_app;
-BEGIN;
-SELECT set_config('app.workspace_id', '7', true);
-SELECT count(*) FROM issues;  -- works: context is '7'
-COMMIT;
-
-BEGIN;
-SELECT count(*) FROM issues;  -- no set_config in this transaction
-COMMIT;
-RESET ROLE;
+```bash
+cd .dalt/workspace/fs11-postgres
+DALT_REPOSITORY_ROOT=/path/to/DALT.PHP php scripts/concurrency.php
 ```
 
-Run it once against a policy using the raw cast, and once against §5's
-`NULLIF(current_setting('app.workspace_id', true), '')::bigint` version.
+**Starting state:** the script opens two PDO connections through DALT's own `Database` class and sequences every step by hand, so nothing depends on timing luck.
 
-**What happened:** the raw-cast policy raises `invalid input syntax for type bigint: ""`
-on the second transaction and aborts it. The `NULLIF` version instead returns zero rows —
-no error, just an honest "no context, so no rows" result consistent with the first
-transaction's `NULL`-context behavior.
+**Expected result:** four labelled sections.
 
-**Why:** `current_setting(..., true)` does not reset to absent when a transaction ends; it
-resets to the empty string once anything has ever called `set_config` on that connection.
-A raw cast treats that as a syntax error mid-request; `NULLIF` treats it as "no tenant
-context," which is the behavior §5's policies actually rely on. This is exactly the
-DALT-relevant case §9 names: `Database` is a container singleton, so a second
-policy-protected query on the same request-scoped connection is not a hypothetical — it is
-the second line of most handlers.
+```text
+A read 1, B read 1, both added 1. Expected 3, actual 2.
+B could not take the row lock: SQLSTATE 55P03.
+B then read the committed 2 and wrote 3. No update was lost.
+B was rolled back: SQLSTATE 40001. Retry the whole transaction.
+The insert failed as designed: SQLSTATE 23514.
+Every later statement fails too: SQLSTATE 25P02. Roll back first.
+```
+
+Now delete `FOR UPDATE` from section 2's two `SELECT` statements and rerun. The lock timeout never fires, and the final priority is 2 instead of 3 — the lost update is back.
+
+**Reset:** `docker compose down -v` and re-seed, or simply rerun the script; it resets the row it uses.
+
+## What to notice
+
+Section 1 produced a wrong number with no error anywhere. That is the whole reason concurrency is hard: the failure mode is silence.
+
+Sections 2 and 3 fix the same class of problem in opposite directions. Locking makes the other session wait; serialisable lets both proceed and refuses one afterwards. The first costs latency, the second costs a retry loop, and neither is free.
 
 ## Common mistakes
 
-### Treating adjacent SQL statements as a transaction without an actual boundary
+- Assuming a transaction is a lock. It is atomicity, not exclusivity.
+- `SELECT` then `UPDATE` in the same transaction with no `FOR UPDATE`.
+- Waiting on a lock with no `lock_timeout`, so one slow transaction stalls everything behind it.
+- Using `SERIALIZABLE` without a retry loop, which converts a rare conflict into a user-visible error.
+- Catching a database exception and continuing to write on the aborted transaction.
 
-Two `execute` calls next to each other in a controller are not atomic just because they're adjacent. Without an explicit `BEGIN`/`COMMIT`, the second can fail while the first has already committed.
+## Check your understanding
 
-### Testing "concurrency" in one session
+1. What does read committed guarantee, and what does it not?
+2. Why does `SELECT … FOR UPDATE` belong in the same transaction as its `UPDATE`?
+3. What must an application do when it receives `40001`, and why is retrying one statement wrong?
+4. Why does every statement after a failed one return `25P02`?
 
-If nothing overlaps, no race can actually happen. A race only exists between two sessions with transactions genuinely open at the same time — sequential statements in one `psql` prompt prove nothing about it.
+<details><summary>Check your answers</summary>
 
-### Holding a lock while calling an external service or waiting for a user
-
-A lock held across a slow browser round trip or a third-party API call turns one slow request into a queue of blocked ones. Keep transactions short.
-
-### Adding RLS only for `SELECT`
-
-A missing `WITH CHECK` on `INSERT`/`UPDATE` leaves cross-workspace writes wide open even while reads are correctly filtered — a policy that protects half the boundary while looking complete.
-
-### Testing as a superuser, owner, or bypassing role
-
-Table owners and superusers bypass RLS by default. A test run as either one can pass while proving nothing at all about whether the policy actually protects anything.
-
-## When this goes wrong
-
-If Session B does not block on `FOR UPDATE`, verify both sessions target the same committed row and Session A still holds the transaction open. If an activity record survives a failed move, confirm both statements use the same connection and transaction. If RLS returns no rows for everything, inspect the local setting inside the transaction and the column type cast. If RLS returns every row, check `rolbypassrls`, ownership, `FORCE ROW LEVEL SECURITY`, policy roles, and whether your app used the restricted role at all.
-
-```sql
-SELECT rolname, rolbypassrls FROM pg_roles WHERE rolname = 'issue_app';
-SELECT tablename, policyname, cmd, roles, qual, with_check
-FROM pg_policies WHERE tablename = 'issues';
-```
-
-## Exercise
-
-### Goal
-
-Prove one business operation cannot half-succeed, one concurrent claim cannot silently succeed twice, and tenant A cannot reach tenant B rows through the database role used by the application.
-
-### Starting state
-
-The tracker has workspaces, issues, membership authorization, an activity table or equivalent related state, and the B11 query work.
-
-### Requirements
-
-- Implement a transaction around a move plus activity write.
-- Reproduce a broken two-session claim.
-- Replace it with an invariant-preserving conditional update or lock.
-- Enable policies for protected tables.
-- Prove both directions of tenant isolation with a non-owner, non-superuser, no-`BYPASSRLS` role.
-
-### Constraints
-
-- No RLS test run as the table owner or a superuser.
-- No policy without both `USING` and `WITH CHECK` where both reads and writes matter.
-- No lock held across a browser round trip, human input, or an external API call.
-
-### Verification
-
-**Mode: tool-run and manual-proof.** PostgreSQL sessions and project tests are the evidence; the milestone is explicitly self-assessed.
-
-Save the two-session transcript/timeline, a rollback proof, and role-based SQL output showing own rows allowed, cross-tenant reads/writes denied, and reciprocal behavior. Run your existing API behavior tests afterward — RLS must not be the only authorization evidence.
-
-### Hints
-
-<details>
-<summary>Hint 1 — start from the invariant</summary>
-
-Express the invariant in one sentence before selecting a lock or a conditional update. "At most one successful claim" is a different problem from "the final value is correct," and the fix follows from which one you're actually solving.
+1. Each statement sees only committed data. It does not promise a value you read is still current when you write it.
+2. The lock lasts only until the transaction ends, so locking in a separate transaction protects nothing.
+3. Retry the entire transaction from its first read. Every value it read may have been invalidated by the transaction that won.
+4. PostgreSQL marks the transaction aborted after any error and refuses further work until it is rolled back.
 </details>
 
-<details>
-<summary>Hint 2 — the cheapest race-safe pattern</summary>
+## Next
 
-`RETURNING` lets an atomic update tell you whether it actually won. A zero-row result from a guarded `UPDATE` is the evidence, not a separate check.
+Next we will push tenant isolation into the database itself, so a forgotten `WHERE` clause cannot leak another workspace's rows.
+
+<details><summary>Maintainer source record</summary>
+
+- Source dossier: `POSTGRESQL_DOCS.md` and `FSO_RELATIONAL_DATABASES.md`.
+- Official sources: PostgreSQL 18 documentation on transaction isolation, explicit locking and row-level locks, `lock_timeout`, and the SQLSTATE error-code appendix (`55P03`, `40001`, `23514`, `25P02`).
+- Versions: PostgreSQL 18.4 (`postgres@sha256:9a8afca5…`); PHP 8.4 with PDO pgsql.
+- Consulted: 2026-08-23.
+- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 12, FS11.5.
+- DALT files inspected: `framework/Core/Database.php`, `postgres-depth-lab`, the Part 11 track manifest, and the former FS11.2 page.
+- Extracted material: "make one operation atomic", "reproduce a concurrent decision", "protect the invariant deliberately", "isolation is a contract, not a magic switch", and "constraints are concurrent correctness tools" from the former FS11.2. Its RLS material moves to FS11.6.
+- Verified in the lab: every line of output above is real, produced by two PDO connections opened through DALT's own `Database` class.
 </details>
-
-<details>
-<summary>Hint 3 — proving RLS safely</summary>
-
-Use `set_config(..., true)` inside an explicit transaction for transaction-local context, and reach for `ROLLBACK` liberally — it makes destructive RLS experiments safe to run against real data.
-</details>
-
-<details>
-<summary>Reference explanation — read after an honest attempt</summary>
-
-The working shape is §1's transaction around the move-plus-activity write, §3's conditional `UPDATE ... WHERE assignee_id IS NULL RETURNING`, and §5–§6's `issue_app` role — created with `NOBYPASSRLS` and the sequence grant before any policy — proven under `SET ROLE issue_app`, not as the table owner. The proof isn't that the SQL runs without error; it's the two-session transcript showing the second claim actually failing, and the reciprocal cross-tenant test where workspace 8's role cannot read, write, or insert against workspace 7's rows.
-</details>
-
-## In the project
-
-Document the exact database role, tenant-context mechanism, connection-lifecycle rationale, and tables covered by RLS. Keep the app-level membership checks — they provide useful API errors and defend every non-database operation. The database policy catches a missing tenant predicate at the SQL boundary. B11 is complete only when the same product story holds across both: moving an issue is atomic, claiming it is race-safe, and an authorized workspace can't become a cross-tenant query just because a developer forgot one condition.
-
-## Closed-book checkpoint
-
-Close the lesson first.
-
-1. What does a transaction guarantee, and what concurrency problem can remain after adding one?
-2. Why is a conditional `UPDATE ... WHERE assignee_id IS NULL RETURNING` safer than read-then-write?
-3. When might a retry be needed, and why must it restart the whole transaction?
-4. What is the difference between a policy's `USING` and `WITH CHECK` expressions?
-5. Why can an RLS test pass while proving nothing when run as the wrong role?
-
-<details>
-<summary>Reveal comparison answers</summary>
-
-1. A transaction guarantees its enclosed statements commit together or not at all — atomicity. It says nothing about what two simultaneous transactions can see or overwrite of each other; a lost-update-style race can still happen inside individually atomic transactions.
-2. A separate read-then-write lets two sessions both observe the same "available" state before either writes, so both can believe they succeeded. The conditional update makes the check and the write one atomic operation — the affected row count (via `RETURNING`) tells you directly whether this request actually won.
-3. After a serialization failure or a deadlock, when PostgreSQL has aborted the transaction because it couldn't guarantee a safe interleaving. It must restart the whole transaction because the snapshot it was reasoning from is no longer valid — replaying only part of it would use stale assumptions.
-4. `USING` determines which existing rows are visible or targetable by a command. `WITH CHECK` determines what values a new or modified row is allowed to have. A policy that only filters reads but has no `WITH CHECK` can still let a write claim another workspace.
-5. Table owners and superusers bypass RLS by default. A test run as either one succeeds regardless of whether the policy actually filters anything, so a green result says nothing about whether the boundary holds for the role that actually experiences it in production.
-</details>
-
-## Resources
-
-### Read
-
-- [PostgreSQL transaction isolation](https://www.postgresql.org/docs/17/transaction-iso.html)
-- [PostgreSQL explicit locking](https://www.postgresql.org/docs/17/explicit-locking.html)
-- [PostgreSQL row security policies](https://www.postgresql.org/docs/17/ddl-rowsecurity.html)
-- [PostgreSQL roles](https://www.postgresql.org/docs/17/user-manag.html)
-
-Use the major version matching the PostgreSQL image actually pinned by the learner project.
-
-## You are done when
-
-You can show a rollback leaves no partial move, reproduce a real overlapping-session race, and explain why your chosen fix enforces its invariant. You can also demonstrate, using the restricted application role, that each tenant can access only its own protected rows and cannot insert/update a row claiming another tenant. You have preserved application authorization rather than presenting RLS as a replacement for it.
-
-## Maintainer source record
-
-Source dossier: `docs/dalt-fullstack/sources/POSTGRESQL_DOCS.md`.
-
-Official sources: PostgreSQL 17 documentation for transaction isolation, locking, roles, and row security policies; URLs above.
-
-Versions: learner environment is PostgreSQL 17 as pinned by Part 10 Compose material; policy syntax and URLs must be rechecked if the pinned image major changes.
-
-Consulted: 2026-08-15; DALT's repository database/connection behavior was treated as the implementation truth and tenant-context architecture remains an application decision to document.
-
-Curriculum authority: `docs/dalt-fullstack/CURRICULUM.md` §22, FS11.2; `PROJECT_BLUEPRINT.md` §§68–72.
-
-Follow-up pass: 2026-08-20 — cross-checked this lesson against `docs/dalt-fullstack/WORKLOG.md`'s F24/F25/F26 findings (the missing sequence grant, the NULL-vs-empty-string RLS fail-safe, and the role-created-after-use ordering); all three documented fixes are present and correctly explained, and the DALT-specific claim that `Database::class` is a container singleton was verified directly against `framework/Core/bootstrap.php` (confirmed — `$container->singleton(Database::class, ...)`); restructured Exercise from bold-label paragraphs into LESSON_STANDARD.md §97's subsections with a hint ladder and reference explanation; split Common mistakes into explained subsections; added a Closed-book checkpoint answer reveal and a `### Read` subheading under Resources; light voice pass toward first-person-plural framing.

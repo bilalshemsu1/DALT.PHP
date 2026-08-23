@@ -1072,6 +1072,21 @@ test('the Batch 12 PostgreSQL lab executes each lesson against the real database
         expect($jsonSections[5])->toContain('"sorce"')
             ->and($jsonSections[5])->toContain('rows_with_a_misspelled_key');
         expect($jsonSections[6])->toContain('Bitmap Index Scan on issues_source_idx');
+
+        // FS11.5 - two PDO connections through DALT's own Database class. The lost
+        // update has to actually happen: a script that merely explained the risk would
+        // pass just as well, and teach nothing.
+        [$raceExit, $race] = fullstackLabRun($workspace, [
+            'env', 'DALT_REPOSITORY_ROOT=' . base_path(), PHP_BINARY, $workspace . '/scripts/concurrency.php',
+        ], 300);
+        expect($raceExit)->toBe(0, "FS11.5's concurrency script failed:\n{$race}");
+        expect($race)->toContain('Expected 3, actual 2.')
+            ->and($race)->toContain('SQLSTATE 55P03')
+            ->and($race)->toContain('No update was lost.')
+            ->and($race)->toContain('SQLSTATE 40001')
+            ->and($race)->toContain('SQLSTATE 23514')
+            ->and($race)->toContain('SQLSTATE 25P02')
+            ->and($race)->toContain('After rollback the connection works again: yes.');
     } finally {
         fullstackLabRun($workspace, [...$compose, 'down', '-v'], 300);
         fullstackLabRemove($workspace);

@@ -37,6 +37,12 @@ docker compose exec -T db psql -U dalt -d dalt_depth -v ON_ERROR_STOP=1 \
   -f /course/sql/fs11-4-jsonb.sql
 ```
 
+FS11.5 runs from the host instead, because it needs two independent connections:
+
+```bash
+DALT_REPOSITORY_ROOT=/path/to/DALT.PHP php scripts/concurrency.php
+```
+
 They build on each other: FS11.2 starts from the index FS11.1 created, so run them in
 sequence against a freshly seeded database.
 

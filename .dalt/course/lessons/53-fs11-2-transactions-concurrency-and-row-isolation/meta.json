@@ -1,6 +1,6 @@
 {
-    "title": "Transactions, concurrency and row isolation",
-    "description": "Keep multi-step issue changes correct under concurrent requests and enforce tenant isolation with meaningful RLS evidence.",
+    "title": "Transactions, concurrency, locks, and isolation",
+    "description": "Reproduce a lost update between two sessions, then prevent it two different ways.",
     "order": 78,
     "section": "fullstack",
     "section_order": 59,

@@ -292,7 +292,17 @@ function fullstackCodeDensity(string $id): array
 }
 
 dataset('fullstack lessons', array_map(static fn (string $id): array => [$id], fullstackLessonIds()));
-dataset('legacy fullstack lessons', array_map(static fn (string $id): array => [$id], fullstackLegacyLessonIds()));
+// Batch 12 revised the last historical Fullstack lesson, so this dataset is now empty —
+// and Pest cannot build a test from an empty dataset, which fails the whole file before a
+// single assertion runs. The checks are kept rather than deleted: the §97 contract still
+// governs any lesson that arrives without `Lesson format: Concise theory`, and a dataset
+// that silently disappears is how a standard stops being enforced. The sentinel keeps the
+// tests loadable and asserts the reason they have nothing to check.
+const FULLSTACK_NO_LEGACY_LESSONS = '__no-legacy-fullstack-lesson__';
+
+dataset('legacy fullstack lessons', fullstackLegacyLessonIds() === []
+    ? [[FULLSTACK_NO_LEGACY_LESSONS]]
+    : array_map(static fn (string $id): array => [$id], fullstackLegacyLessonIds()));
 dataset('concise fullstack lessons', array_map(static fn (string $id): array => [$id], fullstackConciseLessonIds()));
 dataset('fullstack parts', array_map(static fn (string $part): array => [$part], fullstackParts()));
 dataset('build milestones', array_map(static fn (string $id): array => [$id], array_keys(BuildMilestone::all())));
@@ -325,6 +335,12 @@ const FULLSTACK_LESSON_SECTIONS = [
 // WORKLOG.md F29.
 
 test('the lesson contains every mandatory section', function (string $id) {
+    if ($id === FULLSTACK_NO_LEGACY_LESSONS) {
+        expect(fullstackLegacyLessonIds())->toBe([], 'A historical Fullstack lesson reappeared without reaching this check.');
+
+        return;
+    }
+
     $body = fullstackLessonBody($id);
 
     foreach (FULLSTACK_LESSON_SECTIONS as $heading) {
@@ -337,6 +353,12 @@ test('the lesson contains every mandatory section', function (string $id) {
 })->with('legacy fullstack lessons');
 
 test('every mandatory section says something', function (string $id) {
+    if ($id === FULLSTACK_NO_LEGACY_LESSONS) {
+        expect(fullstackLegacyLessonIds())->toBe([], 'A historical Fullstack lesson reappeared without reaching this check.');
+
+        return;
+    }
+
     // Presence was checked above; this checks content. All three Part 08 lessons shipped
     // `## Common mistakes` followed immediately by the next heading, and passed, because
     // the presence check reads the heading and stops. An empty mandatory section is worse
@@ -511,6 +533,12 @@ test('the lesson records its provenance', function (string $id) {
 })->with('fullstack lessons');
 
 test('the lesson states its exercise verification mode', function (string $id) {
+    if ($id === FULLSTACK_NO_LEGACY_LESSONS) {
+        expect(fullstackLegacyLessonIds())->toBe([], 'A historical Fullstack lesson reappeared without reaching this check.');
+
+        return;
+    }
+
     $body = fullstackLessonBody($id);
 
     // EXERCISE_STANDARD.md 17, as amended by Amendment B: an exercise says how it is
@@ -523,6 +551,12 @@ test('the lesson states its exercise verification mode', function (string $id) {
 })->with('legacy fullstack lessons');
 
 test('the lesson is deep enough to be worth its place', function (string $id) {
+    if ($id === FULLSTACK_NO_LEGACY_LESSONS) {
+        expect(fullstackLegacyLessonIds())->toBe([], 'A historical Fullstack lesson reappeared without reaching this check.');
+
+        return;
+    }
+
     $words = fullstackLessonWords($id);
 
     // An absolute floor for Part 00, which has no part before it to compare against.
@@ -582,6 +616,12 @@ test('an unrevised part does not regress in depth against earlier unrevised part
 })->with('fullstack parts');
 
 test('the lesson shows code, not descriptions of code', function (string $id) {
+    if ($id === FULLSTACK_NO_LEGACY_LESSONS) {
+        expect(fullstackLegacyLessonIds())->toBe([], 'A historical Fullstack lesson reappeared without reaching this check.');
+
+        return;
+    }
+
     // Part 06 shipped one code block of five lines for "Users, passwords, sessions and
     // CSRF" — prose telling the learner to "add a users migration with a password
     // column sized for PHP's hash output", with no migration and no number. Every
