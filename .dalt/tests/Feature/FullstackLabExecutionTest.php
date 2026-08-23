@@ -997,6 +997,32 @@ test('the Batch 12 PostgreSQL lab executes each lesson against the real database
                 "The common value now uses the index, so FS11.1's selectivity contrast is gone.\n{$sections[4]}",
             );
         expect($sections[5])->toContain('Index Scan using issues_pkey');
+
+        // FS11.2 - the argument is that an index has to match the whole query, so the
+        // wrong-order index must genuinely change nothing and the right-shaped one must
+        // genuinely remove the sort.
+        [$indexExit, $indexPlan] = fullstackLabRun(
+            $workspace,
+            [...$compose, ...$psql(['-f', '/course/sql/fs11-2-explain-and-indexes.sql'])],
+            300,
+        );
+        expect($indexExit)->toBe(0, "FS11.2's experiment failed:\n{$indexPlan}");
+
+        $indexSections = preg_split('/^--- \d+\. /m', $indexPlan);
+        expect($indexSections)->toHaveCount(6, "FS11.2's experiment no longer prints five labelled sections.");
+
+        expect($indexSections[1])->toContain('Sort Method: top-N heapsort');
+        expect($indexSections[2])->toContain('Sort Method: top-N heapsort')
+            ->and(str_contains($indexSections[2], 'issues_status_workspace_idx'))->toBeFalse(
+                "The wrong-order index is now chosen, so FS11.2's column-order argument is gone.\n{$indexSections[2]}",
+            );
+        expect($indexSections[3])->toContain('issues_workspace_status_created_idx')
+            ->and(str_contains($indexSections[3], 'Sort Method'))->toBeFalse(
+                "The composite index no longer removes the sort.\n{$indexSections[3]}",
+            );
+        expect($indexSections[4])->toContain('issues_open_recent_idx');
+        expect($indexSections[5])->toContain('issues_open_recent_idx')
+            ->and($indexSections[5])->toContain('issues_workspace_status_created_idx');
     } finally {
         fullstackLabRun($workspace, [...$compose, 'down', '-v'], 300);
         fullstackLabRemove($workspace);

@@ -24,12 +24,17 @@ docker compose exec -T db psql -U dalt -d dalt_depth -v ON_ERROR_STOP=1 -q \
 
 Seeding takes about seven seconds and produces 190,000 closed and 10,000 open issues.
 
-## Run one lesson's experiment
+## Run each lesson's experiment, in order
 
 ```bash
 docker compose exec -T db psql -U dalt -d dalt_depth -v ON_ERROR_STOP=1 \
   -f /course/sql/fs11-1-selectivity.sql
+docker compose exec -T db psql -U dalt -d dalt_depth -v ON_ERROR_STOP=1 \
+  -f /course/sql/fs11-2-explain-and-indexes.sql
 ```
+
+They build on each other: FS11.2 starts from the index FS11.1 created, so run them in
+sequence against a freshly seeded database.
 
 ## Reset
 
