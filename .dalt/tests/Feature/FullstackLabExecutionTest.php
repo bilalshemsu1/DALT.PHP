@@ -691,6 +691,38 @@ test('the Batch 11 Docker lab runs each lesson against real Docker', function ()
         expect($topExit)->toBe(0)
             ->and($topOutput)->toContain('php -S 0.0.0.0:8000 -t public')
             ->and(preg_match('/^\s*\d+\s+php -S/m', $topOutput))->toBe(1, "docker top showed no host PID:\n{$topOutput}");
+
+        // FS10.2 - the Dockerfile puts the application inside the image, and
+        // .dockerignore decides what was ever eligible to go in.
+        $firstTag = 'dalt-lab-test-first:' . bin2hex(random_bytes(4));
+        [$buildExit, $buildOutput] = fullstackLabRun($workspace, [
+            'docker', 'build', '-f', 'Dockerfile.first', '-t', $firstTag, '.',
+        ], 600);
+        expect($buildExit)->toBe(0, "FS10.2's first image did not build:\n{$buildOutput}");
+
+        [, $listing] = fullstackLabRun($workspace, ['docker', 'run', '--rm', $firstTag, 'ls', '-a', '/app'], 120);
+        expect($listing)->toContain('public')
+            ->and($listing)->toContain('src')
+            ->and(str_contains($listing, 'config.local.php'))->toBeFalse(
+                "The local-only file reached the image; .dockerignore is not doing its job.\n{$listing}",
+            )
+            ->and(str_contains($listing, 'notes'))->toBeFalse("The notes folder reached the image.\n{$listing}");
+
+        // Without the filter the same build ships the credential. The lesson claims this;
+        // the guard proves the claim rather than trusting it.
+        rename($workspace . '/.dockerignore', $workspace . '/dockerignore.disabled');
+        $noIgnoreTag = 'dalt-lab-test-noignore:' . bin2hex(random_bytes(4));
+        [$openExit, $openOutput] = fullstackLabRun($workspace, [
+            'docker', 'build', '--no-cache', '-f', 'Dockerfile.first', '-t', $noIgnoreTag, '.',
+        ], 600);
+        expect($openExit)->toBe(0, "The unfiltered build failed for an unrelated reason:\n{$openOutput}");
+
+        [, $openListing] = fullstackLabRun($workspace, ['docker', 'run', '--rm', $noIgnoreTag, 'ls', '-a', '/app'], 120);
+        expect($openListing)->toContain('config.local.php')
+            ->and($openListing)->toContain('notes');
+
+        rename($workspace . '/dockerignore.disabled', $workspace . '/.dockerignore');
+        fullstackLabRun($workspace, ['docker', 'image', 'rm', '-f', $firstTag, $noIgnoreTag], 120);
     } finally {
         fullstackLabRun($workspace, ['docker', 'rm', '-f', $container], 60);
         fullstackLabRemove($workspace);

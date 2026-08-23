@@ -1,0 +1,12 @@
+{
+    "title": "Dockerfiles, images, and build context",
+    "description": "Write the recipe down, and control exactly which files are allowed to reach the image.",
+    "order": 70,
+    "section": "fullstack",
+    "section_order": 51,
+    "icon": "docker",
+    "color": "purple",
+    "prerequisites": [
+        "50-fs10-1-containers-around-the-application"
+    ]
+}
