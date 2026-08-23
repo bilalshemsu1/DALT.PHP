@@ -821,5 +821,15 @@ return [
                 ['label' => 'axe-core Playwright integration', 'href' => 'https://playwright.dev/docs/accessibility-testing'],
             ],
         ],
+        [
+            'id' => '70',
+            'slug' => 'measure-and-improve-performance',
+            'title' => 'Measure and improve performance',
+            'description' => 'Build a realistic workload, read the plans, reject the composite index the numbers do not justify, and add the bundle budget that will notice the next regression.',
+            'background' => [
+                ['label' => 'PostgreSQL Using EXPLAIN', 'href' => 'https://www.postgresql.org/docs/18/using-explain.html'],
+                ['label' => 'PostgreSQL LIMIT and OFFSET', 'href' => 'https://www.postgresql.org/docs/18/queries-limit.html'],
+            ],
+        ],
     ],
 ];
