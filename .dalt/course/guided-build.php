@@ -801,5 +801,15 @@ return [
                 ['label' => 'OWASP logging cheat sheet', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html'],
             ],
         ],
+        [
+            'id' => '68',
+            'slug' => 'contain-server-and-react-failures',
+            'title' => 'Contain server and React failures',
+            'description' => 'Give every JSON failure one envelope carrying a quotable request id, and wrap independently useful sections in a React boundary that recovers by remounting rather than pretending.',
+            'background' => [
+                ['label' => 'React error boundaries', 'href' => 'https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary'],
+                ['label' => 'MDN HTTP response status codes', 'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Status'],
+            ],
+        ],
     ],
 ];
