@@ -792,5 +792,14 @@ return [
                 ['label' => 'Playwright in CI', 'href' => 'https://playwright.dev/docs/ci'],
             ],
         ],
+        [
+            'id' => '67',
+            'slug' => 'add-useful-structured-application-logs',
+            'title' => 'Add useful structured application logs',
+            'description' => 'One JSON record per event with a request id the caller can quote, levels that separate refusals from failures, and a redactor that keeps every credential out of the file.',
+            'background' => [
+                ['label' => 'OWASP logging cheat sheet', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html'],
+            ],
+        ],
     ],
 ];
