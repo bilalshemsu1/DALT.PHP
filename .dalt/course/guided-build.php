@@ -722,5 +722,15 @@ return [
                 ['label' => 'OWASP authorization testing', 'href' => 'https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Testing_Automation_Cheat_Sheet.html'],
             ],
         ],
+        [
+            'id' => '60',
+            'slug' => 'test-the-assembled-application-in-a-browser',
+            'title' => 'Test the assembled application in a browser',
+            'description' => 'Drive real journeys with Playwright against a real DALT server and its own test database: registration, invitation acceptance, member permissions, comments, filtering, pagination, deep links, and logout.',
+            'background' => [
+                ['label' => 'Playwright locators', 'href' => 'https://playwright.dev/docs/locators'],
+                ['label' => 'Playwright test isolation', 'href' => 'https://playwright.dev/docs/browser-contexts'],
+            ],
+        ],
     ],
 ];
