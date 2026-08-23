@@ -54,7 +54,8 @@ npm run check:boundaries
 ```
 
 ```text
-boundary violation: src/shared/formatIssueLabel.ts -> src/features/issues/issueStatusLabels.ts
+boundary violation: src/shared/formatIssueLabel.ts
+  imports src/features/issues/issueStatusLabels.ts
   shared code must not depend on feature 'issues'
 ```
 

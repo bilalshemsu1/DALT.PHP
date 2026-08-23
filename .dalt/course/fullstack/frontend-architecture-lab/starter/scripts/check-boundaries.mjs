@@ -79,7 +79,11 @@ for (const file of walk(srcDir)) {
     const reason = violationFor(file, target);
     if (reason !== null) {
       violations.push(
-        `boundary violation: src/${relative(srcDir, file)} -> src/${relative(srcDir, target)}\n  ${reason}`,
+        [
+          `boundary violation: src/${relative(srcDir, file)}`,
+          `  imports src/${relative(srcDir, target)}`,
+          `  ${reason}`,
+        ].join('\n'),
       );
     }
   }

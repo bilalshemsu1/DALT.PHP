@@ -112,7 +112,8 @@ npm run check:boundaries # fails
 **Expected result:** the type check and the production build both succeed, and the boundary check exits non-zero with:
 
 ```text
-boundary violation: src/shared/formatIssueLabel.ts -> src/features/issues/issueStatusLabels.ts
+boundary violation: src/shared/formatIssueLabel.ts
+  imports src/features/issues/issueStatusLabels.ts
   shared code must not depend on feature 'issues'
 ```
 
