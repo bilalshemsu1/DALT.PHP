@@ -831,5 +831,15 @@ return [
                 ['label' => 'PostgreSQL LIMIT and OFFSET', 'href' => 'https://www.postgresql.org/docs/18/queries-limit.html'],
             ],
         ],
+        [
+            'id' => '71',
+            'slug' => 'rehearse-a-complete-release-and-recovery',
+            'title' => 'Rehearse a complete release and recovery',
+            'description' => 'Deploy from a clean checkout, create real data, destroy the deployment entirely, restore it atomically, and prove authentication, membership, and authorization all came back — then record the release path and its limits.',
+            'background' => [
+                ['label' => 'PostgreSQL backup and restore', 'href' => 'https://www.postgresql.org/docs/18/backup-dump.html'],
+                ['label' => 'psql ON_ERROR_STOP', 'href' => 'https://www.postgresql.org/docs/18/app-psql.html'],
+            ],
+        ],
     ],
 ];
