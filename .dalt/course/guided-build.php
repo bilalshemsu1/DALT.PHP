@@ -752,5 +752,15 @@ return [
                 ['label' => 'MDN Cache-Control', 'href' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control'],
             ],
         ],
+        [
+            'id' => '63',
+            'slug' => 'containerize-the-complete-web-application',
+            'title' => 'Containerize the complete web application',
+            'description' => 'Ship one image that carries the code, dependencies, and built assets and none of the tools that made them, run it as a non-root user, and prove every route and asset through the production entrypoint.',
+            'background' => [
+                ['label' => 'Docker multi-stage builds', 'href' => 'https://docs.docker.com/build/building/multi-stage/'],
+                ['label' => 'Compose environment interpolation', 'href' => 'https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/'],
+            ],
+        ],
     ],
 ];
