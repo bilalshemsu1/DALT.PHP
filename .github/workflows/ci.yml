@@ -66,7 +66,13 @@ jobs:
             | xargs -0 -n1 -P4 php -l > /dev/null
 
       - name: Framework test suite
-        run: php artisan test
+        # Excludes `course-shell`, the one test that shells out and runs the entire
+        # course suite — Docker, a real npm install, PostgreSQL. This job installs
+        # none of that, and running it four times over in parallel is what made the
+        # first CI run fail on PHP 8.2 alone with `proc_open` unable to fork, while
+        # the identical work passed on 8.3, 8.4 and 8.5. The course suite has its own
+        # job with the services it needs; that is where the shell-out is proven.
+        run: php artisan test --exclude-group=course-shell
 
       - name: Catalog loads and validates
         run: php artisan platform:status
@@ -128,6 +134,13 @@ jobs:
             exit 1
           fi
           grep -E '^\s+Tests:' course.log
+
+      - name: The course suite still runs from the normal project command
+        # The guarantee the excluded `course-shell` test exists to make: that
+        # `php artisan test` reaches the course suite rather than quietly skipping
+        # it. Proven once, here, where Docker, Node and PostgreSQL are present —
+        # instead of four times in jobs that have none of them.
+        run: php artisan test --group=course-shell
 
   # ---------------------------------------------------------------------------
   # The one PostgreSQL parity test the framework suite skips without a server.

@@ -52,7 +52,10 @@ Two things to know before you debug a failure:
 - `Tests\Feature\DaltSuiteTest` shells out to the course suite and asserts exit `0`. Any
   course failure therefore also appears as exactly **one** framework failure. One
   framework failure plus a red course suite means the course suite is red, not that
-  framework code regressed.
+  framework code regressed. It is tagged `course-shell`; run
+  `php artisan test --exclude-group=course-shell` to test the framework on its own
+  without spawning Docker containers and a real `npm install`. CI does exactly that in
+  its PHP version matrix, and runs the group once in the job that has those services.
 - The lab tests copy each lab to `/tmp` and run a real `npm install`. On a nearly full
   `/tmp` they fail with `ERR_INVALID_PACKAGE_CONFIG` on a file npm just wrote, which says
   nothing about disk. Check `df -h /tmp` and clear stale `/tmp/dalt-*` directories.
