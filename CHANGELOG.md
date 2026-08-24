@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - unreleased
+### Changed
+
+- Replaced the installed-project marketing page with a focused welcome screen that
+  links to learning and shows how to remove the optional platform.
+
+## [1.0.0] - 2026-08-24
 
 The first stable release. DALT is still an educational framework and says so
 everywhere — what changes at 1.0.0 is that the public surface now carries a written,
