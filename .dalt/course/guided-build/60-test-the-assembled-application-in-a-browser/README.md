@@ -229,6 +229,40 @@ await expect(page.getByRole('heading', { name: 'Routine issue 12', level: 3 })).
 A pasted link and a refresh are the same request as far as our server is concerned, and
 until now nothing proved they worked.
 
+The dashboard also crosses between independently bootstrapped router families. Lesson
+57 used native anchors so DALT can serve the project shell instead of asking the root
+router to understand a project URL. Follow both kinds of dashboard destination so this
+boundary cannot quietly become a client-side 404:
+
+```ts
+test('dashboard links cross into the project shell without a client-side 404', async ({ page }) => {
+  await logIn(page, 'grace@example.test')
+  await page.goto('/dashboard')
+
+  const assigned = page.getByRole('region', { name: 'Assigned to me' })
+  await assigned.getByRole('link', { name: 'Open this view' }).click()
+
+  await expect(page).toHaveURL(new RegExp(`${projectUrl()}\\?status=open&assignee=\\d+$`))
+  await expect(page.getByRole('heading', { name: 'Launch', level: 1 })).toBeVisible()
+  await expect(page.getByRole('combobox', { name: 'Status' })).toHaveValue('open')
+
+  await page.goto('/dashboard')
+  await page.getByRole('region', { name: 'Assigned to me' })
+    .getByRole('link', { name: 'Timeout on the export job' })
+    .click()
+
+  await expect(page).toHaveURL(new RegExp(`${projectUrl()}/issues/\\d+$`))
+  await expect(page.getByRole('heading', {
+    name: 'Timeout on the export job',
+    level: 1,
+  })).toBeVisible()
+})
+```
+
+An `href` assertion in a component test cannot prove navigation works. This journey
+does: the filtered link must arrive with its query string intact, and the issue title
+must boot the issue-detail shell and render its heading.
+
 Logging out has to remove the session, not merely the buttons:
 
 ```ts
@@ -410,7 +444,7 @@ npm run build
 php vendor/bin/pest tests/Feature/PolicyMatrixTest.php tests/Feature/DataIntegrityTest.php
 ```
 
-Seven browser journeys pass in about sixteen seconds, all 42 component tests pass, both
+Eight browser journeys pass, all 42 component tests pass, both
 type checks and eslint are clean, the 33 focused PHP tests pass with 116 assertions,
 and Vite produces the production bundle.
 

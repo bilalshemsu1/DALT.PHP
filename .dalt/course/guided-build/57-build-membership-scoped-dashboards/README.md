@@ -225,23 +225,30 @@ work by workspace. Each issue title links to the existing issue detail route. Th
 assigned and overdue cards also link back to our existing URL-owned views:
 
 ```tsx
-<Link to={
+<a href={
   `/workspaces/${issue.workspace.id}/projects/${issue.project.id}`
   + `?status=open&assignee=${session.session.user.id}`
 }>
   Open this view
-</Link>
+</a>
 
-<Link to={
+<a href={
   `/workspaces/${issue.workspace.id}/projects/${issue.project.id}?due=overdue`
 }>
   Open this view
-</Link>
+</a>
 ```
 
 The dashboard is not a disconnected mini-application. It summarizes and routes us
 back into the filtering, pagination, editing, comments, and activity screens already
 working.
+
+These are ordinary anchors deliberately. The dashboard is mounted by the root router,
+while workspace and project pages are bootstrapped into separate router families after
+DALT serves their page data. A React Router `Link` would ask the dashboard router to
+handle a project URL it does not own and would land on its client-side 404. Use native
+anchors for the issue titles, filtered project views, and workspace links so DALT can
+serve the correct shell before React takes over again.
 
 Use a real heading for every card, ordered or unordered lists for results, and
 meaningful empty copy. “Nothing needs attention here” is success for assigned,
@@ -291,7 +298,9 @@ her private workspace. This is stronger than asserting that a card is hidden in
 React: it proves the foreign row never reaches JSON.
 
 Add `resources/app/dashboard-workflow.test.tsx` for loading, populated links and
-counts, and a fully empty dashboard.
+counts, and a fully empty dashboard. The component test pins the destination URLs;
+when we introduce Playwright in Lesson 60, a browser journey will follow these
+cross-shell links and prove they do not stop at the dashboard router's 404 boundary.
 
 ```bash
 php vendor/bin/pest tests/Feature/IssueApiTest.php tests/Feature/WorkspaceAuthorizationTest.php
