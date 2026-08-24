@@ -56,7 +56,7 @@ test('the application welcome page points to learning and its removal command', 
         ->and($response->statusCode)->toBe(200)
         ->and($response->error)->toBeNull()
         ->and($response->body)->toContain('href="/learn"')
-        ->and($response->body)->toContain('Open learning')
+        ->and($response->body)->toContain('Learn the framework')
         ->and($response->body)->toContain('php artisan platform:remove')
         ->and($response->body)->not->toContain('View on GitHub');
 });

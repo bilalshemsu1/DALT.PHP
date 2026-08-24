@@ -12,7 +12,7 @@ test('the front controller serves the application welcome route', function () {
         ->and($response->error)->toBeNull()
         ->and($response->stderr)->toBe('')
         ->and($response->body)->toContain('<title>DALT.PHP</title>')
-        ->and($response->body)->toContain('<h1 id="welcome-title">Your project is ready.</h1>')
+        ->and($response->body)->toContain('<h1 id="welcome-title">Your framework is ready.</h1>')
         ->and($response->body)->not->toContain('Build backends you can actually understand.');
 });
 
