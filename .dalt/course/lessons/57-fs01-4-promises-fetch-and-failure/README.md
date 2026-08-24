@@ -208,11 +208,12 @@ changing JavaScript's runtime behavior.
 <details>
 <summary>Maintainer source record</summary>
 
-- Source dossier: `docs/dalt-fullstack/sources/FSO_PART_01.md`; async reconciliation in `FSO_PART_02.md`
+- Source dossier: Full Stack Open Part 1 research notes; async reconciliation in Full Stack Open Part 2 research notes
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: MDN Using promises; MDN async function; MDN Using Fetch; MDN Response
 - Versions: ECMAScript and Fetch APIs documented by MDN current on 2026-08-22
 - Consulted: 2026-08-22
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md` Batch 2, FS01.4
+- Curriculum authority: DALT Fullstack theory curriculum Batch 2, FS01.4
 - DALT files inspected: `.dalt/Http/controllers/learn/fullstack-observation.php`; `.dalt/routes/routes.php`; former FS01.2 lesson
 - Reused material: Promise states, async/await sequence, response parsing, and four failure-boundary model split from the former combined FS01.2
 </details>

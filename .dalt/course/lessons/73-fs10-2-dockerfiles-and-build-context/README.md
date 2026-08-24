@@ -161,12 +161,13 @@ Next we will look at what those layers cost, and how to stop paying for them on 
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `DOCKER_DOCS.md` and `FSO_CONTAINERS.md`, sections 13–24.
+- Source dossier: Docker documentation research notes and Full Stack Open Containers research notes, sections 13–24.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: Dockerfile reference (`FROM`, `WORKDIR`, `COPY`, `EXPOSE`, `CMD`), the build-context and `.dockerignore` documentation, and the official PHP image documentation on bundled extensions.
 - Versions: Docker 29.7.2; `php@sha256:f78661…` (PHP 8.4.24).
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 11, FS10.2.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 11, FS10.2.
 - DALT files inspected: `docker-lab`, the Part 10 track manifest, and the former FS10.1 and FS10.2 pages.
-- Extracted material: "build context is an input boundary" from the former FS10.1, and the `php:*-cli` minimality warning recorded as finding F22/F23 in `docs/dalt-fullstack/WORKLOG.md`.
+- Extracted material: "build context is an input boundary" from the former FS10.1, and the `php:*-cli` minimality warning recorded as finding F22/F23 in the internal Fullstack verification log.
 - Verified in the lab: both directory listings above are real output; the unfiltered build ships `config.local.php`.
 </details>

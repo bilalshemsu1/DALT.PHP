@@ -168,11 +168,12 @@ With backend behavior pinned, we can add users and password hashes without guess
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_04.md`.
+- Source dossier: Full Stack Open Part 4 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: Pest writing-tests and expectations documentation; PostgreSQL transaction documentation.
 - Versions: PHP 8.4; Pest 3.8 from the repository; SQLite only for the bounded experiment.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 8, FS06.1.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 8, FS06.1.
 - DALT files inspected: `tests/Support/ApplicationTestClient.php`, `tests/Feature/RequestLifecycleTest.php`, `framework/Core/Database.php`, and the existing FS06.1 lab.
 - Reused material: response-plus-state assertions, isolated fixtures, exact negative behavior, transaction evidence, and deliberate sabotage from the former FS06.1.
 </details>

@@ -202,11 +202,12 @@ Promises, `async`/`await`, `fetch`, and explicit failure boundaries.
 <details>
 <summary>Maintainer source record</summary>
 
-- Source dossier: `docs/dalt-fullstack/sources/FSO_PART_01.md` with the Part 02 async reconciliation
+- Source dossier: Full Stack Open Part 1 research notes with the Part 02 async reconciliation
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: MDN JavaScript modules; MDN browser developer tools; Node.js ECMAScript modules documentation
 - Versions: ECMAScript modules, current evergreen browsers, and Node.js documentation current on 2026-08-22
 - Consulted: 2026-08-22
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md` Batch 2, FS01.3
+- Curriculum authority: DALT Fullstack theory curriculum Batch 2, FS01.3
 - DALT files inspected: former FS01.2 lesson, root `.gitignore`, and current Fullstack navigation tests
 - Reused material: named module boundaries and diagnostic-tooling guidance split from the former combined FS01.2
 </details>

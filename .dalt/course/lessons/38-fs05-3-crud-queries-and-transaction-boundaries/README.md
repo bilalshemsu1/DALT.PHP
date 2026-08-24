@@ -226,11 +226,12 @@ Single statements are atomic already; next we will group multiple writes that re
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `POSTGRESQL_DOCS.md`; `FSO_RELATIONAL_DATABASES.md`.
+- Source dossier: PostgreSQL documentation research notes; Full Stack Open Relational Databases research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: PostgreSQL 18 documentation for DML, joins, and `RETURNING`; PHP manual for PDO prepared statements and exception mode.
 - Versions: PostgreSQL 18.4 pinned by the shared lab image digest; PHP PDO from the repository runtime.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 7, FS05.6.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 7, FS05.6.
 - DALT files inspected: `framework/Core/Database.php`, `Response.php`, API fixture mapping, and database unit tests.
 - Reused material: parameter/structure separation, relation-aware reads, row mapping, CRUD, and `RETURNING` material split from former FS05.3.
 </details>

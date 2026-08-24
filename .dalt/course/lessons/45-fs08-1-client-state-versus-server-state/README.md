@@ -133,11 +133,12 @@ Next we will give each remote fact one address in a cache, so that two screens c
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_06.md`, sections 4–13 and 27.
+- Source dossier: Full Stack Open Part 6 research notes, sections 4–13 and 27.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: React `useState`, "Choosing the State Structure", and "You Might Not Need an Effect"; React Router `useSearchParams`.
 - Versions: React 19.2.3; React Router 7.18.2; Vitest 4.0.18; React Testing Library 16.3.2; TypeScript 5.9.3.
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 10, FS08.1.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 10, FS08.1.
 - DALT files inspected: the new `state-architecture-lab`, the Part 08 track manifest, and the former FS08.1 page.
 - Extracted material: the state taxonomy, the derived-state warning, and the "why a library, and why only now" argument from the former FS08.1. Its TanStack Query material moves to FS08.2.
 </details>

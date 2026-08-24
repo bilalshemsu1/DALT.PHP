@@ -170,11 +170,12 @@ Next we will search the text of an issue, which no `LIKE` pattern does well.
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `POSTGRESQL_DOCS.md`.
+- Source dossier: PostgreSQL documentation research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: PostgreSQL 18 documentation on "Using EXPLAIN", multicolumn indexes, indexes and `ORDER BY`, partial indexes, and `pg_stat_user_indexes`.
 - Versions: PostgreSQL 18.4 (`postgres@sha256:9a8afca5…`).
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 12, FS11.2.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 12, FS11.2.
 - DALT files inspected: `postgres-depth-lab`, the Part 11 track manifest, and the former FS11.1 page.
 - Extracted material: "capture a baseline plan", "design an index for the query shape", "read estimates, buffers, and scan choices together", and "pagination needs an order the index can serve" from the former FS11.1.
 - Verified in the lab: every plan and every index size above is real output. The wrong-order index is genuinely not chosen — the planner keeps using FS11.1's `status` index.

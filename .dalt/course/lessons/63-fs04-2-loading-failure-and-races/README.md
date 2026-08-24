@@ -148,11 +148,12 @@ Reads now stay honest under failure and races; next user events will create, upd
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `REACT_DOCS.md`; `FSO_PART_02.md`.
+- Source dossier: React documentation research notes; Full Stack Open Part 2 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: React Learn, *Synchronizing with Effects* and *You Might Not Need an Effect*; MDN `AbortController`, `fetch`, and `Response.ok`.
 - Versions: React 19.2.3; TypeScript 5.9.3.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 5, FS04.2.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 5, FS04.2.
 - DALT files inspected: Part 04 fixture statuses, CORS behavior, and executable lifecycle test.
 - Reused material: loading/empty/failure union, cleanup, AbortError, deliberate failure, and request-race material extracted from former FS04.1.
 </details>

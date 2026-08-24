@@ -156,11 +156,12 @@ elements give a document structure and meaning.
 <details>
 <summary>Maintainer source record</summary>
 
-- Source dossier: `docs/dalt-fullstack/sources/FSO_PART_00.md`
+- Source dossier: Full Stack Open Part 0 research notes
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: MDN HTTP Overview; MDN HTTP Messages; Chrome/Firefox Network tools
 - Versions: HTTP documentation current on 2026-08-22; protocol examples use readable HTTP/1.1 syntax
 - Consulted: 2026-08-22
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md` Batch 1, FS00.1
+- Curriculum authority: DALT Fullstack theory curriculum Batch 1, FS00.1
 - DALT files inspected: `.dalt/routes/routes.php`; `.dalt/Http/controllers/learn/fullstack.php`; `.dalt/resources/views/learn/fullstack.view.php`
 - Reused material: the request/response trace and multiple-resource explanation from the former FS00.1
 </details>

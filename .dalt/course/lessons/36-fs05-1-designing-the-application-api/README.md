@@ -214,11 +214,12 @@ Our API boundary is honest but still temporary; Batch 7 begins by modeling the r
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_03.md` and the former FS05.1 API-design lesson.
+- Source dossier: Full Stack Open Part 3 research notes and the former FS05.1 API-design lesson.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: PHP manual pages for `php://input`, `json_decode`, `JSON_THROW_ON_ERROR`, and exceptions; RFC 9110 HTTP semantics; RFC 9457 problem-details guidance consulted for stable machine-readable errors.
 - Versions: PHP 8.2 minimum; DALT current `Response` and front-controller behavior.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 6, FS05.3.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 6, FS05.3.
 - DALT files inspected: `framework/Core/Request.php`, `Response.php`, `Validator.php`, `ValidationException.php`, `ExceptionHandler.php`, `public/index.php`, and the executable Part 04 fixture lifecycle test.
 - Reused material: resource carriers, allowlisting, 400/404/422 distinctions, stable error shape, raw JSON decoding, and response-status guidance from former FS05.1.
 </details>

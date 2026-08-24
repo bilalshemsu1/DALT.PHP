@@ -154,11 +154,12 @@ Next we will leave the browser and put the application inside a container.
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_07.md`, sections 3–8 and 49–58.
+- Source dossier: Full Stack Open Part 7 research notes, sections 3–8 and 49–58.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: Vite "Env Variables and Modes" and build guide; React "Error Boundary", `getDerivedStateFromError`, and `componentDidCatch` references.
 - Versions: Vite 8.0.12; React 19.2.3; Vitest 4.0.18; React Testing Library 16.3.2; TypeScript 5.9.3.
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 10, FS09.3.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 10, FS09.3.
 - DALT files inspected: `frontend-architecture-lab`, the Part 09 track manifest, and the former FS09.2 page.
 - Extracted material: the typecheck-versus-build distinction, the public-configuration rule, and the boundary-granularity guidance from the former FS09.2.
 - Verified in the lab: the built bundle contains `VITE_API_BASE_URL:"/api"` and no occurrence of `never-shipped-to-a-browser`; a click-handler error reaches the window `error` event and leaves the boundary's fallback unrendered.

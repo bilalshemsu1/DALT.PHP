@@ -179,11 +179,12 @@ The database can now preserve valid rows; next PHP will read and mutate them saf
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_RELATIONAL_DATABASES.md`; `POSTGRESQL_DOCS.md`.
+- Source dossier: Full Stack Open Relational Databases research notes; PostgreSQL documentation research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: PostgreSQL 18 documentation for constraints, defaults, `ALTER TABLE`, indexes, and foreign-key indexing guidance.
 - Versions: PostgreSQL 18.4 pinned by the shared lab image digest; DALT current migration runner.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 7, FS05.5.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 7, FS05.5.
 - DALT files inspected: `framework/Core/Migration.php`, `Database.php`, `artisan` migrate commands, root migration tests, and current SQL migrations.
 - Reused material: append-only migration history, scoped uniqueness, named checks, defaults, and foreign-key index guidance split from former FS05.2.
 </details>

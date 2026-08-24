@@ -182,11 +182,12 @@ We can now verify a password safely; next we will turn that successful check int
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_04.md`.
+- Source dossier: Full Stack Open Part 4 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: PHP 8.4 manuals for `password_hash()`, `password_verify()`, and `password_needs_rehash()`; OWASP Password Storage Cheat Sheet.
 - Versions: PHP 8.4.1 with `PASSWORD_DEFAULT` using bcrypt; PostgreSQL 18 syntax for the schema example.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 8, FS06.2.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 8, FS06.2.
 - DALT files inspected: `framework/Core/Authenticator.php`, `framework/Core/Validator.php`, the authentication scaffold registration path, and `AuthScaffoldTest.php`.
 - Reused material: 255-byte storage, PHP password APIs, unique normalized email, safe public representation, and same-password/different-hash proof from the former FS06.2.
 </details>

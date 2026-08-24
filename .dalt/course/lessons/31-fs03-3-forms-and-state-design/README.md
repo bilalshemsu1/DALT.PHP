@@ -163,11 +163,12 @@ Our React interface has structure and behavior; Batch 5 begins with CSS behavior
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `REACT_DOCS.md`; `FSO_PART_01.md`.
+- Source dossier: React documentation research notes; Full Stack Open Part 1 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: React DOM `<input>` and `<form>` references; React Learn, *Reacting to Input with State* and *Choosing the State Structure*; MDN form labeling guidance.
 - Versions: React 19.2.3; TypeScript 5.9.3.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 4, FS03.6.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 4, FS03.6.
 - DALT files inspected: React foundations starter model, app, and tests.
 - Reused material: controlled-input, submit, validation, draft-state, and accessibility material from former FS03.3.
 </details>

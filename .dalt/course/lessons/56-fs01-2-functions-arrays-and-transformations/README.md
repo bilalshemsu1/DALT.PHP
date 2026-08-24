@@ -208,11 +208,12 @@ which file loaded, which export crossed the boundary, and where an error began.
 <details>
 <summary>Maintainer source record</summary>
 
-- Source dossier: `docs/dalt-fullstack/sources/FSO_PART_01.md`
+- Source dossier: Full Stack Open Part 1 research notes
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: MDN Functions; MDN Closures; MDN Array iterative methods; MDN Destructuring assignment
 - Versions: ECMAScript and MDN documentation current on 2026-08-22
 - Consulted: 2026-08-22
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md` Batch 2, FS01.2
+- Curriculum authority: DALT Fullstack theory curriculum Batch 2, FS01.2
 - DALT files inspected: former FS01.1 lesson and current Part 01 learning-flow tests
 - Reused material: functions-as-values, callbacks, closures, destructuring, array-method selection, and transformation examples split from the former FS01.1
 </details>

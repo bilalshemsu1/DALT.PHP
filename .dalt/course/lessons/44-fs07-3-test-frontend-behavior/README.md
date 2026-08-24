@@ -208,11 +208,12 @@ Next we will combine routes, session outcomes, and API statuses in a small set o
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_05.md`.
+- Source dossier: Full Stack Open Part 5 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: React Testing Library introduction and query priority; Testing Library `user-event` introduction; Vitest mock functions.
 - Versions: Vitest 4.0.18; React Testing Library 16.3.2; `user-event` 14.6.1; jest-dom 6.9.1; jsdom 27.0.1; React 19.2.3.
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 9, FS07.3.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 9, FS07.3.
 - DALT files inspected: the complete frontend-testing lab starter, its Vite/Vitest configuration, and `FullstackLabExecutionTest.php`.
 - Reused material: semantic query priority, awaited user interaction, typed API fakes, observable outcomes, and the deliberate API-seam defect from the former FS07.3.
 - Extracted material: route, session, and API-boundary integration testing now belongs to FS07.4.

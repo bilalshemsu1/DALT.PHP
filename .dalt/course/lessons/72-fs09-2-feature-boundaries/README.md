@@ -157,11 +157,12 @@ Next we will look at what the build actually produces, which configuration value
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_07.md`, sections 36–48.
+- Source dossier: Full Stack Open Part 7 research notes, sections 36–48.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: TypeScript module resolution and `import type` semantics; React "Thinking in React" component organisation guidance; Node.js `fs` and `path` APIs used by the check script.
 - Versions: React 19.2.3; TypeScript 5.9.3; Node 25.0.0; Vite 8.0.12.
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 10, FS09.2.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 10, FS09.2.
 - DALT files inspected: `frontend-architecture-lab`, the Part 09 track manifest, and the former FS09.1 page.
 - Extracted material: the "group by change" section and the feature-tree sketch from the former FS09.1, rewritten around an executable rule.
 - Verified in the lab: the starter fails the check while typecheck and build succeed; moving the labels to `shared` makes all three pass; re-exporting them from the feature index fails again and names `index.ts`.

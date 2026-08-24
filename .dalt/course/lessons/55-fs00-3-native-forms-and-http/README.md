@@ -171,11 +171,12 @@ what changes in a single-page application.
 <details>
 <summary>Maintainer source record</summary>
 
-- Source dossier: `docs/dalt-fullstack/sources/FSO_PART_00.md`
+- Source dossier: Full Stack Open Part 0 research notes
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: MDN Your first form; MDN Sending form data; MDN HTTP redirections
 - Versions: living HTML, HTTP, and MDN documentation current on 2026-08-22
 - Consulted: 2026-08-22
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md` Batch 1, FS00.3
+- Curriculum authority: DALT Fullstack theory curriculum Batch 1, FS00.3
 - DALT files inspected: `.dalt/Http/controllers/learn/fullstack-observation.php`; `.dalt/resources/views/learn/fullstack-observation.view.php`
 - Reused material: the native half of the former FS00.2 lesson, separated so the browser baseline is learned before JavaScript enhancement
 </details>

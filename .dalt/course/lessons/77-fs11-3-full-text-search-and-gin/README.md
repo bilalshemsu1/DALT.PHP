@@ -156,11 +156,12 @@ Next we will look at JSONB, and where the flexible column should stop.
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `POSTGRESQL_DOCS.md`.
+- Source dossier: PostgreSQL documentation research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: PostgreSQL 18 documentation on text search types, controlling text search, text-search indexes (GIN and GiST), `ts_rank`, generated columns, and pattern matching.
 - Versions: PostgreSQL 18.4 (`postgres@sha256:9a8afca5…`).
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 12, FS11.3.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 12, FS11.3.
 - DALT files inspected: `postgres-depth-lab`, the Part 11 track manifest, and the former FS11.1 page.
 - Extracted material: "search is language-aware matching" and "keep search documents current and inspect their semantics" from the former FS11.1.
 - Verified in the lab: every count, plan, and rank above is real output. The seed was diversified during this batch so the search terms co-occur realistically rather than always in one fixed sentence.

@@ -441,7 +441,7 @@ When framework behavior changes:
 1. update or add the relevant contract test;
 2. rerun the affected lesson/challenge and public documentation example;
 3. update the node's source paths, trace, boundary, and checkpoint;
-4. update `docs/AUDIT_COVERAGE.md`, `docs/FINDINGS_LEDGER.md`, and `docs/WORKLOG.md`;
+4. record the behavior change, verification evidence, and any learning-content impact in the pull request;
 5. run `composer test` and leave no active challenge before committing.
 
 Do not add time estimates. If a node is not supported by current code or content, label the gap and record the next implementation unit instead of hiding it in the roadmap.

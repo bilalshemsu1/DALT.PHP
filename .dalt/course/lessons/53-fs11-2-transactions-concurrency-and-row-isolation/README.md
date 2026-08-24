@@ -161,11 +161,12 @@ Next we will push tenant isolation into the database itself, so a forgotten `WHE
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `POSTGRESQL_DOCS.md` and `FSO_RELATIONAL_DATABASES.md`.
+- Source dossier: PostgreSQL documentation research notes and Full Stack Open Relational Databases research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: PostgreSQL 18 documentation on transaction isolation, explicit locking and row-level locks, `lock_timeout`, and the SQLSTATE error-code appendix (`55P03`, `40001`, `23514`, `25P02`).
 - Versions: PostgreSQL 18.4 (`postgres@sha256:9a8afca5…`); PHP 8.4 with PDO pgsql.
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 12, FS11.5.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 12, FS11.5.
 - DALT files inspected: `framework/Core/Database.php`, `postgres-depth-lab`, the Part 11 track manifest, and the former FS11.2 page.
 - Extracted material: "make one operation atomic", "reproduce a concurrent decision", "protect the invariant deliberately", "isolation is a contract, not a magic switch", and "constraints are concurrent correctness tools" from the former FS11.2. Its RLS material moves to FS11.6.
 - Verified in the lab: every line of output above is real, produced by two PDO connections opened through DALT's own `Database` class.

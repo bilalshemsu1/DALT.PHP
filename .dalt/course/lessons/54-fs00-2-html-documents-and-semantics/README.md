@@ -170,11 +170,12 @@ labels, controls, names, and a submit button into a real HTTP request.
 <details>
 <summary>Maintainer source record</summary>
 
-- Source dossier: `docs/dalt-fullstack/sources/FSO_PART_00.md`
+- Source dossier: Full Stack Open Part 0 research notes
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: MDN Basic HTML syntax; MDN Structuring documents; MDN HTML accessibility guidance
 - Versions: living HTML and MDN documentation current on 2026-08-22
 - Consulted: 2026-08-22
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md` Batch 1, FS00.2
+- Curriculum authority: DALT Fullstack theory curriculum Batch 1, FS00.2
 - DALT files inspected: `.dalt/resources/views/layouts/head.php`; `.dalt/resources/views/learn/fullstack-observation.view.php`
 - Reused material: semantic and browser-boundary ideas previously compressed into FS03.4; no former standalone FS00.2 lesson covered this gap
 </details>

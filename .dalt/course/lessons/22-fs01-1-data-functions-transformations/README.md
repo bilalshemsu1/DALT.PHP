@@ -214,11 +214,12 @@ into useful new values without changing the source array.
 <details>
 <summary>Maintainer source record</summary>
 
-- Source dossier: `docs/dalt-fullstack/sources/FSO_PART_01.md`
+- Source dossier: Full Stack Open Part 1 research notes
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: MDN Grammar and types; MDN Working with objects; MDN Spread syntax; MDN Shallow copy
 - Versions: ECMAScript and MDN documentation current on 2026-08-22
 - Consulted: 2026-08-22
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md` Batch 2, FS01.1
+- Curriculum authority: DALT Fullstack theory curriculum Batch 2, FS01.1
 - DALT files inspected: former FS01.1 lesson and current Part 01 manifest/tests
 - Reused material: bindings, reference identity, shallow spread, and nested immutable-update explanations from the former combined FS01.1
 </details>

@@ -173,10 +173,11 @@ With enough PHP to read application code, we will follow one request through DAL
 <details><summary>Maintainer source record</summary>
 
 - Source dossier: existing Part 05 PHP explanations and the repository's PHP 8.2 requirement.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: PHP manual pages for the type system, arrays, type declarations, functions, exceptions, and `in_array`.
 - Versions: PHP 8.2 minimum (`composer.json` requires `^8.2`).
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 6, FS05.1.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 6, FS05.1.
 - DALT files inspected: `composer.json`, `framework/Core/Request.php`, `framework/Core/Response.php`, representative controllers, and root tests.
 - Reused material: issue-shaped arrays and boundary vocabulary from former FS05.1; the language foundation itself fills a documented curriculum gap.
 </details>

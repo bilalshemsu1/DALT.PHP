@@ -220,11 +220,12 @@ Part 07 brings this authenticated API into React routing and frontend session st
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_04.md`.
+- Source dossier: Full Stack Open Part 4 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: OWASP Authorization Cheat Sheet and API Security Top 10 Broken Object Level Authorization; PostgreSQL constraints documentation.
 - Versions: PHP 8.4.1; DALT database and authentication APIs as inspected on 2026-08-22.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 8, FS06.5.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 8, FS06.5.
 - DALT files inspected: `framework/Core/Authenticator.php`, `Middleware/Auth.php`, `Database.php`, and `functions.php`.
 - Reused material: authentication/authorization separation, membership schema, server-derived creator, ordered resource checks, API middleware caveat, and paired behavior tests from the former FS06.3.
 </details>

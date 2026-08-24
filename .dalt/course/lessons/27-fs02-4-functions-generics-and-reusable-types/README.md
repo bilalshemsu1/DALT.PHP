@@ -213,11 +213,12 @@ Next we will meet values TypeScript did not create and build a runtime parser th
 <details>
 <summary>Maintainer source record</summary>
 
-- Source dossier: `TYPESCRIPT_HANDBOOK.md`; `FSO_TYPESCRIPT.md`.
+- Source dossier: TypeScript Handbook research notes; Full Stack Open TypeScript research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: TypeScript Handbook, *More on Functions*, *Generics*, indexed access types, `keyof`, and utility types.
 - Versions: TypeScript 5.9.3; Node 25.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 3, FS02.5.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 3, FS02.5.
 - DALT files inspected: `.dalt/course/fullstack/typescript-functions-lab/starter/**` and executable expectations.
 - Reused material: former FS02.4 function, callback, generic-constraint, and utility-type examples.
 </details>

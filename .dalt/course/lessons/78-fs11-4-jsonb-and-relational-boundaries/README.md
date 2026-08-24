@@ -153,11 +153,12 @@ Next we will look at what happens when two transactions touch the same row at th
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `POSTGRESQL_DOCS.md`.
+- Source dossier: PostgreSQL documentation research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: PostgreSQL 18 documentation on JSON types, `jsonb` containment and existence operators, `jsonb` indexing and `jsonb_path_ops`, generated columns, and expression indexes.
 - Versions: PostgreSQL 18.4 (`postgres@sha256:9a8afca5…`).
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 12, FS11.4.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 12, FS11.4.
 - DALT files inspected: `postgres-depth-lab`, the Part 11 track manifest, and the former FS11.1 page.
 - Extracted material: "use JSONB only for flexible attributes" from the former FS11.1, expanded into the operator/index distinction and the promotion path.
 - Verified in the lab: every plan above is real output, including section 4 remaining a sequential scan with the GIN index present.

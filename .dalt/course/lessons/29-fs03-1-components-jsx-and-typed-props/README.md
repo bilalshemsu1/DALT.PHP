@@ -157,11 +157,12 @@ Our components currently reach imported data directly; next we will pass typed v
 <details>
 <summary>Maintainer source record</summary>
 
-- Source dossier: `REACT_DOCS.md`; `FSO_PART_01.md`.
+- Source dossier: React documentation research notes; Full Stack Open Part 1 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: React Learn, *Your First Component*, *Writing Markup with JSX*, *Render and Commit*, and *Keeping Components Pure*.
 - Versions: React 19.2.3; TypeScript 5.9.3; Vite 8.0.12.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 4, FS03.1.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 4, FS03.1.
 - DALT files inspected: the React foundations starter's `main.tsx`, `App.tsx`, `IssueList.tsx`, and `issue.ts`.
 - Reused material: former FS03.1 component, JSX, render-purity, and component-tree explanations.
 </details>

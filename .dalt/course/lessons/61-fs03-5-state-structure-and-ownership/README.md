@@ -143,11 +143,12 @@ We have a clean owner for shared state; next we will connect browser form contro
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `REACT_DOCS.md`; `FSO_PART_01.md`.
+- Source dossier: React documentation research notes; Full Stack Open Part 1 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: React Learn, *Choosing the State Structure*, *Sharing State Between Components*, and *Updating Arrays in State*.
 - Versions: React 19.2.3; TypeScript 5.9.3.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 4, FS03.5.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 4, FS03.5.
 - DALT files inspected: React foundations starter `App.tsx`, issue model, and existing FS03 state material.
 - Reused material: state ownership and derivation extracted from former FS03.2 and form-state design from former FS03.3.
 </details>

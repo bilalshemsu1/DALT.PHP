@@ -189,11 +189,12 @@ We can control visual layout; next we will make sure the same interface preserve
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_02.md`; no dedicated Tailwind dossier existed.
+- Source dossier: Full Stack Open Part 2 research notes; no dedicated Tailwind dossier existed.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: Tailwind CSS, *Installing with Vite*, *Responsive design*, *Hover, focus, and other states*, *Detecting classes in source files*, and *Theme variables*.
 - Versions: Tailwind CSS 4.3.0; `@tailwindcss/vite` 4.3.0; Vite 8.0.12.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 5, FS03.7.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 5, FS03.7.
 - DALT files inspected: React foundations starter `package.json`, `vite.config.ts`, `index.css`, `App.tsx`, and `IssueList.tsx`.
 - Reused material: box-model, spacing, flex, grid, responsive, and utility-to-CSS explanations extracted from former FS03.4.
 </details>

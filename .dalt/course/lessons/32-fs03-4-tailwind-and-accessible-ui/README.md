@@ -166,11 +166,12 @@ Part 03 can describe an interactive interface; Part 04 begins by synchronizing t
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_02.md`; former FS03.4 sources.
+- Source dossier: Full Stack Open Part 2 research notes; former FS03.4 sources.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: MDN HTML element and form-label guidance; WAI-ARIA accessible descriptions; Tailwind CSS responsive and state variants.
 - Versions: React 19.2.3; Tailwind CSS 4.3.0.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 5, FS03.8.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 5, FS03.8.
 - DALT files inspected: React foundations starter JSX, stylesheet, Vite configuration, and issue-list tests.
 - Reused material: semantic controls, labels, focus, disabled state, small-screen layout, and keyboard checks from former FS03.4.
 </details>

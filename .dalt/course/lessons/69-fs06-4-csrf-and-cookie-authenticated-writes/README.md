@@ -202,11 +202,12 @@ The server can now trust identity and request intent; next it must decide what t
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_04.md`.
+- Source dossier: Full Stack Open Part 4 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: OWASP CSRF Prevention Cheat Sheet; PHP `random_bytes()` and `hash_equals()` manuals.
 - Versions: PHP 8.4.1; DALT's synchronizer-token middleware as inspected on 2026-08-22.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 8, FS06.4.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 8, FS06.4.
 - DALT files inspected: `framework/Core/functions.php`, `Request.php`, `Middleware/Csrf.php`, `Middleware.php`, `Router.php`, and `MiddlewareTest.php`.
 - Reused material: cookie-driven threat, form/header transports, safe methods, `hash_equals()`, route coverage, 419 behavior, and paired mutation tests from the former FS06.2.
 </details>

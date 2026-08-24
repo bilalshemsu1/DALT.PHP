@@ -191,11 +191,12 @@ The browser now sends identity automatically; next we will prevent another site 
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_04.md`.
+- Source dossier: Full Stack Open Part 4 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: PHP session security and session ID regeneration manuals; OWASP Session Management Cheat Sheet.
 - Versions: PHP 8.4.1 native file sessions; DALT session configuration inspected on 2026-08-22.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 8, FS06.3.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 8, FS06.3.
 - DALT files inspected: `framework/Core/Authenticator.php`, `framework/Core/Session.php`, `config/session.php`, `NativeSessionTest.php`, and `AuthenticatorTest.php`.
 - Reused material: verification, uniform login failure, regenerate-before-put ordering, opaque cookie model, current-user endpoint, cookie flags, and server-side logout from the former FS06.2.
 </details>

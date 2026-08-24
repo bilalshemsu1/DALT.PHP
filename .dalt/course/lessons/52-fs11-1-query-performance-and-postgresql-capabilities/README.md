@@ -163,11 +163,12 @@ Next we will read plans properly, and design indexes for the shape of a query ra
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `POSTGRESQL_DOCS.md` and `FSO_RELATIONAL_DATABASES.md`.
+- Source dossier: PostgreSQL documentation research notes and Full Stack Open Relational Databases research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: PostgreSQL 18 documentation on "Using EXPLAIN", planner cost estimation, index types and their uses, `ANALYZE`, and row-estimation examples.
 - Versions: PostgreSQL 18.4 (`postgres@sha256:9a8afca5…`); Docker Compose 5.4.0.
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 12, FS11.1.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 12, FS11.1.
 - DALT files inspected: the new `postgres-depth-lab`, the Part 11 track manifest, and the former FS11.1 page.
 - Extracted material: "make the workload representative", "capture a baseline plan", and "design an index for the query shape" from the former FS11.1. Its `EXPLAIN` detail, search, and JSONB material move to FS11.2–FS11.4.
 - Verified in the lab: every plan fragment above is real output from the seeded 200,000-row table.

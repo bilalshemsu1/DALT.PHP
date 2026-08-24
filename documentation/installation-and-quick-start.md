@@ -7,7 +7,7 @@ This page takes a new DALT project from an empty directory to a working route an
 For a new application, use Composer:
 
 ```bash
-composer create-project ibnuafdel/daltphp my-project --stability=beta --remove-vcs
+composer create-project ibnuafdel/daltphp my-project --remove-vcs
 cd my-project
 ```
 

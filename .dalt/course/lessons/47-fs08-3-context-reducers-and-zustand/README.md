@@ -168,11 +168,12 @@ Next we will extract repeated behavior into custom hooks without hiding who owns
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_06.md`, sections 10–24 and 47–52.
+- Source dossier: Full Stack Open Part 6 research notes, sections 10–24 and 47–52.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: React `useReducer`, `useContext`, "Scaling Up with Reducer and Context", and "Passing Data Deeply with Context"; Zustand TypeScript guide, selector guidance, and `useShallow` reference.
 - Versions: Zustand 5.0.15; React 19.2.3; Vitest 4.0.18; React Testing Library 16.3.2; TypeScript 5.9.3.
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 10, FS08.4.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 10, FS08.4.
 - DALT files inspected: `state-architecture-lab`, the Part 08 track manifest, and the former FS08.3 page.
 - Extracted material: the closest-owner rule, the Context cost argument, the reducer vocabulary test, the selector rule, and the "do not store server records" boundary from the former FS08.3.
 - Verified in the lab: the render counts above are measured, and replacing the slice selector with a whole-store selector makes the store behave exactly like Context.

@@ -219,11 +219,12 @@ us the JavaScript fluency needed before TypeScript and React.
 <details>
 <summary>Maintainer source record</summary>
 
-- Source dossier: `docs/dalt-fullstack/sources/FSO_PART_00.md`
+- Source dossier: Full Stack Open Part 0 research notes
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: MDN Sending forms through JavaScript; MDN Fetch API; MDN Using JSON; MDN DOM introduction
 - Versions: browser APIs and MDN documentation current on 2026-08-22
 - Consulted: 2026-08-22
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md` Batch 1, FS00.4
+- Curriculum authority: DALT Fullstack theory curriculum Batch 1, FS00.4
 - DALT files inspected: `.dalt/Http/controllers/learn/fullstack-observation.php`; `.dalt/resources/views/learn/fullstack-observation.view.php`
 - Reused material: the JavaScript, JSON, DOM, SPA, and persistence boundaries from the former combined FS00.2 lesson; native form mechanics moved to FS00.3
 </details>

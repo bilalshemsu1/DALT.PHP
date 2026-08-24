@@ -37,7 +37,7 @@ php artisan serve    # http://localhost:8000
 
 Visit `http://localhost:8000` to see your app. Visit `http://localhost:8000/learn` for the optional courses and challenges.
 
-Production-ready frontend assets are included, so Node.js is not required to start a new project. If you change the learning-platform CSS, JavaScript, or Vue components, run `npm ci` and `npm run dev`; use `npm run build` before distributing those changes.
+Prebuilt frontend assets are included, so Node.js is not required to start a new project. If you change the learning-platform CSS, JavaScript, or Vue components, run `npm ci` and `npm run dev`; use `npm run build` before distributing those changes.
 
 ### Requirements
 
@@ -63,7 +63,7 @@ separate learning surfaces, and you do not have to take them in order:
 
 **DALT Core** — 19 lessons on framework internals, Docker, and PostgreSQL: request
 lifecycle, routing, middleware, authentication, sessions, databases, containers,
-reliability, and observability. Short lessons with small experiments.
+reliability, and observability. Focused lessons with small experiments.
 
 **Fullstack theory** — 60 concise lessons across 13 parts, taking React + TypeScript +
 Tailwind down through HTTP and JSON into PHP and PostgreSQL under Docker. Theory with
@@ -105,6 +105,8 @@ After learning with PHP, these concepts transfer to any backend language. You'll
 - [Errors and Debugging](documentation/errors-and-debugging.md)
 - [Contributor Content Guide](documentation/contributor-content.md)
 - [Competency Roadmap](documentation/competency-roadmap.md)
+- [Learning Paths](LEARNING_MATERIALS.md)
+- [Sources and Attribution](documentation/sources-and-attribution.md)
 
 Hosted documentation: **[dalt.ibnuafdel.com/docs](https://dalt.ibnuafdel.com/docs)**
 

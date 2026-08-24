@@ -36,6 +36,9 @@ tested compatibility promise instead of a beta disclaimer.
   Docker, with 19 build milestones.
 - **DALT Build** — 71 guided lessons that build one issue-tracking application from an
   empty skeleton, in the order real product development creates the need for each idea.
+- **[Sources and Attribution](documentation/sources-and-attribution.md)** — the public
+  curriculum credit, licensing boundary, research period, and official technical-source
+  index behind the learning material.
 - **Router**: `OPTIONS` support, and prefix fallback routes (`/app/{*}`) that match a
   prefix and everything beneath it across segment boundaries — what an SPA route table
   and an API preflight catch-all both need.
@@ -52,6 +55,9 @@ tested compatibility promise instead of a beta disclaimer.
   DALT Build — and states the framework size, supported PHP versions, extensions,
   databases, and operating-system boundary. The previous "17 lessons and 20 challenges"
   and "~1,000 lines" claims were both stale.
+- `LEARNING_MATERIALS.md` is now a public guide to Core, Fullstack theory, and DALT
+  Build instead of an obsolete two-track planning handoff. Maintainer source records
+  point to public source information rather than excluded internal worklogs.
 - `SECURITY.md` supports the `1.x` line, states what a security fix is allowed to break,
   and points at GitHub Security Advisories for published vulnerabilities.
 - Challenge verification checks behavior rather than matching learner source text.

@@ -198,11 +198,12 @@ Next we will test React components through the controls, messages, and results a
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_05.md`.
+- Source dossier: Full Stack Open Part 5 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: React conditional rendering and effects; React Router Navigate and Outlet; Fetch `Request.credentials`; MDN HTTP 401 and 403.
 - Versions: React 19.2.3; React Router 7.18.2; TypeScript 5.9.3.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 9, FS07.2.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 9, FS07.2.
 - DALT files inspected: `framework/Core/Session.php`, `config/session.php`, and the frontend-testing lab toolchain.
 - Reused material: explicit auth states, current-user loading, server authority, protected route UX, abort cleanup, and distinct 401/403 recovery from the former FS07.2.
 - Corrected material: same-origin fetch sends credentials by default; the former lesson incorrectly claimed that omitting `credentials: 'include'` made a same-origin `/api/me` request anonymous.

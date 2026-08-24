@@ -160,11 +160,12 @@ We can pass an issue array into a component; next we will turn that array into m
 <details>
 <summary>Maintainer source record</summary>
 
-- Source dossier: `REACT_DOCS.md`; `FSO_PART_01.md`.
+- Source dossier: React documentation research notes; Full Stack Open Part 1 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: React Learn, *Passing Props to a Component* and *Your First Component*; TypeScript JSX guidance.
 - Versions: React 19.2.3; TypeScript 5.9.3.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 4, FS03.2.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 4, FS03.2.
 - DALT files inspected: the React foundations starter's `App.tsx`, `IssueList.tsx`, and `issue.ts`.
 - Reused material: typed-prop, read-only input, callback-prop, and composition material extracted from former FS03.1.
 </details>

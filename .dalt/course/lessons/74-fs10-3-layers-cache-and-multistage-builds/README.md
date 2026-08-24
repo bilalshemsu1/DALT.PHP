@@ -156,11 +156,12 @@ Next we will run the image alongside a database, and let Compose describe the re
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `DOCKER_DOCS.md` and `FSO_CONTAINERS.md`, sections 25–40.
+- Source dossier: Docker documentation research notes and Full Stack Open Containers research notes, sections 25–40.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: Docker build-cache guide, multi-stage build documentation, Dockerfile `COPY --from` and `USER` references, and the official PHP image's `docker-php-ext-install` / `docker-php-ext-enable` helpers.
 - Versions: Docker 29.7.2; `php@sha256:f78661…` (PHP 8.4.24).
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 11, FS10.3.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 11, FS10.3.
 - DALT files inspected: `docker-lab`, the Part 10 track manifest, and the former FS10.1 and FS10.2 pages.
 - Extracted material: "structure a build around changing inputs", the layer-secret warning, and "separate build and runtime when it buys something" from the former FS10.2.
 - Verified in the lab: both sizes and the cache transcript above are measured output, and the reordered `Dockerfile.single` does rerun the extension install.

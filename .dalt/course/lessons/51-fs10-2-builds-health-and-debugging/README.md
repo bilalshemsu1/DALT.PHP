@@ -164,11 +164,12 @@ Next we will leave containers behind and look at what PostgreSQL does when the d
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `DOCKER_DOCS.md` and `FSO_CONTAINERS.md`, sections 57–72.
+- Source dossier: Docker documentation research notes and Full Stack Open Containers research notes, sections 57–72.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: Compose `healthcheck` and `depends_on` references, the Dockerfile `HEALTHCHECK` and `USER` references, `docker compose up --wait`, and the official PostgreSQL image's `pg_isready` guidance.
 - Versions: Docker 29.7.2; Docker Compose 5.4.0; `postgres@sha256:9a8afca5…` (PostgreSQL 18.4); `php@sha256:f78661…` (PHP 8.4.24).
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 11, FS10.5.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 11, FS10.5.
 - DALT files inspected: `docker-lab`, the Part 10 track manifest, and the former FS10.2 page.
 - Extracted material: "health is a question with a useful answer", "debug from evidence, in order", "non-root is a boundary, not a slogan", and the `depends_on`/`sleep` mistakes from the former FS10.2.
 - Verified in the lab: the honest stack reports `unhealthy` about ten seconds after the database stops; the naive stack still reported `app Up 26 seconds (healthy)` twenty seconds into the same outage.

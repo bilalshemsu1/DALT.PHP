@@ -192,11 +192,12 @@ The mutations work, but components now know too much HTTP detail; next we will m
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `REACT_DOCS.md`; `FSO_PART_02.md`.
+- Source dossier: React documentation research notes; Full Stack Open Part 2 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: MDN `fetch`, HTTP POST/PATCH/DELETE semantics, `Response.ok`, and 204 No Content; React event guidance.
 - Versions: React 19.2.3; TypeScript 5.9.3; PHP 8.4 fixture.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 5, FS04.3.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 5, FS04.3.
 - DALT files inspected: fixture POST/PATCH/DELETE contracts and lifecycle tests, including 201, 422, 200, and bodiless 204 behavior.
 - Reused material: confirmed updates, pending scope, method/body construction, 204 handling, and failure distinctions from former FS04.2.
 </details>

@@ -202,11 +202,12 @@ The browser/server boundary is explicit; Batch 6 crosses to the server and begin
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_02.md`; `REACT_DOCS.md`; TypeScript runtime-boundary material.
+- Source dossier: Full Stack Open Part 2 research notes; React documentation research notes; TypeScript runtime-boundary material.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: MDN `fetch`, `RequestInit`, `Response`, and `AbortSignal`; Vite environment-variable documentation; TypeScript `unknown` and narrowing.
 - Versions: React 19.2.3; TypeScript 5.9.3; Vite 8.0.12.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 5, FS04.4.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 5, FS04.4.
 - DALT files inspected: Part 04 fixture contracts, runtime-boundary lab parser, React starter TypeScript configuration, and executable lifecycle test.
 - Reused material: application-operation naming, shared request helper, runtime parsing, error normalization, environment configuration, and dependency direction from former FS04.3.
 </details>

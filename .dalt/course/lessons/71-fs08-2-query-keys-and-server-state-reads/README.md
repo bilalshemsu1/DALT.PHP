@@ -199,11 +199,12 @@ Next we will write through the same cache, and decide when optimism is worth its
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_06.md`, sections 25–34.
+- Source dossier: Full Stack Open Part 6 research notes, sections 25–34.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: TanStack Query v5 `useQuery` reference, Query Keys, Caching, Important Defaults, Disabling/Pausing Queries, and Testing guides.
 - Versions: `@tanstack/react-query` 5.102.0; React 19.2.3; Vitest 4.0.18; React Testing Library 16.3.2; TypeScript 5.9.3.
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 10, FS08.2.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 10, FS08.2.
 - DALT files inspected: `state-architecture-lab`, the Part 08 track manifest, and the former FS08.1 page.
 - Extracted material: the query-client, query-key, boring-query-function, five-state rendering, freshness-policy, and sign-out cache-clearing material from the former FS08.1.
 - Verified in the lab: a disabled query reports `isPending` true with `isLoading` false; a constant key serves one list from another's address.

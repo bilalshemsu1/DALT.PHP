@@ -157,12 +157,13 @@ That completes Part 11 and the theory track. The independent guided course at `/
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `POSTGRESQL_DOCS.md`.
+- Source dossier: PostgreSQL documentation research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: PostgreSQL 18 documentation on row security policies, `CREATE POLICY`, `ALTER TABLE … FORCE ROW LEVEL SECURITY`, `CREATE ROLE`, privileges, `set_config` / `current_setting`, and identity columns.
 - Versions: PostgreSQL 18.4 (`postgres@sha256:9a8afca5…`).
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 12, FS11.6.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 12, FS11.6.
 - DALT files inspected: `postgres-depth-lab`, the Part 11 track manifest, and the former FS11.2 page.
-- Extracted material: "add RLS as a database backstop", "prove RLS under the right role", and "policy lifecycle and connection safety" from the former FS11.2, which already carried the fixes recorded as F24–F26 in `docs/dalt-fullstack/WORKLOG.md`.
+- Extracted material: "add RLS as a database backstop", "prove RLS under the right role", and "policy lifecycle and connection safety" from the former FS11.2, which already carried the fixes recorded as F24–F26 in the internal Fullstack verification log.
 - Verified in the lab: every number and both errors above are real output. The sequence-grant guidance was re-tested against this schema — `GENERATED ALWAYS AS IDENTITY` needs no sequence grant, unlike `BIGSERIAL`, and the lesson now says which is which instead of repeating one case as universal.
 </details>

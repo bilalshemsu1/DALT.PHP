@@ -160,4 +160,6 @@ Before calling a unit complete, verify all of these:
 - every behavior claim was run against the current repository;
 - `composer test` is green and no challenge is active.
 
-The durable audit record is updated in `docs/AUDIT_COVERAGE.md`, `docs/FINDINGS_LEDGER.md`, and `docs/WORKLOG.md`. Coverage state is set only from evidence: `Implemented` means code exists, `Verified` means it was run in this session, and `Aligned` means the content and related challenges agree with the verified contract.
+Record the durable audit evidence in the pull request: the broken state, the genuine fix,
+the plausible incomplete fix, the commands executed, and the resulting output. A reviewer
+should be able to reproduce the claim without access to private maintainer notes.

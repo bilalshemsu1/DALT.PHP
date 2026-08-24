@@ -155,11 +155,12 @@ Next we will point the dependencies between features and shared code in one dire
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_07.md`, sections 10–35.
+- Source dossier: Full Stack Open Part 7 research notes, sections 10–35.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: React "Reusing Logic with Custom Hooks", "Rules of Hooks", `useEffect` reference and its cleanup semantics, and "You Might Not Need an Effect"; React Router `useSearchParams`.
 - Versions: React 19.2.3; React Router 7.18.2; Vitest 4.0.18; React Testing Library 16.3.2; TypeScript 5.9.3.
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 10, FS09.1.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 10, FS09.1.
 - DALT files inspected: the new `frontend-architecture-lab`, the Part 09 track manifest, and the former FS09.1 page.
 - Extracted material: the concept-not-wrapper rule, the "wrap a correct owner" warning, the Rules of Hooks examples, and the hook-naming rule from the former FS09.1. Its feature-boundary material moves to FS09.2.
 - Verified in the lab: the cleanup order above is the observed log, not an assumption.

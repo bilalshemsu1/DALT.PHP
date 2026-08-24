@@ -216,11 +216,12 @@ Next we will classify local, URL, session, and server state before introducing a
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_05.md`.
+- Source dossier: Full Stack Open Part 5 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: React Testing Library introduction and query priority; React Router MemoryRouter, Navigate, route, and URL-value documentation; Vitest mock functions; MDN HTTP 401 and 403.
 - Versions: React 19.2.3; React Router 7.18.2; Vitest 4.0.18; React Testing Library 16.3.2; TypeScript 5.9.3.
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 9, FS07.4.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 9, FS07.4.
 - DALT files inspected: the complete frontend-testing lab, Part 07 track manifest, and frontend lab execution guard.
 - Extracted material: MemoryRouter route tests, navigation assertions, test-level selection, session recovery, and authorization-boundary warnings from the former FS07.3 and FS07.2.
 </details>

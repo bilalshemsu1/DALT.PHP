@@ -363,6 +363,7 @@ jobs:
           fail=0
           for path in artisan composer.json README.md LICENSE SECURITY.md \
                       COMPATIBILITY.md CONTRIBUTING.md CODE_OF_CONDUCT.md CHANGELOG.md \
+                      LEARNING_MATERIALS.md documentation/sources-and-attribution.md \
                       .env.example public/index.php framework/Core/App.php \
                       .dalt/bootstrap.php documentation/framework-reference.md; do
             grep -qE "(^|/)$(echo "$path" | sed 's/[.]/[.]/g')$" /tmp/archive-contents.txt \

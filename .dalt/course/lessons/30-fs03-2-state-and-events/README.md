@@ -138,11 +138,12 @@ State works; next we will decide what state should exist and which component sho
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `REACT_DOCS.md`; `FSO_PART_01.md`.
+- Source dossier: React documentation research notes; Full Stack Open Part 1 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: React Learn, *Responding to Events*, *State: A Component's Memory*, *State as a Snapshot*, and *Queueing a Series of State Updates*.
 - Versions: React 19.2.3; TypeScript 5.9.3.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 4, FS03.4.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 4, FS03.4.
 - DALT files inspected: React foundations starter `App.tsx`, `IssueList.tsx`, and strict TypeScript configuration.
 - Reused material: former FS03.2 event, Hook-order, state-snapshot, and batching explanations.
 </details>

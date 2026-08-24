@@ -183,11 +183,12 @@ The happy path loads; next we will model loading, empty, failure, cleanup, and c
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `REACT_DOCS.md`; `FSO_PART_02.md`.
+- Source dossier: React documentation research notes; Full Stack Open Part 2 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: React Learn, *Synchronizing with Effects* and *You Might Not Need an Effect*; MDN `fetch`, `Response.ok`, and JSON response behavior.
 - Versions: React 19.2.3; TypeScript 5.9.3; PHP 8.4 fixture.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 5, FS04.1.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 5, FS04.1.
 - DALT files inspected: Part 04 fixture API, React starter issue model, Vite origin, and executable lifecycle test.
 - Reused material: Effect timing, dependency, HTTP-status, and runtime-boundary material from former FS04.1.
 </details>

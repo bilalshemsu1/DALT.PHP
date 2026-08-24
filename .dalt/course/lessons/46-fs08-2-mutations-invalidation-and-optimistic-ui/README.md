@@ -155,11 +155,12 @@ Next we will decide when client state genuinely needs Context, a reducer, or a s
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_PART_06.md`, sections 25–34 and 40–46.
+- Source dossier: Full Stack Open Part 6 research notes, sections 25–34 and 40–46.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: TanStack Query v5 Mutations, Invalidations from Mutations, Query Invalidation, and Optimistic Updates guides; the `MutationOptions` callback types in `query-core`.
 - Versions: `@tanstack/react-query` 5.102.0; React 19.2.3; Vitest 4.0.18; React Testing Library 16.3.2; TypeScript 5.9.3.
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 10, FS08.3.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 10, FS08.3.
 - DALT files inspected: `state-architecture-lab`, the Part 08 track manifest, and the former FS08.2 page.
 - Extracted material: invalidation, pending-state honesty, failure classification, and the optimism trade-off from the former FS08.2. Its four-callback section is corrected here: the current signatures carry `onMutateResult` third and a mutation context last.
 - Verified in the lab: deleting `onError` leaves the naive rollback test green, because `onSettled` refetches the same value. The shipped test blocks reads so the rollback is what is being measured.

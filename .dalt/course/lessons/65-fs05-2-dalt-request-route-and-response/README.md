@@ -192,10 +192,11 @@ We can now place server code correctly; next we will define and enforce the JSON
 <details><summary>Maintainer source record</summary>
 
 - Source dossier: former Part 05 API material and DALT framework contracts.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: PHP manual request-variable and output-control material; RFC 9110 HTTP semantics.
 - Versions: DALT current repository behavior; PHP 8.2 minimum.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 6, FS05.2.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 6, FS05.2.
 - DALT files inspected: `public/index.php`, `routes/routes.php`, `app/Http/controllers/welcome.php`, `framework/Core/Request.php`, `Router.php`, `Route.php`, `Response.php`, `Container.php`, `tests/Unit/RouterTest.php`, and `tests/Feature/RequestLifecycleTest.php`.
 - Reused material: route, controller, response, and status explanations extracted from former FS05.1.
 </details>

@@ -191,11 +191,12 @@ The relationships are explicit; next we will evolve this first schema with order
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `FSO_RELATIONAL_DATABASES.md`; `POSTGRESQL_DOCS.md`.
+- Source dossier: Full Stack Open Relational Databases research notes; PostgreSQL documentation research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: PostgreSQL 18 documentation for table basics, identity columns, primary keys, foreign keys, nullability, referential actions, and joins; Docker Official Image tag listing.
 - Versions: PostgreSQL 18.4, official image digest `sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15`; PHP 8.2 minimum.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 7, FS05.4.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 7, FS05.4.
 - DALT files inspected: `framework/Core/Database.php`, `Migration.php`, `config/database.php`, `artisan`, and migration tests.
 - Reused material: normalization, key relationships, nullability, delete-policy, and join explanations from former FS05.2.
 </details>

@@ -211,11 +211,12 @@ Part 05 now has an honest API and persistent relational core; Batch 8 begins by 
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `POSTGRESQL_DOCS.md`; `FSO_RELATIONAL_DATABASES.md`.
+- Source dossier: PostgreSQL documentation research notes; Full Stack Open Relational Databases research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: PostgreSQL 18 transaction tutorial, transaction commands, failed-transaction behavior, and SQLSTATE appendix; PHP manual for PDO transactions and exceptions.
 - Versions: PostgreSQL 18.4 pinned by the shared lab image digest; PHP PDO from the repository runtime.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 7, FS05.7.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 7, FS05.7.
 - DALT files inspected: `framework/Core/Database.php`, `Migration.php`, response/error handling, and the existing API behavior transaction tests.
 - Reused material: business-event boundaries, PDO begin/commit/rollback flow, rollback evidence, and failure classification split from former FS05.3.
 </details>

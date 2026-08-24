@@ -126,11 +126,12 @@ Our UI now reflects fixed input; next we will let events request state changes a
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `REACT_DOCS.md`; `FSO_PART_01.md`.
+- Source dossier: React documentation research notes; Full Stack Open Part 1 research notes.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: React Learn, *Rendering Lists* and *Conditional Rendering*.
 - Versions: React 19.2.3; TypeScript 5.9.3.
 - Consulted: 2026-08-22.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 4, FS03.3.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 4, FS03.3.
 - DALT files inspected: React foundations starter `IssueList.tsx`, its rendering tests, and `issue.ts`.
 - Reused material: list transformation, empty-state, stable-key, and conditional-rendering material extracted from former FS03.1.
 </details>

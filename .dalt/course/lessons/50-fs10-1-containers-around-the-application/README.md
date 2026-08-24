@@ -141,11 +141,12 @@ Next we will write the recipe down, so the image can be rebuilt without remember
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `DOCKER_DOCS.md` and `FSO_CONTAINERS.md`, sections 1–12.
+- Source dossier: Docker documentation research notes and Full Stack Open Containers research notes, sections 1–12.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: Docker `run` reference, published-port and bind-mount documentation, image pull-by-digest guidance, and the "containers are processes" overview.
 - Versions: Docker 29.7.2; Docker Compose 5.4.0; `php@sha256:f78661…` (PHP 8.4.24).
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 11, FS10.1.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 11, FS10.1.
 - DALT files inspected: the new `docker-lab`, the Part 10 track manifest, and the former FS10.1 page.
 - Extracted material: "start with a process, not a box", the published-port explanation, and the container-lifecycle section from the former FS10.1. Compose, volumes, and build context move to FS10.2–FS10.4.
 - Verified in the lab: the transcript above is real output; the host PID differs from the in-container PID 1, and the hostname is the container id.

@@ -160,11 +160,12 @@ Next we will make startup order and health mean something, and look at what a co
 
 <details><summary>Maintainer source record</summary>
 
-- Source dossier: `DOCKER_DOCS.md` and `FSO_CONTAINERS.md`, sections 41–56.
+- Source dossier: Docker documentation research notes and Full Stack Open Containers research notes, sections 41–56.
+- Public source index: `documentation/sources-and-attribution.md` in the public repository
 - Official sources: Compose file reference for `services`, `depends_on`, `ports`, `environment`, and `volumes`; Compose networking documentation; the official PostgreSQL image's initialisation-scripts and `PGDATA` documentation.
 - Versions: Docker 29.7.2; Docker Compose 5.4.0; `postgres@sha256:9a8afca5…` (PostgreSQL 18.4).
 - Consulted: 2026-08-23.
-- Curriculum authority: `docs/dalt-fullstack-theory/CURRICULUM.md`, Batch 11, FS10.4.
+- Curriculum authority: DALT Fullstack theory curriculum, Batch 11, FS10.4.
 - DALT files inspected: `docker-lab`, the Part 10 track manifest, and the former FS10.1 page.
 - Extracted material: "Compose describes relationships", "persistent data needs an explicit owner", "networks are private roads, published ports are gates", and "configuration chooses a deployment" from the former FS10.1.
 - Verified in the lab: every transcript above is real output, including the 4 → 4 → 3 row counts and the PostgreSQL 18 volume path, which is `/var/lib/postgresql` with `PGDATA=/var/lib/postgresql/18/docker`.
