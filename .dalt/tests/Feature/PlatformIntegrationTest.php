@@ -49,6 +49,18 @@ test('the real front controller serves guided learning when the platform is inst
         ->and($response->body)->toContain('Keep building your backend instincts.');
 });
 
+test('the application welcome page points to learning and its removal command', function () {
+    $response = (new ApplicationTestClient())->request('GET', '/');
+
+    expect($response->exitCode)->toBe(0)
+        ->and($response->statusCode)->toBe(200)
+        ->and($response->error)->toBeNull()
+        ->and($response->body)->toContain('href="/learn"')
+        ->and($response->body)->toContain('Open learning')
+        ->and($response->body)->toContain('php artisan platform:remove')
+        ->and($response->body)->not->toContain('View on GitHub');
+});
+
 test('the real front controller serves catalog lessons and their validated challenge relationship', function () {
     $client = new ApplicationTestClient();
     $lesson = $client->request('GET', '/learn/lessons/11-dalt-db-layer');
@@ -86,6 +98,8 @@ test('the packaged application boots and serves app routes without the platform 
             ->and($response->error)->toBeNull()
             ->and($response->stderr)->toBe('')
             ->and($response->body)->toContain('<title>DALT.PHP</title>')
+            ->and($response->body)->toContain('The learning platform has been removed.')
+            ->and($response->body)->not->toContain('href="/learn"')
             ->and($platformResponse->exitCode)->toBe(0)
             ->and($platformResponse->statusCode)->toBe(404)
             ->and($platformResponse->error)->toBeNull()
