@@ -6,13 +6,16 @@ use Tests\Support\ApplicationTestClient;
 
 test('the front controller serves the application welcome route', function () {
     $response = (new ApplicationTestClient())->request('GET', '/');
+    $heading = is_dir(base_path('.dalt'))
+        ? 'Your framework is ready.'
+        : 'Your clean framework is ready.';
 
     expect($response->exitCode)->toBe(0)
         ->and($response->statusCode)->toBe(200)
         ->and($response->error)->toBeNull()
         ->and($response->stderr)->toBe('')
         ->and($response->body)->toContain('<title>DALT.PHP</title>')
-        ->and($response->body)->toContain('<h1 id="welcome-title">Your framework is ready.</h1>')
+        ->and($response->body)->toContain('<h1 id="welcome-title">' . $heading . '</h1>')
         ->and($response->body)->not->toContain('Build backends you can actually understand.');
 });
 
