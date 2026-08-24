@@ -81,6 +81,12 @@ tested compatibility promise instead of a beta disclaimer.
 - `Router::only()` raised "Using null as an array offset is deprecated" on PHP 8.5 when
   called before any route was registered, on its way to throwing the intended
   `LogicException`.
+- **`composer.lock` could not be installed on PHP 8.2 or 8.3.** Regenerating it on a
+  machine running 8.4 resolved Symfony 8.1.x, which requires PHP >= 8.4.1, so
+  `composer create-project` failed outright on two of the four supported versions with
+  "Your lock file does not contain a compatible set of packages". `config.platform.php`
+  is now pinned to `8.2.0`, so the lockfile always resolves for the lowest version the
+  package claims to support rather than for whoever last ran `composer update`.
 
 ### Removed
 

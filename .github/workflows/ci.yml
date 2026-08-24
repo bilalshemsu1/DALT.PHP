@@ -393,10 +393,19 @@ jobs:
 
       - name: Remove the platform from the installed artifact
         working-directory: /tmp/newproject
+        # No `php artisan test` here. Root `tests/` is export-ignored on purpose, so
+        # the distributed package has no test suite to run and artisan's test command
+        # fails on the missing directory. The suite half of the removal proof belongs
+        # to the `skeleton` job, which does it on a full checkout. What this step can
+        # prove — and what a user actually experiences — is that the application still
+        # boots and serves once the course is gone.
         run: |
           php artisan platform:remove --force
-          test ! -d .dalt
-          php artisan test
+          test ! -d .dalt || { echo "::error::.dalt/ survived platform:remove in the artifact."; exit 1; }
+          test ! -d tests && echo "confirmed: the package ships no root tests/ (export-ignore)"
+          for path in app config database public routes resources storage artisan composer.json; do
+            test -e "$path" || { echo "::error::platform:remove deleted $path from the artifact"; exit 1; }
+          done
           php artisan serve 127.0.0.1 8101 &
           for i in $(seq 1 30); do
             code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8101/ || true)
@@ -442,12 +451,25 @@ jobs:
             exit 1
           fi
 
-      - name: No tracked file is empty
+      - name: No authored file is empty
+        # Scoped to authored source. Generated build output is exempt: a CSS-only
+        # Vite entry legitimately emits a zero-byte JS chunk, and the manifest
+        # references it, so `public/build/assets/app-*.js` is 0 bytes by design.
+        #
+        # Written with `find -print0` rather than a `while read` chain. The chain
+        # version ended each loop with a failing test on any non-empty file, and
+        # under `bash -e` that exit status propagated out of the command
+        # substitution and killed the step — reporting a failure with no message
+        # while there was nothing wrong.
         run: |
-          empty=$(git ls-files | while read -r f; do
-            [ -f "$f" ] && [ ! -s "$f" ] && [ "$(basename "$f")" != ".gitkeep" ] && echo "$f"
-          done)
+          empty=$(git ls-files -z \
+            | grep -zvE '^(public/build/|\.dalt/build/)' \
+            | grep -zvE '(^|/)\.gitkeep$' \
+            | xargs -0 -r -I{} sh -c '[ -f "{}" ] && [ ! -s "{}" ] && echo "{}"' \
+            || true)
           if [ -n "$empty" ]; then
-            echo "::error::Empty tracked files: $empty"
+            echo "::error::Empty authored files are tracked:"
+            echo "$empty"
             exit 1
           fi
+          echo "No empty authored files."

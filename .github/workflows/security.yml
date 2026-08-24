@@ -56,11 +56,23 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: gitleaks
-        uses: gitleaks/gitleaks-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_CONFIG: .gitleaks.toml
+      # Pinned to the exact version this config was written and validated against,
+      # rather than whatever the marketplace action happens to bundle. The action
+      # shipped 8.24.3, which does not understand the current top-level
+      # [[allowlists]] table — it ignored the allowlist entirely and reported five
+      # findings that 8.30.1 correctly passes. A scanner whose verdict depends on
+      # which version turned up is not a check; it is a coin toss.
+      - name: Secret scan — working tree
+        run: |
+          docker run --rm -v "$PWD":/repo -w /repo \
+            zricethezav/gitleaks:v8.30.1 \
+            dir /repo --config /repo/.gitleaks.toml --no-banner --redact
+
+      - name: Secret scan — full history
+        run: |
+          docker run --rm -v "$PWD":/repo -w /repo \
+            zricethezav/gitleaks:v8.30.1 \
+            git /repo --config /repo/.gitleaks.toml --no-banner --redact
 
       - name: Credential-shaped filenames
         # A scanner that reads file contents will not notice a committed key file
@@ -109,7 +121,7 @@ jobs:
             printf 'STRIPE_KEY=sk_live_51%s\n' "$(head -c 12 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 22)"
           } > .dalt/course/guided-build/SCAN_PROBE.md
 
-          if docker run --rm -v "$PWD":/repo zricethezav/gitleaks:latest \
+          if docker run --rm -v "$PWD":/repo zricethezav/gitleaks:v8.30.1 \
                dir /repo --config /repo/.gitleaks.toml --no-banner --redact; then
             outcome=clean
           else
@@ -124,5 +136,5 @@ jobs:
           echo "Planted secrets were detected; the allowlist is still narrow enough to be useful."
 
           # And the tree without them must be clean, or the step above proves nothing.
-          docker run --rm -v "$PWD":/repo zricethezav/gitleaks:latest \
+          docker run --rm -v "$PWD":/repo zricethezav/gitleaks:v8.30.1 \
             dir /repo --config /repo/.gitleaks.toml --no-banner --redact
