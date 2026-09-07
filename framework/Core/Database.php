@@ -25,13 +25,35 @@ class Database
         $charset = $driver === 'pgsql' ? self::pgsqlValue($config, 'charset', 'utf8') : '';
         $dsn = $this->buildDsn($driver, $config);
 
+        $options = [
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_STRINGIFY_FETCHES => false,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ];
+
+        if ($driver === 'mysql') {
+            // Unlike pdo_pgsql, pdo_mysql runs multiple semicolon-separated
+            // statements per call unless told not to. Disable that so a single
+            // injected statement cannot be amplified into stacked destructive
+            // ones. These attributes moved to Pdo\Mysql on PHP 8.5; the legacy
+            // names are fine on 8.2-8.4.
+            $multiStatements = defined('Pdo\\Mysql::ATTR_MULTI_STATEMENTS')
+                ? constant('Pdo\\Mysql::ATTR_MULTI_STATEMENTS')
+                : PDO::MYSQL_ATTR_MULTI_STATEMENTS;
+            $bufferedQuery = defined('Pdo\\Mysql::ATTR_USE_BUFFERED_QUERY')
+                ? constant('Pdo\\Mysql::ATTR_USE_BUFFERED_QUERY')
+                : PDO::MYSQL_ATTR_USE_BUFFERED_QUERY;
+            $options[$multiStatements] = false;
+            // Native prepares (EMULATE_PREPARES=false) use unbuffered queries by
+            // default, which makes a later statement fail with SQLSTATE 2014 as
+            // soon as migration SQL leaves a result pending (e.g. a trailing
+            // diagnostic SELECT). Buffering removes that landmine entirely.
+            $options[$bufferedQuery] = true;
+        }
+
         try {
-            $this->connection = new PDO($dsn, $username, $password, [
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_STRINGIFY_FETCHES => false,
-                PDO::ATTR_EMULATE_PREPARES => false,
-            ]);
+            $this->connection = new PDO($dsn, $username, $password, $options);
 
             if ($driver === 'pgsql') {
                 $this->connection->exec('SET NAMES ' . $this->connection->quote($charset));

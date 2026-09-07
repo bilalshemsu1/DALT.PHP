@@ -206,3 +206,29 @@ test('MySQL matches the query and fetch contract when test infrastructure is con
         $database->query("DROP TABLE IF EXISTS `{$table}`");
     }
 });
+
+test('MySQL connections reject stacked queries (multi-statement protection)', function () {
+    $json = getenv('DALT_TEST_MYSQL_CONFIG');
+
+    if (!is_string($json) || $json === '') {
+        $this->markTestSkipped('Set DALT_TEST_MYSQL_CONFIG to run the MySQL security check.');
+    }
+
+    $config = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+
+    if (!is_array($config)) {
+        throw new RuntimeException('DALT_TEST_MYSQL_CONFIG must decode to an object.');
+    }
+
+    $database = DatabaseManager::create($config);
+    $database->query('DROP TABLE IF EXISTS dalt_f08_stack_a, dalt_f08_stack_b');
+
+    // pdo_mysql accepts semicolon-separated statements by default. The framework
+    // disables that so a single injected statement cannot be amplified into a
+    // stacked destructive one. A stacked statement must therefore fail.
+    expect(fn () => $database->getConnection()->exec(
+        'CREATE TABLE dalt_f08_stack_a (v INT); CREATE TABLE dalt_f08_stack_b (v INT);',
+    ))->toThrow(PDOException::class);
+
+    $database->query('DROP TABLE IF EXISTS dalt_f08_stack_a, dalt_f08_stack_b');
+});

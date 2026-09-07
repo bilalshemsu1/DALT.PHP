@@ -120,10 +120,19 @@ final class Migration
         $connection = $this->database->getConnection();
 
         // MySQL implicitly commits on DDL (CREATE TABLE/INDEX), so a surrounding
-        // transaction cannot be honoured and would fail on commit/rollback.
+        // transaction cannot be honoured and would fail on commit/rollback. It
+        // also rejects multiple statements per call (stacked-query protection),
+        // so a multi-statement migration file runs one statement at a time.
         if ($this->driver() === 'mysql') {
             try {
-                $connection->exec($sql);
+                foreach ($this->splitStatements($sql) as $statement) {
+                    // Drain the full result: pdo_mysql's exec() leaves a pending
+                    // rowset behind for statements that return rows (e.g. a
+                    // diagnostic SELECT), and the next query then fails with
+                    // SQLSTATE 2014 even with buffering enabled.
+                    $statement = $connection->query($statement);
+                    $statement->fetchAll();
+                }
                 $this->markAsRun($migration, $batch);
             } catch (Throwable $exception) {
                 throw new RuntimeException(
@@ -275,5 +284,122 @@ final class Migration
         $sql = preg_replace('/\bCREATE\s+(UNIQUE\s+)?INDEX\s+IF\s+NOT\s+EXISTS\b/i', 'CREATE $1INDEX', $sql) ?? $sql;
 
         return trim($sql);
+    }
+
+    /**
+     * Split pooled SQL into individual statements, keeping semicolons inside
+     * quoted strings and SQL comments intact.
+     *
+     * @return list<string>
+     */
+    private function splitStatements(string $sql): array
+    {
+        $statements = [];
+        $current = '';
+        $singleQuoted = false;
+        $doubleQuoted = false;
+        $lineComment = false;
+        $blockComment = false;
+        $length = strlen($sql);
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $sql[$i];
+            $next = $sql[$i + 1] ?? '';
+
+            if ($lineComment) {
+                $current .= $char;
+
+                if ($char === "\n") {
+                    $lineComment = false;
+                }
+
+                continue;
+            }
+
+            if ($blockComment) {
+                $current .= $char;
+
+                if ($char === '*' && $next === '/') {
+                    $current .= '/';
+                    $i++;
+                    $blockComment = false;
+                }
+
+                continue;
+            }
+
+            if ($singleQuoted) {
+                $current .= $char;
+
+                if ($char === "'" && $next === "'") {
+                    $current .= "'";
+                    $i++;
+                } elseif ($char === "'") {
+                    $singleQuoted = false;
+                }
+
+                continue;
+            }
+
+            if ($doubleQuoted) {
+                $current .= $char;
+
+                if ($char === '"' && $next === '"') {
+                    $current .= '"';
+                    $i++;
+                } elseif ($char === '"') {
+                    $doubleQuoted = false;
+                }
+
+                continue;
+            }
+
+            if ($char === '-' && $next === '-') {
+                $lineComment = true;
+                $current .= '--';
+                $i++;
+                continue;
+            }
+
+            if ($char === '/' && $next === '*') {
+                $blockComment = true;
+                $current .= '/*';
+                $i++;
+                continue;
+            }
+
+            if ($char === "'") {
+                $singleQuoted = true;
+                $current .= $char;
+                continue;
+            }
+
+            if ($char === '"') {
+                $doubleQuoted = true;
+                $current .= $char;
+                continue;
+            }
+
+            if ($char === ';') {
+                $statement = trim($current);
+
+                if ($statement !== '') {
+                    $statements[] = $statement;
+                }
+
+                $current = '';
+                continue;
+            }
+
+            $current .= $char;
+        }
+
+        $statement = trim($current);
+
+        if ($statement !== '') {
+            $statements[] = $statement;
+        }
+
+        return $statements;
     }
 }
